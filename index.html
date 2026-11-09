@@ -223,6 +223,16 @@ i.ugav{display:block}
 .ugdonebar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px;padding:14px;border-radius:16px;background:var(--s2);border:1px solid var(--bd)}.ugdonebar span{color:var(--mu)}.ugfin:disabled{opacity:.45}
 .ugdate{border:1px solid var(--bd);border-radius:16px;margin-bottom:10px;padding:4px 12px 8px;background:var(--s2)}.ugdate summary{cursor:pointer;display:flex;gap:10px;align-items:baseline;padding:10px 2px;list-style:none}.ugdate summary::-webkit-details-marker{display:none}.ugdate summary small{color:var(--mu)}.ugdate .ugaz{max-height:none;overflow:visible}.ugdate .ugl{background:var(--s2)}
 .ugposl{margin:0 0 4px;padding:6px 12px;border-radius:12px;background:color-mix(in srgb,var(--ac) 14%,transparent);display:inline-block}.ugposl small{color:var(--mu)}
+/* ---- membership + time ---- */
+.ugmb{font-style:normal;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:linear-gradient(135deg,#f5c542,#ff9f1c);color:#3a2600;margin-left:6px;white-space:nowrap}
+.ugmf .ugoc{font-size:13px}
+.ugage-1{background:var(--bd)!important;color:var(--tx)!important}.ugage-2{background:#f5a524!important;color:#3a2600!important}
+.ugstrip{border:1px solid var(--bd);background:var(--s2);border-radius:18px;padding:14px 16px;margin-bottom:12px;display:grid;gap:8px}
+.ugstrip-t{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}.ugstrip-t span{color:var(--mu);font-size:13px}.ugstrip-t span b{color:var(--ac)}
+.ugbars{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;align-items:end;height:54px}.ugbars i{display:block;height:max(4px,var(--h));background:color-mix(in srgb,var(--ac) 55%,transparent);border-radius:4px;transform-origin:bottom;animation:ugBar .6s cubic-bezier(.34,1.56,.44,1) both}.ugbars i.now{background:var(--ac);box-shadow:0 0 12px var(--ac)}
+@keyframes ugBar{from{transform:scaleY(.1);opacity:0}}
+.ugscale{display:flex;justify-content:space-between;color:var(--mu);font-size:11px}
+.ugkpi{display:flex;gap:18px;flex-wrap:wrap;color:var(--mu);font-size:13px}.ugkpi b{color:var(--tx);font-size:16px;margin-right:3px}
 /*LIQUID:START*/
 .lqw{container-type:inline-size;width:100%}
 .lq{position:relative;overflow:hidden;isolation:isolate;aspect-ratio:4/5;border-radius:8cqw;color:#fff;background:linear-gradient(150deg,var(--a),var(--b));
@@ -1103,42 +1113,51 @@ const ugPosKey=a=>ugPosName(a).toLowerCase().replace(/\s+/g,' ');
 const ugDayKey=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const ugDayName=t=>{const d=new Date(t),n=new Date(),k=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime(),df=Math.round((k(n)-k(d))/864e5),full=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short',year:'numeric'});return df<=0?'Today · '+full:df==1?'Yesterday · '+full:full};
 const ugEnc=encodeURIComponent;
+const ugMem=a=>!!(a.data&&a.data.member);
+const ugMF=list=>{const f=ui.ug.mf||'all';return f=='mem'?list.filter(ugMem):f=='non'?list.filter(a=>!ugMem(a)):list};
+function ugMemChips(list){const f=ui.ug.mf||'all',m=list.filter(ugMem).length;return`<div class="ugfl ugmf" role=radiogroup aria-label="Membership"><button role=radio aria-checked=${f=='all'} class="ugoc ${f=='all'?'on':''}" data-a="ugmem|all">All · ${list.length}</button><button role=radio aria-checked=${f=='mem'} class="ugoc ${f=='mem'?'on':''}" data-a="ugmem|mem">⭐ Members · ${m}</button><button role=radio aria-checked=${f=='non'} class="ugoc ${f=='non'?'on':''}" data-a="ugmem|non">Non-members · ${list.length-m}</button></div>`}
+const ugAgeT=t=>{const h=(Date.now()-t)/36e5;return h<1?0:h<24?1:2};
+const ugAgeL=t=>{const m=Math.floor((Date.now()-t)/6e4);return m<1?'just now':m<60?m+' min':m<1440?Math.floor(m/60)+' h':Math.floor(m/1440)+' d'};
 function ugVT(fn){const go=()=>{fn();refreshMain();ugHydrate($('#main'))};if(document.startViewTransition&&!matchMedia('(prefers-reduced-motion:reduce)').matches){const v=document.startViewTransition(go);[v.ready,v.finished,v.updateCallbackDone].forEach(p=>p.catch(()=>{}))}else go()}
-function ugRow(a){const g=ui.ug;return`<button class="ugrow" style="view-transition-name:ugr-${a.id}" data-a="ugopen|${a.id}"><img class=ugav alt="" data-ugimg="${a.id}:0" style="view-transition-name:${g.open==a.id?'none':'uga-'+a.id}"><div><b>${esc(a.data.name)}</b><small>${esc(ugPosName(a))} · ${agoT(a.got)}</small></div>${a.status=='done'?`<span class="ugout o-${a.outcome}">${UGL[a.outcome]||''}</span>`:'<span class=ugnew>New</span>'}</button>`}
+function ugRow(a){const g=ui.ug,tier=ugAgeT(a.got);return`<button class="ugrow" style="view-transition-name:ugr-${a.id}" data-a="ugopen|${a.id}"><img class=ugav alt="" data-ugimg="${a.id}:0" style="view-transition-name:${g.open==a.id?'none':'uga-'+a.id}"><div><b>${esc(a.data.name)}${ugMem(a)?' <i class=ugmb title="Member of Elite Jobs Rwanda">⭐ Member</i>':''}</b><small>${esc(ugPosName(a))} · ${agoT(a.got)}</small></div>${a.status=='done'?`<span class="ugout o-${a.outcome}">${UGL[a.outcome]||''}</span>`:`<span class="ugnew ugage-${tier}">${tier==0?'New':'Waiting '+ugAgeL(a.got)}</span>`}</button>`}
+function ugDayStrip(list){const h=Array(24).fill(0);list.forEach(a=>h[new Date(a.reviewedAt).getHours()]++);const mx=Math.max(1,...h),now=new Date().getHours(),coming=list.filter(a=>a.outcome=='coming').length,mem=list.filter(ugMem).length;
+ return`<div class=ugstrip><div class=ugstrip-t><b>${ugDayName(Date.now())}</b><span>Starts fresh in <b id=ugcd>${ugCd()}</b> — everything stays in Job data</span></div><div class=ugbars aria-label="Calls per hour today">${h.map((n,i)=>`<i class="${i==now?'now':''}" style="--h:${Math.round(n/mx*100)}%" title="${String(i).padStart(2,'0')}:00 — ${n} call${n==1?'':'s'}"></i>`).join('')}</div><div class=ugscale><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+ <div class=ugkpi><span><b>${list.length}</b> called</span><span><b>${coming}</b> coming on site</span><span><b>${mem}</b> members</span><span><b>${list.length?Math.round(coming/list.length*100):0}%</b> success</span></div></div>`}
+const ugCd=()=>{const n=new Date(),ms=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1)-n;return Math.floor(ms/36e5)+'h '+String(Math.floor(ms%36e5/6e4)).padStart(2,'0')+'m'};
 function ugRevData(){const apps=ui.ug.apps||[],today=ugDayKey(Date.now()),done=apps.filter(a=>a.status=='done');
  return{waiting:apps.filter(a=>a.status=='new').sort((a,b)=>a.got-b.got),called:done.filter(a=>!a.archivedAt).sort((a,b)=>b.reviewedAt-a.reviewedAt),today:done.filter(a=>ugDayKey(a.reviewedAt)==today),saved:done.filter(a=>a.archivedAt)}}
 function ugBy(list){const m=new Map();list.forEach(a=>{const k=ugPosKey(a);let g=m.get(k);if(!g){g={key:k,name:ugPosName(a),list:[]};m.set(k,g)}g.list.push(a)});return m}
 function ugAZ(items,mk){const L=items.slice().sort((a,b)=>a.name.localeCompare(b.name));let out='',cur='';L.forEach(x=>{const l=(x.name[0]||'#').toUpperCase();if(l!=cur){cur=l;out+=`<div class=ugl>${esc(l)}</div>`}out+=mk(x)});return`<div class=ugaz>${out||'<div class=empty style="grid-column:1/-1">Nothing matches your search.</div>'}</div>`}
 const ugQ=t=>String((ui.ug.q||{})[t]||'').trim().toLowerCase();
 const ugFlags=list=>{const c={};list.forEach(a=>c[a.outcome]=(c[a.outcome]||0)+1);return Object.entries(UGL).filter(([k])=>c[k]).map(([k,l])=>`<i class="ugout o-${k}">${c[k]} ${l}</i>`).join('')};
-function ugApplicants(list,f){const c={};list.forEach(a=>c[a.outcome]=(c[a.outcome]||0)+1);const L=list.filter(a=>!f||a.outcome==f);
- return`<div class=ugfl><button class="ugoc ${f?'':'on'}" data-a="ugflag|">All · ${list.length}</button>${Object.entries(UGL).filter(([k])=>c[k]).map(([k,l])=>`<button class="ugoc o-${k} ${f==k?'on':''}" data-a="ugflag|${k}">${l} · ${c[k]}</button>`).join('')}</div><div class=ugdaylist>${L.map(ugRow).join('')}</div>`}
+function ugApplicants(list0,f){const list=ugMF(list0),c={};list.forEach(a=>c[a.outcome]=(c[a.outcome]||0)+1);const L=list.filter(a=>!f||a.outcome==f);
+ return`${ugMemChips(list0)}<div class=ugfl><button class="ugoc ${f?'':'on'}" data-a="ugflag|">All results · ${list.length}</button>${Object.entries(UGL).filter(([k])=>c[k]).map(([k,l])=>`<button class="ugoc o-${k} ${f==k?'on':''}" data-a="ugflag|${k}">${l} · ${c[k]}</button>`).join('')}</div><div class=ugdaylist>${L.map(ugRow).join('')||'<div class=empty>No one in this group.</div>'}</div>`}
 function ugRevHead(t){const g=ui.ug;
  if(t=='new'&&g.vNew||t=='daily'&&g.vDay||t=='data'&&g.vData||t=='called')return'';
  const ph=t=='new'?'Search a position, for example barman':t=='daily'?'Search today’s positions':'Search a position in the saved data';
  return`<div class=ugsearch><input type=search data-ugq="${t}" placeholder="${ph}" value="${esc((g.q||{})[t]||'')}" autocomplete=off aria-label="Search positions">${t=='new'?`<button class="ugoc ${g.only?'on':''}" data-a=ugonly>Waiting only</button>`:''}</div>`}
 function ugRevList(t){const g=ui.ug,D=ugRevData(),q=ugQ(t);
- if(t=='called')return D.called.length?`<small class=sub>People you called who are not saved yet. Pressing Done on a position saves them; if you forget, they save by themselves at 00:00.</small><div class=ugdaylist>${D.called.map(ugRow).join('')}</div>`:'<div class=empty>People you’ve called wait here until you press Done on their position.</div>';
+ if(t=='called')return D.called.length?`<small class=sub>People you called who are not saved yet. Pressing Done on a position saves them; if you forget, they save by themselves at 00:00.</small>${ugMemChips(D.called)}<div class=ugdaylist>${ugMF(D.called).map(ugRow).join('')||'<div class=empty>No one in this group.</div>'}</div>`:'<div class=empty>People you’ve called wait here until you press Done on their position.</div>';
  if(t=='new'){
   const by=ugBy(D.waiting),calledBy=ugBy(D.called);
   if(g.vNew){const k=g.vNew,w=by.get(k),cl=calledBy.get(k),name=w?w.name:cl?cl.name:(EJ_POS_ALL.find(x=>x.n.toLowerCase()==k)||{n:k}).n,nc=cl?cl.list.length:0;
    return`<button class=ugback data-a="ugopenpos|new|">← All positions</button><h4 class=ugpn>${esc(name)} <em class=ugn>${w?w.list.length:0}</em></h4>
-   ${w?`<small class=sub>Open one, call the person, then tell the Hub what happened.</small><div class=ugdaylist>${w.list.map(ugRow).join('')}</div>`:'<div class=empty>No one is waiting in this position.</div>'}
+   ${w?`<small class=sub>Open one, call the person, then tell the Hub what happened. Oldest waiting first.</small>${ugMemChips(w.list)}<div class=ugdaylist>${ugMF(w.list).map(ugRow).join('')||'<div class=empty>No one in this group.</div>'}</div>`:'<div class=empty>No one is waiting in this position.</div>'}
    <div class=ugdonebar><span>${nc?`${nc} called in this position`:'Call at least one person first'}</span><button class="b p ugfin" data-a="ugfinish|${ugEnc(k)}" ${nc?'':'disabled'}>Done${nc?' — save '+nc+' to Daily review':''}</button></div>`}
   const items=[],seen=new Set();EJ_POS_ALL.forEach(x=>{const k=x.n.toLowerCase();seen.add(k);items.push({name:x.n,key:k,cat:x.c})});by.forEach((v,k)=>{if(!seen.has(k))items.push({name:v.name,key:k,cat:'Typed by applicants'})});
   const L=items.filter(x=>(!q||x.name.toLowerCase().includes(q)||x.cat.toLowerCase().includes(q))&&(!g.only||by.has(x.key)));
-  return ugAZ(L,x=>{const w=by.has(x.key)?by.get(x.key).list.length:0;return`<button class="ugpt ${w?'has':''}" data-a="ugopenpos|new|${ugEnc(x.key)}"><span class=ugpi>${w?'📌':'🔹'}</span><span><b>${esc(x.name)}</b><small>${esc(x.cat)}${w?' · '+w+' waiting':''}</small></span>${w?`<em class=ugn>${w}</em>`:''}</button>`})}
+  return ugAZ(L,x=>{const w=by.has(x.key)?by.get(x.key).list.length:0;return`<button class="ugpt ${w?'has':''}" data-a="ugopenpos|new|${ugEnc(x.key)}"><span class=ugpi>${w?'📌':'🔹'}</span><span><b>${esc(x.name)}</b><small>${esc(x.cat)}${w?' · '+w+' waiting · ⭐ '+by.get(x.key).list.filter(ugMem).length+' · longest '+ugAgeL(by.get(x.key).list[0].got):''}</small></span>${w?`<em class=ugn>${w}</em>`:''}</button>`})}
  if(t=='daily'){
   const by=ugBy(D.today);
   if(g.vDay){const x=by.get(g.vDay.k);if(x)return`<button class=ugback data-a="ugopenpos|daily|">← All positions today</button><h4 class=ugpn>${esc(x.name)} <em class=ugn>${x.list.length}</em></h4>${ugApplicants(x.list.sort((a,b)=>b.reviewedAt-a.reviewedAt),g.vDay.f||'')}`}
   const L=[...by.values()].filter(x=>!q||x.name.toLowerCase().includes(q));
-  return`<small class=sub>${ugDayName(Date.now())} · today’s calls, updated live. This view starts fresh at 00:00 — everything stays in Job data.</small>`+(by.size?ugAZ(L,x=>`<button class=ugpt data-a="ugopenpos|daily|${ugEnc(x.key)}"><span class=ugpi>✅</span><span><b>${esc(x.name)}</b><small>${x.list.length} called today</small><span class=ugchipsm>${ugFlags(x.list)}</span></span></button>`):'<div class=empty>Nobody has been called today yet. As you call people in New applicants, their position appears here.</div>')}
+  return ugDayStrip(D.today)+(by.size?ugAZ(L,x=>`<button class=ugpt data-a="ugopenpos|daily|${ugEnc(x.key)}"><span class=ugpi>✅</span><span><b>${esc(x.name)}</b><small>${x.list.length} called today · ⭐ ${x.list.filter(ugMem).length} member${x.list.filter(ugMem).length==1?'':'s'}</small><span class=ugchipsm>${ugFlags(x.list)}</span></span></button>`):'<div class=empty>Nobody has been called today yet. As you call people in New applicants, their position appears here.</div>')}
  if(t=='data'){
   const days=new Map();D.saved.forEach(a=>{const d=ugDayKey(a.reviewedAt);(days.get(d)||days.set(d,[]).get(d)).push(a)});
   if(g.vData){const day=days.get(g.vData.d),x=day&&ugBy(day).get(g.vData.k);if(x)return`<button class=ugback data-a="ugopenpos|data|">← All saved days</button><h4 class=ugpn>${esc(x.name)} <small>· ${ugDayName(x.list[0].reviewedAt)}</small></h4>${ugApplicants(x.list.sort((a,b)=>b.reviewedAt-a.reviewedAt),g.vData.f||'')}`}
   const ds=[...days.keys()].sort().reverse();if(!ds.length)return'<div class=empty>When you press Done on a position, its people are saved here by date, then by position. Kept for 180 days.</div>';
   let n=0;const out=ds.map((d,i)=>{const by=ugBy(days.get(d)),L=[...by.values()].filter(x=>!q||x.name.toLowerCase().includes(q));if(!L.length)return'';n++;
-   return`<details class=ugdate ${i==0||q?'open':''}><summary><b>${ugDayName(days.get(d)[0].reviewedAt)}</b><small>${days.get(d).length} people · ${by.size} position${by.size>1?'s':''}</small></summary>${ugAZ(L,x=>`<button class=ugpt data-a="ugopenpos|data|${d}|${ugEnc(x.key)}"><span class=ugpi>🗂️</span><span><b>${esc(x.name)}</b><small>${x.list.length} people</small><span class=ugchipsm>${ugFlags(x.list)}</span></span></button>`)}</details>`}).join('');
+   return`<details class=ugdate ${i==0||q?'open':''}><summary><b>${ugDayName(days.get(d)[0].reviewedAt)}</b><small>${days.get(d).length} people · ${by.size} position${by.size>1?'s':''} · ⭐ ${days.get(d).filter(ugMem).length} members · ${Math.round(days.get(d).filter(a=>a.outcome=='coming').length/days.get(d).length*100)}% coming</small></summary>${ugAZ(L,x=>`<button class=ugpt data-a="ugopenpos|data|${d}|${ugEnc(x.key)}"><span class=ugpi>🗂️</span><span><b>${esc(x.name)}</b><small>${x.list.length} people · ⭐ ${x.list.filter(ugMem).length}</small><span class=ugchipsm>${ugFlags(x.list)}</span></span></button>`)}</details>`}).join('');
   return out||'<div class=empty>No saved position matches your search.</div>'}
  return''}
 function ugRevCard(m){
@@ -1146,7 +1165,7 @@ function ugRevCard(m){
  const g=ui.ug,t=g.rt||'new',D=ugRevData(),tabs=[['new','New applicants',D.waiting.length],['called','Called',D.called.length],['daily','Daily review',D.today.length],['data','Job data',0]];
  return`<section class="ugs wide ugrev"><h3>Review applicants</h3>${g.appsErr?`<p class=bad>${esc(g.appsErr)}</p>`:''}<div class="ugseg ugrt" role=tablist aria-label="Review sections">${tabs.map(([k,l,n])=>`<button role=tab aria-selected=${t==k} class="${t==k?'on':''}" data-a="ugrt|${k}">${l}${n?` <em>${n}</em>`:''}</button>`).join('')}</div><div id=ugrevhead>${ugRevHead(t)}</div><div id=ugrevlist class=ugrevlist>${ugRevList(t)}</div></section>`}
 function ugRevRefresh(){const t=ui.ug.rt||'new',h=$('#ugrevhead'),l=$('#ugrevlist');if(!h||!l)return refreshMain();h.innerHTML=ugRevHead(t);l.innerHTML=ugRevList(t);ugHydrate(l)}
-function ugMidnight(){clearTimeout(ui.ug.mid);const n=new Date(),ms=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1).getTime()-n.getTime()+800;ui.ug.mid=setTimeout(()=>{const e=flat(ui.r)[ui.v];if(e&&e.b=='urgent')LOADERS.urgent();ugMidnight()},ms)}
+function ugMidnight(){clearTimeout(ui.ug.mid);clearInterval(ui.ug.cdt);ui.ug.cdt=setInterval(()=>{const e=$('#ugcd');if(e)e.textContent=ugCd();else clearInterval(ui.ug.cdt)},20000);const n=new Date(),ms=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1).getTime()-n.getTime()+800;ui.ug.mid=setTimeout(()=>{const e=flat(ui.r)[ui.v];if(e&&e.b=='urgent')LOADERS.urgent();ugMidnight()},ms)}
 function ugForm(){const g=ui.ug,f=g.f||{};return`<form class=ugf id=ugpub autocomplete=off>
  <label>Job title<input name=title maxlength=80 required placeholder="5 waiters for tonight" value="${esc(f.title||'')}"></label>
  <div class=ug2><label>Kind of work<input name=role maxlength=60 placeholder="Hospitality" value="${esc(f.role||'')}"></label><label>Where<input name=place maxlength=80 placeholder="Kigali, Kimihurura" value="${esc(f.place||'')}"></label></div>
@@ -1263,7 +1282,7 @@ function ugShowStep(){const el=$('#ugshow');if(!el){clearInterval(ui.ug.sh);ui.u
 function ugShowStart(){clearInterval(ui.ug.sh);if(!$('#ugshow'))return;ugShowStep();ui.ug.sh=setInterval(ugShowStep,3800)}
 // ---------- candidate card (opens in front, everything behind blurs) ----------
 function ugCard(id){const a=(ui.ug.apps||[]).find(x=>x.id==id);if(!a)return'';const d=a.data,ch=ui.ug.pick||'';
- const F=[['Phone',d.phone],['WhatsApp',d.whatsapp],['National ID',d.idno],['Born',d.born],['Lives in',d.lives],['Experience',d.experience],['Last job',d.lastJob],['Education',d.education],['Languages',d.languages],['Can start',d.start]].filter(x=>x[1]);
+ const F=[['Membership',d.member?'Member'+(d.memberNo?' · No. '+d.memberNo:''):'Not a member'],['Phone',d.phone],['WhatsApp',d.whatsapp],['National ID',d.idno],['Born',d.born],['Lives in',d.lives],['Experience',d.experience],['Last job',d.lastJob],['Education',d.education],['Languages',d.languages],['Can start',d.start]].filter(x=>x[1]);
  const tel=String(d.phone||'').replace(/[^+0-9]/g,''),wa=String(d.whatsapp||d.phone||'').replace(/\D/g,'').replace(/^0/,'250');
  return`<div class=ugbk data-a=ugclose></div><article class=ugcard role=dialog aria-modal=true aria-label="${esc(d.name)}"><button class="b x" data-a=ugclose aria-label=Close>✕</button>
  <div class=ugph><img class=ugbig alt="Photo of ${esc(d.name)}" data-ugimg="${a.id}:${ui.ug.ph||0}" style="view-transition-name:uga-${a.id}"><div class=ugthumbs>${[0,1,2].map(n=>`<button data-a="ugph|${n}" class="${(ui.ug.ph||0)==n?'on':''}" aria-label="Photo ${n+1}"><img alt="" data-ugimg="${a.id}:${n}"></button>`).join('')}</div></div>
@@ -1279,6 +1298,7 @@ Object.assign(A,{
  ugrt(t){haptic('soft');ugVT(()=>{ui.ug.rt=t})},
  ugopenpos(w,a,b){const g=ui.ug;haptic('soft');ugVT(()=>{if(w=='new')g.vNew=a?decodeURIComponent(a):null;else if(w=='daily')g.vDay=a?{k:decodeURIComponent(a),f:''}:null;else g.vData=a?{d:a,k:decodeURIComponent(b),f:''}:null})},
  ugflag(f){haptic('tick');const g=ui.ug;(g.rt=='data'?g.vData:g.vDay).f=f;ugRevRefresh()},
+ ugmem(f){ui.ug.mf=f;haptic('tick');ugRevRefresh()},
  ugonly(){ui.ug.only=!ui.ug.only;haptic('tick');ugRevRefresh()},
  ugfinish(k){const g=ui.ug;api('/api/urgent/finish',{key:decodeURIComponent(k)}).then(r=>{haptic('success');toast('✔ '+r.n+' saved to Daily review and Job data');g.vNew=null;LOADERS.urgent()}).catch(e=>{haptic('error');toast('✖ '+e.message)})},
  ugopen(id){ugShow(()=>{ui.ug.open=id;ui.ug.ph=0;ui.ug.pick='';ui.ug.note=''})},
