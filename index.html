@@ -1335,11 +1335,15 @@ function eoVaultSoon(){clearTimeout(eovT);eovT=setTimeout(eoVaultSearch,650)}
 async function eoVaultSearch(){const f=eo().f,v=eov(),q=eoQ(f.title||'');if(q==v.q&&v.items.length)return;v.q=q;v.err='';
  if(!q){v.items=[];return eoVaultPaint()}
  if(!eoKey()){v.items=eoBuiltIn(f.title||'',f.cat);return eoVaultPaint()}
+ const C=window.__eovCache||(window.__eovCache={});if(C[q]){v.items=C[q];return eoVaultPaint()}
  const n=++eovN;v.busy=true;eoVaultPaint();
- try{const r=await fetch('https://api.unsplash.com/search/photos?'+new URLSearchParams({query:q+' africa',per_page:'14',orientation:'landscape',content_filter:'high',order_by:'relevant'}),{headers:{Authorization:'Client-ID '+eoKey(),'Accept-Version':'v1'}});
-  if(n!==eovN)return;if(r.status==401)throw new Error('The photo key is not right. Check it and paste it again.');if(r.status==403)throw new Error('Too many searches this hour. Try again in a while.');if(!r.ok)throw new Error('Photo search failed ('+r.status+').');
-  const j=await r.json();
-  v.items=(j.results||[]).filter(p=>p.urls&&p.urls.raw&&p.width>=2400).slice(0,10).map(p=>({id:p.id,u:p.urls.raw,t:p.urls.small,by:(p.user&&p.user.name)||'',dl:(p.links&&p.links.download_location)||'',alt:p.alt_description||''}));
+ try{const get=async(query,extra)=>{const r=await fetch('https://api.unsplash.com/search/photos?'+new URLSearchParams(Object.assign({query,per_page:'30',content_filter:'high',order_by:'relevant'},extra||{})),{headers:{Authorization:'Client-ID '+eoKey(),'Accept-Version':'v1'}});
+   if(r.status==401)throw new Error('The photo key is not right. Check it and paste it again.');if(r.status==403)throw new Error('Too many searches this hour. Try again in a while.');if(!r.ok)throw new Error('Photo search failed ('+r.status+').');return(await r.json()).results||[]};
+  // best first: African people at that job; then the job anywhere; sharp photos only
+  const seen={},out=[],take=list=>list.forEach(p=>{if(out.length<10&&p.urls&&p.urls.raw&&p.width>=1600&&!seen[p.id]){seen[p.id]=1;out.push(p)}});
+  for(const[query,extra]of[[q+' african'],[q+' africa'],[q+' worker'],[q]]){take(await get(query,extra));if(n!==eovN)return;if(out.length>=10)break}
+  v.items=out.map(p=>({id:p.id,u:p.urls.raw,t:p.urls.small,by:(p.user&&p.user.name)||'',dl:(p.links&&p.links.download_location)||'',alt:p.alt_description||''}));
+  if(v.items.length)C[q]=v.items;
   if(!v.items.length)v.err='No clean photos for “'+q+'”. Try another word in the title.'}
  catch(er){if(n!==eovN)return;v.items=eoBuiltIn(f.title||'',f.cat);v.err=er.message||'No internet — showing the built-in photos.'}
  v.busy=false;eoVaultPaint()}
