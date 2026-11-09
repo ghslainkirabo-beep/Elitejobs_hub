@@ -302,6 +302,28 @@ i.ugav{display:block}
 .lqw.mini .lq-top{display:contents}.lqw.mini .lq-cat,.lqw.mini .lq-type,.lqw.mini .lq-t{display:none}
 .lqw.mini .lq-ic{width:100%;height:100%;font-size:34cqw;background:none;box-shadow:none;border-radius:0}
 @media (prefers-reduced-motion:reduce){.lq,.lq i,.lq-spec::after{animation:none!important;transition:none!important}}
+
+/* photo cards (Endover) */
+.pcw{container-type:inline-size;width:100%;height:100%}
+.pc{position:relative;height:100%;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;background:#171230;color:#fff;font-family:inherit;isolation:isolate}
+.pc-ph{position:relative;flex:1 1 58%;min-height:0;overflow:hidden;background:linear-gradient(135deg,var(--a),var(--b))}
+.pc-f{position:absolute;inset:0;opacity:0;transform:scale(1.1);transition:opacity .4s ease,transform 1.2s cubic-bezier(.22,1,.36,1)}
+.pc-f.on{opacity:1;transform:scale(1)}
+.pc-f img{width:100%;height:100%;object-fit:cover;display:block}
+.pc-art{background:radial-gradient(120% 90% at 20% 10%,var(--c),transparent 55%),linear-gradient(135deg,var(--a),var(--b));display:grid;place-items:center}
+.pc-ic{font-size:clamp(48px,26cqw,120px);filter:drop-shadow(0 8px 18px rgba(0,0,0,.3))}
+.pc-pay{position:absolute;left:12px;bottom:12px;padding:6px 12px;border-radius:999px;background:rgba(15,10,35,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-weight:700;font-size:13px}
+.pc-pay small{font-weight:500;opacity:.8;font-size:11px}
+.pc-body{flex:0 0 auto;padding:16px 18px 18px;display:flex;flex-direction:column;gap:6px;background:#171230}
+.pc-cat{color:#A99BEA;font-weight:600;font-size:13px}
+.pc-t{margin:0;font-size:clamp(22px,8cqw,34px);letter-spacing:-.03em;line-height:1.05}
+.pc-d{margin:0;color:rgba(255,255,255,.72);font-size:14px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pc-foot{display:flex;justify-content:space-between;gap:10px;color:rgba(255,255,255,.6);font-size:13px;margin-top:4px}
+.pcw.mini .pc{border-radius:24%;box-shadow:0 1px 6px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.25)}
+.pcw.mini .pc-ph{flex:1;aspect-ratio:1}.pcw.mini .pc-f{transition:none}
+.pcw.mini .pc-ic{font-size:34cqw}
+@media (prefers-reduced-motion:reduce){.pc-f{transition:none;transform:none}}
+.pc-cr{position:absolute;right:8px;bottom:8px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.45);color:rgba(255,255,255,.85)}
 /*LIQUID:END*/
 /* ---- Endover + weekday showcase ---- */
 .ugs.wide{grid-column:1/-1}
@@ -341,6 +363,19 @@ i.ugav{display:block}
 .eott{min-width:0;display:grid}.eott b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}.eott small{color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .eox{border:0;background:none;color:inherit;opacity:.55;cursor:pointer;font-size:14px;border-radius:50%;width:26px;height:26px}.eox:hover{opacity:1;background:rgba(127,127,127,.2)}
 .eobar{display:grid;gap:8px;justify-items:start;margin-top:18px}
+.eovault{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:var(--chip,rgba(127,127,127,.08));margin:2px 0 4px}
+.eovh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.eovh b{font-size:14px}.eovh small{color:var(--mute);flex:1;min-width:160px}
+.eovc{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--line,rgba(127,127,127,.2))}
+.eovg{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+@media (max-width:640px){.eovg{grid-template-columns:repeat(3,1fr)}}
+.eovp{position:relative;padding:0;border-radius:10px;overflow:hidden;aspect-ratio:4/3;outline:2px solid transparent;outline-offset:-2px;transition:transform .25s cubic-bezier(.34,1.56,.44,1),outline-color .2s}
+.eovp img{width:100%;height:100%;object-fit:cover;display:block;transition:filter .2s}
+.eovp:hover{transform:scale(1.04)}.eovp.on{outline-color:#8a63f0;outline-width:3px}.eovp.on img{filter:saturate(1.1)}
+.eovp b{position:absolute;top:5px;left:5px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#8a63f0;color:#fff;font-size:12px;animation:eovb .35s cubic-bezier(.34,1.56,.44,1)}
+@keyframes eovb{from{transform:scale(0)}}
+.eovk{color:var(--mute);font-size:12px}.eovk button{text-decoration:underline;font-size:12px;padding:0}.eovk summary{cursor:pointer}.eovk .row{display:flex;gap:6px;margin:6px 0}.eovk input{flex:1}
+#eoprev .pcw{max-width:360px;margin:0 auto}#eoprev .pc{aspect-ratio:4/5;height:auto}
+.eoth .pcw.mini{width:100%;height:100%}
 .eogo{padding:14px 26px;font-size:15px;border-radius:16px;transition:transform .3s cubic-bezier(.34,1.56,.44,1)}.eogo:not(:disabled):hover{transform:scale(1.03)}.eogo:disabled{opacity:.5}
 .eobar small{color:var(--mu)}
 /* the card's entrance follows the day of the week: Mon glide · Tue flip · Wed zoom · Thu cube · Fri rise · Sat swing · Sun iris */
@@ -1035,6 +1070,41 @@ function ejCard(p, mini) {
     ${m.desc ? `<p class="lq-dsc">${esc(m.desc)}</p>` : ''}`}
   </div><span class="lq-spec" aria-hidden="true"></span></div></div>`;
 }
+// ---- photo cards (Endover): two photos that swap, like the job cards on the Jobs page ----
+const EJ_PH = (u => 'https://images.unsplash.com/photo-' + u)
+const EJ_PHOTOS = {
+  hosp: { bartender: '1574096079513-d8259312b785', barman: '1514933651103-005eec06c04b', waiter: '1581579438747-1dc8d17bbce4', waitress: '1565299585323-38d6b0865b47', counter: '1528605248644-14dd04022da1' },
+  fin: { cashier: '1556742049-0a67daf4005a', accountant: '1556742049-0a67daf4005a' },
+  office: { receptionist: '1573496359142-b8d87734a5a2', manager: '1531482615713-2afd69097998', supervisor: '1573497019940-1c28c88b4f3e' },
+  sales: { sales: '1560250097-0b93528c311a' },
+  drive: { driver: '1449965408869-eaa3f722e40d' }
+};
+// Photo URL with the size the cards need. Only Unsplash image addresses are accepted.
+const ejOkPh = u => typeof u === 'string' && /^https:\/\/images\.unsplash\.com\/[A-Za-z0-9._~\/?&=%:+-]+$/.test(u);
+const ejSized = u => u + (u.includes('?') ? '&' : '?') + (u.includes('auto=format') ? '' : 'auto=format&fit=crop&w=720&q=72');
+// returns up to 2 photos {u, by} for a job: the ones chosen in the Hub first, else the built-in set for its field
+function ejPhotos(tpl, title, m) {
+  m = m || {};
+  const own = (Array.isArray(m.photos) ? m.photos : []).filter(ejOkPh).slice(0, 2);
+  if (own.length) return own.map((u, i) => ({ u: ejSized(u), by: String((m.credit || [])[i] || '') }));
+  const pool = EJ_PHOTOS[tpl]; if (!pool) return [];
+  const t = ejNorm(title), keys = Object.keys(pool), hit = keys.find(k => t.includes(k)), out = [], seen = {};
+  const add = k => { const u = pool[k]; if (u && !seen[u]) { seen[u] = 1; out.push({ u: ejSized(EJ_PH(u)), by: '' }) } };
+  if (hit) add(hit); keys.forEach(add); return out.slice(0, 2);
+}
+// One photo card. mini = just the first frame (small tab).
+function ejPhotoCard(p, mini) {
+  const m = p.meta || {}, id = EJ_TPL[p.tpl] ? p.tpl : 'gen', T = EJ_TPL[id], pay = ejPay(m), ph = ejPhotos(id, p.title, m);
+  const cat = esc((EJ_CATS.find(c => c[0] === (m.cat && m.cat !== 'gen' ? m.cat : id)) || [0, T.n])[1]);
+  const art = `<div class="pc-f pc-art"><span class="pc-ic" aria-hidden="true">${T.ic}</span></div>`;
+  const frames = ph.map(x => `<div class="pc-f"><img src="${esc(x.u)}" alt="" loading="eager" onerror="this.parentNode.classList.add('pc-art');this.remove()">${x.by && !mini ? `<span class="pc-cr">Photo: ${esc(x.by)} · Unsplash</span>` : ''}</div>`);
+  while (frames.length < 2) frames.push(art);
+  const fr = (mini ? frames.slice(0, 1) : frames).map((f, i) => i ? f : f.replace('class="pc-f', 'class="pc-f on')).join('');
+  return `<div class="pcw${mini ? ' mini' : ''}"><div class="pc" style="--a:${T.c[0]};--b:${T.c[1]};--c:${T.c[2]}"><div class="pc-ph" data-pc-frames>${fr}${mini ? '' : '<span class="pc-pay">' + esc(pay.v) + (pay.u ? ' <small>' + esc(pay.u.split(' · ')[0]) + '</small>' : '') + '</span>'}</div>
+  ${mini ? '' : `<div class="pc-body"><span class="pc-cat">${cat}</span><h4 class="pc-t">${esc(p.title)}</h4>${m.desc ? `<p class="pc-d">${esc(m.desc)}</p>` : ''}<div class="pc-foot">${m.loc ? `<span class="pc-loc">${esc(m.loc)}</span>` : '<span></span>'}${m.openings > 1 ? `<span class="pc-n">${esc(m.openings)} positions</span>` : ''}</div></div>`}</div></div>`;
+}
+// swaps the photo of a card: frame 0 now, frame 1 after `ms`
+function ejPhotoSwap(root, i) { const fs = root.querySelectorAll('.pc-f'); fs.forEach((f, k) => f.classList.toggle('on', k === i)); }
 // the card reacts to your finger / pointer: it tilts and its light follows you
 function ejLiquidInit() {
   if (window.__lqOn) return; window.__lqOn = true;
@@ -1205,14 +1275,15 @@ function eoSave(){LS.set('ug-batch',JSON.stringify(eo().list))}
 function eoRead(){const f=$('#eof');if(!f)return eo().f;const fd=new FormData(f),d={};for(const[k,v]of fd.entries())if(k!='ben')d[k]=v;d.ben=fd.getAll('ben');d.neg=!!fd.get('neg');eo().f=d;return d}
 function eoBuild(f){const cat=f.cat||'gen',title=String(f.title||'').trim(),tpl=EJ_TPL[f.tpl]?f.tpl:ejPick(title,cat);
  const n=v=>{const x=Number(String(v||'').replace(/[^0-9.]/g,''));return x>0?x:0},lines=s=>String(s||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,8);
- return{title,tpl,meta:{cat,type:f.type||'',salMin:n(f.salMin),salMax:n(f.salMax),per:f.per||'month',neg:!!f.neg,loc:String(f.loc||'').trim(),openings:Math.max(1,Math.min(999,n(f.open)||1)),exp:String(f.exp||'').trim(),edu:String(f.edu||'').trim(),req:lines(f.req),ben:(f.ben||[]).slice(0,8),desc:String(f.desc||'').trim().slice(0,400)}}}
+ return{title,tpl,meta:{cat,type:f.type||'',salMin:n(f.salMin),salMax:n(f.salMax),per:f.per||'month',neg:!!f.neg,loc:String(f.loc||'').trim(),openings:Math.max(1,Math.min(999,n(f.open)||1)),exp:String(f.exp||'').trim(),edu:String(f.edu||'').trim(),req:lines(f.req),ben:(f.ben||[]).slice(0,8),desc:String(f.desc||'').trim().slice(0,400),photos:eoPicks().map(p=>p.u),credit:eoPicks().map(p=>p.by)}}}
 function eoPrev(){const f=eo().f,sel=eo().sel!=null?eo().list.find(x=>x.id==eo().sel):null;
- if(sel)return ejCard(sel.post);
+ if(sel)return ejPhotoCard(sel.post);
  if(!String(f.title||'').trim())return`<div class=eoghost><span>⚡</span><b>Your card appears here</b><small>Type a job title — the Hub picks the template that fits.</small></div>`;
- return ejCard(eoBuild(f))}
+ return ejPhotoCard(eoBuild(f))}
 function eoTplLine(){const f=eo().f,t=String(f.title||'').trim();if(!t)return'Template: chosen for you once there is a title';const id=eoBuild(f).tpl,T=EJ_TPL[id];return`Template: <b>${T.ic} ${esc(T.n)}</b> ${f.tpl?'· chosen by you':'· picked from the title and category'}`}
 function eoForm(){const f=eo().f;return`<form class=ugf id=eof autocomplete=off>
  <label>Job title<input name=title maxlength=80 placeholder="5 waiters for tonight" value="${esc(f.title||'')}"></label>
+ <div class=eovault id=eovault>${eoVault()}</div>
  <div class=ug2><label>Category<select name=cat>${EJ_CATS.map(([k,l])=>`<option value=${k} ${(f.cat||'gen')==k?'selected':''}>${l}</option>`).join('')}</select></label>
  <label>Type of work<select name=type><option value="">—</option>${EO_TYPE.map(t=>`<option ${f.type==t?'selected':''}>${t}</option>`).join('')}</select></label></div>
  <div class=ug3><label>Pay from (RWF)<input name=salMin inputmode=numeric placeholder="150000" value="${esc(f.salMin||'')}"></label><label>Pay up to (RWF)<input name=salMax inputmode=numeric placeholder="250000" value="${esc(f.salMax||'')}"></label>
@@ -1226,7 +1297,7 @@ function eoForm(){const f=eo().f;return`<form class=ugf id=eof autocomplete=off>
  <div class=ug2><label>How long it stays up<select name=life>${UGLIFE.map(([v,l])=>`<option value=${v} ${(f.life||'24')==v?'selected':''}>${l}</option>`).join('')}</select></label><label id=eountil ${f.life=='custom'?'':'hidden'}>Ends at<input type=datetime-local name=until value="${esc(f.until||'')}"></label></div>
  <label>Template <select name=tpl><option value="">Choose for me (recommended)</option>${Object.entries(EJ_TPL).map(([k,T])=>`<option value=${k} ${f.tpl==k?'selected':''}>${T.ic} ${T.n}</option>`).join('')}</select></label>
 </form>`}
-function eoStack(){const L=eo().list;return L.length?L.map((x,i)=>`<div class="eotab${eo().sel==x.id?' on':''}" data-id="${x.id}" role=button tabindex=0 data-a="eosel|${x.id}" style="--i:${i}"><span class=eoth>${ejCard({title:x.post.title,tpl:x.post.tpl,meta:x.post.meta},true)}</span><span class=eott><b>${esc(x.post.title)}</b><small>${esc(x.post.meta.loc)} · ${esc(UGLIFE.find(l=>l[0]==x.life)?.[1]||'until '+(x.until||'').slice(0,10))}</small></span><button class=eox data-a="eodel|${x.id}" aria-label="Remove ${esc(x.post.title)}">✕</button></div>`).join(''):'<div class=eoempty>Finished jobs slide in here, like tabs.</div>'}
+function eoStack(){const L=eo().list;return L.length?L.map((x,i)=>`<div class="eotab${eo().sel==x.id?' on':''}" data-id="${x.id}" role=button tabindex=0 data-a="eosel|${x.id}" style="--i:${i}"><span class=eoth>${ejPhotoCard({title:x.post.title,tpl:x.post.tpl,meta:x.post.meta},true)}</span><span class=eott><b>${esc(x.post.title)}</b><small>${esc(x.post.meta.loc)} · ${esc(UGLIFE.find(l=>l[0]==x.life)?.[1]||'until '+(x.until||'').slice(0,10))}</small></span><button class=eox data-a="eodel|${x.id}" aria-label="Remove ${esc(x.post.title)}">✕</button></div>`).join(''):'<div class=eoempty>Finished jobs slide in here, like tabs.</div>'}
 function eoPanel(){const e=eo(),sel=e.sel!=null?e.list.find(x=>x.id==e.sel):null,n=e.list.length;
  return`<div class=eog><div class=eoform>${eoForm()}</div>
  <div class=eomid><div class=eoprev id=eoprev>${eoPrev()}</div><small class=eotpl id=eotpl>${eoTplLine()}</small>
@@ -1252,15 +1323,46 @@ function eoFly(from,toEl,done){const calm=matchMedia('(prefers-reduced-motion:re
  const dx=b.left-a.left,dy=b.top-a.top,s=Math.max(.14,b.width/a.width);
  const an=c.animate([{transform:'none',opacity:1,filter:'none'},{transform:`translate(${dx*.55}px,${dy*.2}px) scale(${(1+s)/2})`,opacity:.95,offset:.55},{transform:`translate(${dx}px,${dy}px) scale(${s})`,opacity:.9,filter:'blur(.4px)'}],{duration:620,easing:'cubic-bezier(.32,.72,0,1)',fill:'forwards'});
  an.onfinish=()=>{c.remove();done()};an.oncancel=()=>{c.remove();done()}}
+// ---------- photo vault: as you type the job title, photos of that job appear; tap two for the card ----------
+const EOV_STOP=new Set('for the a an and or of to in at on with needed need urgent urgently wanted hiring hire tonight today tomorrow now people person staff workers worker job jobs position positions new good kigali rwanda'.split(' '));
+function eoQ(t){return ejNorm(t).split(' ').filter(w=>w&&!/^\d+$/.test(w)&&!EOV_STOP.has(w)).slice(0,3).map(ejStem).join(' ')}
+function eov(){const e=eo();if(!e.v)e.v={q:'',items:[],busy:false,err:'',pick:[]};return e.v}
+function eoKey(){return LS.get('ug-unsplash')||''}
+function eoBuiltIn(title,cat){const tpl=ejPick(title,cat),ws=eoQ(title).split(' ').filter(w=>w.length>=4).map(w=>w.slice(0,4)),pool=Object.assign({},EJ_PHOTOS[tpl]||{});
+ Object.values(EJ_PHOTOS).forEach(P=>{const ks=Object.keys(P);if(ks.some(k=>ws.some(w=>k.startsWith(w)))){ks.filter(k=>ws.some(w=>k.startsWith(w))).concat(ks).forEach(k=>{if(!pool[k])pool[k]=P[k]})}});return Object.entries(pool).map(([k,id])=>({id:'b-'+id,u:EJ_PH(id),t:EJ_PH(id)+'?auto=format&fit=crop&w=320&q=60',by:'',dl:'',alt:k})).filter((x,i,a)=>a.findIndex(y=>y.u==x.u)==i)}
+let eovT=null,eovN=0;
+function eoVaultSoon(){clearTimeout(eovT);eovT=setTimeout(eoVaultSearch,650)}
+async function eoVaultSearch(){const f=eo().f,v=eov(),q=eoQ(f.title||'');if(q==v.q&&v.items.length)return;v.q=q;v.err='';
+ if(!q){v.items=[];return eoVaultPaint()}
+ if(!eoKey()){v.items=eoBuiltIn(f.title||'',f.cat);return eoVaultPaint()}
+ const n=++eovN;v.busy=true;eoVaultPaint();
+ try{const r=await fetch('https://api.unsplash.com/search/photos?'+new URLSearchParams({query:q+' africa',per_page:'14',orientation:'landscape',content_filter:'high',order_by:'relevant'}),{headers:{Authorization:'Client-ID '+eoKey(),'Accept-Version':'v1'}});
+  if(n!==eovN)return;if(r.status==401)throw new Error('The photo key is not right. Check it and paste it again.');if(r.status==403)throw new Error('Too many searches this hour. Try again in a while.');if(!r.ok)throw new Error('Photo search failed ('+r.status+').');
+  const j=await r.json();
+  v.items=(j.results||[]).filter(p=>p.urls&&p.urls.raw&&p.width>=2400).slice(0,10).map(p=>({id:p.id,u:p.urls.raw,t:p.urls.small,by:(p.user&&p.user.name)||'',dl:(p.links&&p.links.download_location)||'',alt:p.alt_description||''}));
+  if(!v.items.length)v.err='No clean photos for “'+q+'”. Try another word in the title.'}
+ catch(er){if(n!==eovN)return;v.items=eoBuiltIn(f.title||'',f.cat);v.err=er.message||'No internet — showing the built-in photos.'}
+ v.busy=false;eoVaultPaint()}
+function eoVault(){const v=eov(),k=eoKey(),pk=v.pick;
+ const grid=v.items.length?`<div class=eovg>${v.items.map(x=>{const i=pk.findIndex(p=>p.id==x.id);return`<button type=button class="eovp${i>=0?' on':''}" data-a="eopick|${esc(x.id)}" aria-pressed=${i>=0} title="${esc(x.alt||'')}${x.by?' — '+esc(x.by):''}"><img src="${esc(x.t)}" alt="" loading=lazy>${i>=0?`<b>${i+1}</b>`:''}</button>`}).join('')}</div>`:'';
+ const msg=v.busy?'Finding photos…':v.err?esc(v.err):!v.q?'Type the job title and photos of that job appear here.':!v.items.length?'No built-in photos for this job yet.':pk.length==2?'✔ Two photos chosen. The first shows first.':'Tap '+(2-pk.length)+' more photo'+(pk.length==1?'':'s')+'. The first one shows first.';
+ return`<div class=eovh><b>Photo vault</b><small>${msg}</small>${pk.length?`<button type=button class=eovc data-a=eopick|>Clear</button>`:''}</div>${grid}
+ ${k?`<small class=eovk>Searching Unsplash. <button type=button data-a=eokey|>Change key</button></small>`:`<details class=eovk><summary>Search every job (free Unsplash key)</summary><div class=row><input id=eokeyin placeholder="Paste the Access Key" autocomplete=off><button type=button class="b p" data-a=eokey|set>Save</button></div><small>Get it free at unsplash.com/developers → New application. It stays on this computer only.</small></details>`}`}
+function eoVaultPaint(){const el=$('#eovault');if(el)el.innerHTML=eoVault()}
+function eoPicks(){return eov().pick}
+// the preview card swaps its two photos: 1 s each
+setInterval(()=>{const c=$('#eoprev .pc');if(!c)return;const fs=c.querySelectorAll('.pc-f');if(fs.length<2)return;const i=[...fs].findIndex(f=>f.classList.contains('on'));ejPhotoSwap(c,(i+1)%fs.length)},1000);
 Object.assign(A,{
  ugmode(m){ui.ug.mode=m=='endover'?'endover':'flyer';haptic('soft');const e=flat(ui.r)[ui.v];const go=()=>refreshMain();
   if(document.startViewTransition&&!matchMedia('(prefers-reduced-motion:reduce)').matches){const v=document.startViewTransition(go);[v.ready,v.finished,v.updateCallbackDone].forEach(p=>p.catch(()=>{}))}else go();setTimeout(()=>ugHydrate($('#main')),0)},
+ eopick(id){const v=eov();if(!id){v.pick=[];haptic('soft')}else{const i=v.pick.findIndex(p=>p.id==id);if(i>=0)v.pick.splice(i,1);else{const x=v.items.find(p=>p.id==id);if(!x)return;if(v.pick.length>=2)v.pick.shift();v.pick.push(x)}haptic('tick')}eoVaultPaint();eoLive()},
+ eokey(a){if(a=='set'){const k=($('#eokeyin')||{}).value||'';if(k.trim().length<20){haptic('error');return toast('✖ Paste the whole Access Key')}LS.set('ug-unsplash',k.trim());toast('✔ Photo key saved on this computer')}else{LS.del('ug-unsplash')}eov().q='';eov().items=[];eoVaultPaint();eoVaultSearch()},
  eosel(id){const e=eo();e.sel=id?+id:null;if(!id)e.sel=null;haptic('soft');eoMount()},
  eodel(id){const e=eo();e.list=e.list.filter(x=>x.id!=id);if(e.sel==id)e.sel=null;eoSave();haptic('medium');eoMount()},
- eoedit(id){const e=eo(),x=e.list.find(y=>y.id==id);if(!x)return;e.f=Object.assign({},x.form);e.list=e.list.filter(y=>y.id!=id);e.sel=null;eoSave();eoMount()},
+ eoedit(id){const e=eo(),x=e.list.find(y=>y.id==id);if(!x)return;e.f=Object.assign({},x.form);eov().pick=(x.form.pick||[]).slice();eov().q='';setTimeout(eoVaultSearch,0);e.list=e.list.filter(y=>y.id!=id);e.sel=null;eoSave();eoMount()},
  eoadd(){const e=eo();if(e.busy)return;const f=eoRead(),er=eoCheck(f);if(er){haptic('error');return toast('✖ '+er)}
-  const post=eoBuild(f),item={id:Date.now(),post,form:Object.assign({},f),life:f.life,until:f.life=='custom'?new Date(f.until).toISOString():''};
-  const src=$('#eoprev .lqw');e.list.push(item);e.f={life:f.life,ben:[],cat:f.cat};eoSave();haptic('medium');
+  const post=eoBuild(f),item={id:Date.now(),post,form:Object.assign({},f,{pick:eoPicks().slice()}),life:f.life,until:f.life=='custom'?new Date(f.until).toISOString():''};
+  eoPicks().forEach(p=>{if(p.dl&&eoKey())fetch(p.dl,{headers:{Authorization:'Client-ID '+eoKey()}}).catch(()=>{})});const src=$('#eoprev .pcw');e.list.push(item);e.f={life:f.life,ben:[],cat:f.cat};e.v={q:'',items:[],busy:false,err:'',pick:[]};eoSave();haptic('medium');
   const clone=src;eoMount();const tab=document.querySelector('.eotab[data-id="'+item.id+'"]');if(tab)tab.classList.add('fresh');
   eoFly(clone,tab&&tab.querySelector('.eoth'),()=>{if(tab){tab.classList.remove('fresh');tab.classList.add('eopop')}haptic('success')})},
  async eogo(){const e=eo();if(e.busy||!e.list.length)return;e.busy=true;eoMount();let ok=0;
@@ -1268,7 +1370,7 @@ Object.assign(A,{
    try{await api('/api/urgent/posts',body);ok++;const t=document.querySelector('.eotab[data-id="'+x.id+'"]');if(t)t.classList.add('sent');haptic('success');await new Promise(r=>setTimeout(r,360));e.list=e.list.filter(y=>y.id!=x.id);eoSave()}
    catch(er){e.busy=false;eoMount();haptic('error');toast('✖ '+x.post.title+': '+er.message+(ok?' ('+ok+' already published)':''));if(ok)LOADERS.urgent();return}}
   e.busy=false;e.sel=null;toast('✔ '+ok+' job'+(ok>1?'s are':' is')+' on elitejobsrwanda.com now');LOADERS.urgent()}});
-document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('#eof'))eoLive()});
+document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('#eof')){eoLive();if(e.target.name=='title')eoVaultSoon()}});
 document.addEventListener('change',e=>{if(e.target.closest&&e.target.closest('#eof'))eoLive()});
 document.addEventListener('keydown',e=>{if((e.key=='Enter'||e.key==' ')&&e.target.classList&&e.target.classList.contains('eotab')){e.preventDefault();A.eosel(e.target.dataset.id)}});
 document.addEventListener('submit',e=>{if(e.target.id=='eof'){e.preventDefault();e.stopImmediatePropagation()}},true);
