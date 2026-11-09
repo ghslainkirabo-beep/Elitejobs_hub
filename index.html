@@ -206,6 +206,137 @@ i.ugav{display:block}
 ::view-transition-group(ugcard){animation-duration:.42s;animation-timing-function:cubic-bezier(.2,.9,.25,1)}
 ::view-transition-old(ugcard){animation:ugout .25s ease both}::view-transition-new(ugcard){animation:ugin .42s cubic-bezier(.2,.9,.25,1) both}
 @keyframes ugin{from{opacity:0;transform:scale(.92) translateY(20px)}}@keyframes ugout{to{opacity:0;transform:scale(.94) translateY(16px)}}
+/*LIQUID:START*/
+.lqw{container-type:inline-size;width:100%}
+.lq{position:relative;overflow:hidden;isolation:isolate;aspect-ratio:4/5;border-radius:8cqw;color:#fff;background:linear-gradient(150deg,var(--a),var(--b));
+  transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .5s cubic-bezier(.2,.9,.25,1),box-shadow .5s;
+  box-shadow:0 5cqw 9cqw -4cqw color-mix(in srgb,var(--b) 70%,#000),inset 0 0 0 .35cqw rgba(255,255,255,.22);will-change:transform}
+.lq.hot{transition:transform .08s linear,box-shadow .5s}
+.lq>i{position:absolute;pointer-events:none}
+/* liquid: three soft blobs that never stop drifting and morphing */
+.lq-b1,.lq-b2,.lq-b3{border-radius:46% 54% 58% 42%/48% 44% 56% 52%;filter:blur(4.5cqw);opacity:.85;mix-blend-mode:screen}
+.lq-b1{width:70%;height:62%;left:-18%;top:-10%;background:radial-gradient(circle at 35% 35%,var(--c),transparent 68%);animation:lqA 11s ease-in-out infinite alternate}
+.lq-b2{width:66%;height:60%;right:-22%;top:28%;background:radial-gradient(circle at 60% 40%,color-mix(in srgb,var(--a) 70%,#fff),transparent 66%);animation:lqB 14s ease-in-out infinite alternate}
+.lq-b3{width:76%;height:56%;left:6%;bottom:-24%;background:radial-gradient(circle at 50% 50%,color-mix(in srgb,var(--b) 40%,var(--c)),transparent 68%);animation:lqC 17s ease-in-out infinite alternate}
+@keyframes lqA{to{transform:translate(26%,18%) scale(1.15) rotate(40deg);border-radius:60% 40% 44% 56%/52% 58% 42% 48%}}
+@keyframes lqB{to{transform:translate(-30%,-14%) scale(.9) rotate(-50deg);border-radius:40% 60% 52% 48%/58% 42% 58% 42%}}
+@keyframes lqC{to{transform:translate(-18%,-22%) scale(1.12) rotate(30deg);border-radius:52% 48% 40% 60%/42% 56% 44% 58%}}
+/* frosted glass sheet that holds the words */
+.lq-glass{position:absolute;inset:5cqw;border-radius:5.4cqw;padding:5.4cqw;display:flex;flex-direction:column;gap:2.6cqw;overflow:hidden;
+  background:linear-gradient(160deg,rgba(255,255,255,.26),rgba(255,255,255,.07));-webkit-backdrop-filter:blur(2.4cqw) saturate(1.7);backdrop-filter:blur(2.4cqw) saturate(1.7);
+  box-shadow:inset 0 .4cqw 0 rgba(255,255,255,.5),inset 0 -.3cqw 0 rgba(255,255,255,.12),0 2cqw 5cqw -2.5cqw rgba(0,0,0,.35);z-index:1}
+.lq-top{display:flex;align-items:center;gap:2cqw;font-size:3.5cqw;font-weight:650;letter-spacing:-.005em}
+.lq-ic{width:9.4cqw;height:9.4cqw;border-radius:2.9cqw;display:grid;place-items:center;font-size:5.2cqw;background:rgba(255,255,255,.28);box-shadow:inset 0 .3cqw 0 rgba(255,255,255,.55);flex:none}
+.lq-cat{opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lq-type{margin-left:auto;padding:1cqw 2.4cqw;border-radius:99px;background:rgba(255,255,255,.22);font-size:3cqw;white-space:nowrap}
+.lq-t{margin:0;font-size:9.6cqw;line-height:1.02;font-weight:780;letter-spacing:-.04em;text-wrap:balance;text-shadow:0 .5cqw 2cqw rgba(0,0,0,.18)}
+.lq-pay{display:flex;flex-direction:column;gap:.4cqw;margin-top:.6cqw}
+.lq-pay b{font-size:6.8cqw;font-weight:740;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.lq-pay small{font-size:3.3cqw;opacity:.9;font-weight:560}
+.lq-loc{display:flex;align-items:center;gap:1.6cqw;font-size:3.7cqw;font-weight:600}
+.lq-loc svg{width:4.2cqw;height:4.2cqw;fill:none;stroke:#fff;stroke-width:2;flex:none}
+.lq-open{align-self:flex-start;font-size:3.2cqw;font-weight:700;padding:.9cqw 2.6cqw;border-radius:99px;background:#fff;color:var(--b)}
+.lq-req{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:1.6cqw}
+.lq-req li{font-size:3.2cqw;font-weight:600;padding:1.1cqw 2.7cqw;border-radius:99px;background:rgba(255,255,255,.2);box-shadow:inset 0 0 0 .25cqw rgba(255,255,255,.35)}
+.lq-ben{display:flex;flex-wrap:wrap;gap:1.4cqw}.lq-ben span{font-size:3cqw;font-weight:650;padding:.9cqw 2.4cqw;border-radius:99px;background:rgba(0,0,0,.2)}
+.lq-dsc{margin:auto 0 0;font-size:3.5cqw;line-height:1.4;opacity:.95;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* the light that follows your finger */
+.lq-spec{position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;background:radial-gradient(circle at var(--mx,28%) var(--my,6%),rgba(255,255,255,.42),transparent 42%);mix-blend-mode:soft-light;transition:opacity .4s}
+.lq-spec::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.18) 50%,transparent 60%);transform:translateX(-120%);animation:lqSheen 7s 1.2s ease-in-out infinite}
+@keyframes lqSheen{55%,100%{transform:translateX(120%)}}
+/* each template has its own signature motion, so no two cards feel alike */
+.lq-d{inset:0;z-index:0}
+.lq-hosp .lq-d{background:radial-gradient(circle at 18% 90%,rgba(255,255,255,.55) 0 1.4cqw,transparent 1.6cqw),radial-gradient(circle at 70% 96%,rgba(255,255,255,.45) 0 2cqw,transparent 2.2cqw),radial-gradient(circle at 44% 100%,rgba(255,255,255,.4) 0 1cqw,transparent 1.2cqw),radial-gradient(circle at 88% 100%,rgba(255,255,255,.4) 0 1.6cqw,transparent 1.8cqw);background-size:100% 100%;animation:lqBub 6s linear infinite}
+@keyframes lqBub{from{transform:translateY(8%)}to{transform:translateY(-70%)}}
+.lq-clean .lq-d{background:radial-gradient(circle at 22% 20%,#fff 0 .5cqw,transparent .7cqw),radial-gradient(circle at 80% 30%,#fff 0 .8cqw,transparent 1cqw),radial-gradient(circle at 64% 78%,#fff 0 .6cqw,transparent .8cqw),radial-gradient(circle at 12% 70%,#fff 0 .9cqw,transparent 1.1cqw);animation:lqTw 2.8s ease-in-out infinite alternate}
+@keyframes lqTw{from{opacity:.15;transform:scale(.96)}to{opacity:.95;transform:scale(1.05)}}
+.lq-secur .lq-d{background:repeating-radial-gradient(circle at 78% 22%,transparent 0 9cqw,rgba(255,255,255,.2) 9.4cqw 9.9cqw);animation:lqPulse 3.6s ease-out infinite;transform-origin:78% 22%}
+@keyframes lqPulse{from{transform:scale(.6);opacity:.9}to{transform:scale(1.5);opacity:0}}
+.lq-drive .lq-d{background:repeating-linear-gradient(115deg,transparent 0 9cqw,rgba(255,255,255,.28) 9cqw 11cqw);background-size:200% 200%;animation:lqRoad 1.6s linear infinite}
+@keyframes lqRoad{to{background-position:-22cqw 0}}
+.lq-tech .lq-d{background:linear-gradient(rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.14) 1px,transparent 1px);background-size:7cqw 7cqw;-webkit-mask-image:linear-gradient(#000,transparent 85%);mask-image:linear-gradient(#000,transparent 85%);animation:lqGrid 5s linear infinite}
+@keyframes lqGrid{to{background-position:0 7cqw}}
+.lq-fin .lq-d{background:linear-gradient(to top,rgba(255,255,255,.3) 0,rgba(255,255,255,.3) 38%,transparent 38%) 12% 100%/9% 100% no-repeat,linear-gradient(to top,rgba(255,255,255,.3) 0,rgba(255,255,255,.3) 56%,transparent 56%) 28% 100%/9% 100% no-repeat,linear-gradient(to top,rgba(255,255,255,.3) 0,rgba(255,255,255,.3) 74%,transparent 74%) 44% 100%/9% 100% no-repeat,linear-gradient(to top,rgba(255,255,255,.3) 0,rgba(255,255,255,.3) 92%,transparent 92%) 60% 100%/9% 100% no-repeat;transform-origin:50% 100%;animation:lqBars 4.2s cubic-bezier(.3,1.4,.5,1) infinite alternate}
+@keyframes lqBars{from{transform:scaleY(.55)}to{transform:scaleY(1)}}
+.lq-sales .lq-d{background:repeating-radial-gradient(circle at 12% 88%,transparent 0 7cqw,rgba(255,255,255,.28) 7.4cqw 8cqw);animation:lqRip 3s ease-out infinite;transform-origin:12% 88%}
+@keyframes lqRip{from{transform:scale(.5);opacity:1}to{transform:scale(1.9);opacity:0}}
+.lq-health .lq-d{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'%3E%3Cpath d='M0 30h58l8-18 12 38 10-20h112' fill='none' stroke='white' stroke-opacity='.55' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 0 78%/200% auto no-repeat;animation:lqEcg 3.4s linear infinite}
+@keyframes lqEcg{to{background-position:-100% 78%}}
+.lq-build .lq-d{background:repeating-linear-gradient(-45deg,rgba(0,0,0,.2) 0 3cqw,transparent 3cqw 6cqw);-webkit-mask-image:linear-gradient(transparent 70%,#000);mask-image:linear-gradient(transparent 70%,#000);background-size:200% 100%;animation:lqStr 2.4s linear infinite}
+@keyframes lqStr{to{background-position:8.5cqw 0}}
+.lq-edu .lq-d{background:radial-gradient(circle at 80% 18%,rgba(255,255,255,.7) 0 4cqw,transparent 4.4cqw);animation:lqSun 6s ease-in-out infinite alternate}
+@keyframes lqSun{to{transform:translate(-16cqw,9cqw) scale(1.5);opacity:.5}}
+.lq-office .lq-d{background:linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px) 0 0/100% 7cqw,linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px) 0 0/7cqw 100%;-webkit-mask-image:radial-gradient(circle at 50% 30%,#000,transparent 70%);mask-image:radial-gradient(circle at 50% 30%,#000,transparent 70%);animation:lqBreath 5s ease-in-out infinite alternate}
+@keyframes lqBreath{to{transform:scale(1.12);opacity:.5}}
+.lq-gen .lq-d{background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.28),transparent 55%);animation:lqBreath 4s ease-in-out infinite alternate}
+/* the tiny tab version (used in the stack and in lists): just the icon on liquid */
+.lqw.mini .lq{aspect-ratio:1;border-radius:24%;box-shadow:0 1px 6px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.25)}
+.lqw.mini .lq-glass{inset:10%;padding:0;border-radius:24%;align-items:center;justify-content:center}
+.lqw.mini .lq-top{display:contents}.lqw.mini .lq-cat,.lqw.mini .lq-type,.lqw.mini .lq-t{display:none}
+.lqw.mini .lq-ic{width:100%;height:100%;font-size:34cqw;background:none;box-shadow:none;border-radius:0}
+@media (prefers-reduced-motion:reduce){.lq,.lq i,.lq-spec::after{animation:none!important;transition:none!important}}
+/*LIQUID:END*/
+/* ---- Endover + weekday showcase ---- */
+.ugs.wide{grid-column:1/-1}
+.ugseg{display:inline-flex;background:var(--s2);border:1px solid var(--bd);border-radius:99px;padding:3px;margin:-4px 0 14px;gap:2px}
+.ugseg button{border:0;background:none;color:var(--mu);font:inherit;font-weight:600;padding:7px 18px;border-radius:99px;cursor:pointer;transition:background .3s,color .3s,box-shadow .3s}
+.ugseg button.on{background:var(--ac);color:#fff;box-shadow:0 6px 18px -8px var(--ac)}
+.ugthree{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;margin-bottom:16px}.ugthree .card{max-width:none}
+.ug3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.ugck{display:flex!important;flex-direction:row!important;align-items:center;gap:8px!important}.ugck input{width:auto!important}
+.eog{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,.8fr) minmax(250px,.7fr);gap:20px;align-items:start}
+@media(max-width:1100px){.eog{grid-template-columns:minmax(0,1fr) minmax(240px,.8fr)}.eoside{grid-column:1/-1}}
+@media(max-width:720px){.eog{grid-template-columns:1fr}.ug3{grid-template-columns:1fr}}
+.eomid{position:sticky;top:12px;display:grid;gap:10px}
+.eoprev{min-height:220px;border-radius:26px;perspective:900px}
+.eoprev .lqw{width:100%}
+.eoghost{display:grid;place-items:center;text-align:center;gap:4px;min-height:260px;border:1.5px dashed var(--bd);border-radius:26px;color:var(--mu);padding:20px}.eoghost span{font-size:34px}
+.eotpl{color:var(--mu)}.eotpl b{color:var(--tx)}
+.eoben{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.eoben>span{font-weight:600;font-size:13px;color:var(--mu);margin-right:4px}
+.eochip{display:inline-block!important}.eochip input{position:absolute;opacity:0;pointer-events:none}
+.eochip i{font-style:normal;display:inline-block;padding:5px 12px;border-radius:99px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-weight:500;cursor:pointer;transition:transform .25s cubic-bezier(.34,1.56,.44,1),background .25s,color .25s}
+.eochip input:checked+i{background:var(--ac);border-color:var(--ac);color:#fff;transform:scale(1.06)}
+.eochip input:focus-visible+i{outline:2px solid var(--ac);outline-offset:2px}
+.eoside{background:var(--s2);border:1px solid var(--bd);border-radius:22px;padding:12px;min-width:0}
+.eoside .ugh4{margin:2px 4px 10px}
+.eog>*{min-width:0}.eostack{display:flex;flex-direction:column;gap:8px;max-height:68vh;overflow:auto;scrollbar-width:none}.eostack::-webkit-scrollbar{display:none}
+.eoempty{color:var(--mu);font-size:13px;padding:18px 8px;text-align:center}
+.eotab{flex:none;position:relative;display:grid;grid-template-columns:46px minmax(0,1fr) 26px;min-width:0;gap:10px;align-items:center;padding:7px;border-radius:16px;background:var(--s1);border:1px solid var(--bd);cursor:pointer;transition:transform .35s cubic-bezier(.34,1.56,.44,1),box-shadow .3s,background .3s}
+.eotab:hover{transform:translateX(-4px);box-shadow:0 10px 24px -14px rgba(0,0,0,.45)}
+.eotab.on{background:var(--ac);color:#fff;transform:translateX(-8px)}.eotab.on small{color:rgba(255,255,255,.8)}
+.eotab:focus-visible{outline:2px solid var(--ac)}
+.eotab.fresh{opacity:0}.eotab.fresh .eoth{opacity:0}
+.eotab.eopop{animation:eoPop .55s cubic-bezier(.34,1.56,.44,1)}
+.eotab.sent{animation:eoSent .45s ease forwards}
+@keyframes eoPop{0%{transform:scale(.86)}60%{transform:scale(1.04)}100%{transform:none}}
+@keyframes eoSent{to{transform:translateX(40px);opacity:0}}
+.eoth{display:block;width:46px;flex:none}
+.eott{min-width:0;display:grid}.eott b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}.eott small{color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eox{border:0;background:none;color:inherit;opacity:.55;cursor:pointer;font-size:14px;border-radius:50%;width:26px;height:26px}.eox:hover{opacity:1;background:rgba(127,127,127,.2)}
+.eobar{display:grid;gap:8px;justify-items:start;margin-top:18px}
+.eogo{padding:14px 26px;font-size:15px;border-radius:16px;transition:transform .3s cubic-bezier(.34,1.56,.44,1)}.eogo:not(:disabled):hover{transform:scale(1.03)}.eogo:disabled{opacity:.5}
+.eobar small{color:var(--mu)}
+/* the card's entrance follows the day of the week: Mon glide · Tue flip · Wed zoom · Thu cube · Fri rise · Sat swing · Sun iris */
+.eo-in,.u-adv{animation-duration:.8s;animation-fill-mode:both;animation-timing-function:cubic-bezier(.22,1,.36,1)}
+[data-mo="0"] .eo-in,[data-mo="0"].u-adv,[data-mo="0"] .u-adv{animation-name:eoGlide}
+[data-mo="1"] .eo-in,[data-mo="1"] .u-adv{animation-name:eoFlip}
+[data-mo="2"] .eo-in,[data-mo="2"] .u-adv{animation-name:eoZoom}
+[data-mo="3"] .eo-in,[data-mo="3"] .u-adv{animation-name:eoCube}
+[data-mo="4"] .eo-in,[data-mo="4"] .u-adv{animation-name:eoRise}
+[data-mo="5"] .eo-in,[data-mo="5"] .u-adv{animation-name:eoSwing;animation-timing-function:cubic-bezier(.34,1.56,.44,1)}
+[data-mo="6"] .eo-in,[data-mo="6"] .u-adv{animation-name:eoIris}
+@keyframes eoGlide{from{transform:translateX(48px);opacity:0}to{transform:none;opacity:1}}
+@keyframes eoFlip{from{transform:perspective(900px) rotateY(-34deg);opacity:0}to{transform:perspective(900px) rotateY(0);opacity:1}}
+@keyframes eoZoom{from{transform:scale(1.14);opacity:0;filter:blur(12px)}to{transform:none;opacity:1;filter:blur(0)}}
+@keyframes eoCube{from{transform:perspective(900px) rotateX(32deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes eoRise{from{transform:translateY(40px);opacity:0;filter:blur(10px)}to{transform:none;opacity:1;filter:blur(0)}}
+@keyframes eoSwing{from{transform:rotate(-7deg) translateY(14px);opacity:0}to{transform:none;opacity:1}}
+@keyframes eoIris{from{clip-path:circle(8% at 50% 50%);opacity:.3}to{clip-path:circle(150% at 50% 50%);opacity:1}}
+.ugshow{display:grid;gap:6px;margin:0 0 14px;padding:12px;border-radius:18px;background:var(--s2);border:1px solid var(--bd);overflow:hidden}
+.ugshc{display:flex;gap:12px;align-items:center;min-height:52px}.ugshc b{display:block}.ugshc small,.ugshow>small{color:var(--mu)}
+.ugsht{width:52px;flex:none;display:block}.ugshf{display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:var(--s1);font-size:24px}
+@media(prefers-reduced-motion:reduce){.eo-in,.u-adv,.eotab.eopop{animation:none!important}}
+.lq.hot-off{transform:none!important}
 </style></head><body><div id="banner"></div><div class="app" id="app"><nav id="rail"></nav><aside id="side"></aside><div class="col"><header id="top"></header><main id="main"></main></div></div><div id="lock" hidden></div><div id="keygate" hidden><form id="kgf" class="kgc" autocomplete="off"><div class="kgic"><svg viewBox="-150 -150 300 300" width="72" height="72" role="img" aria-label="Elitejobs Rwanda"><defs><linearGradient id="ejk" x1="0" y1="0" x2="1" y2=".7"><stop offset="0" stop-color="#8e8e98"/><stop offset=".55" stop-color="#d9d9df"/><stop offset="1" stop-color="#fff"/></linearGradient></defs><circle r="142.5" fill="#5b489d"/><path fill="#fff" fill-rule="evenodd" d="M1.7,95.2C0.8,95.0 -6.1,94.7 -8.5,94.7C-10.2,94.7 -12.2,94.3 -13.3,93.8C-13.7,93.6 -14.5,93.4 -15.1,93.3C-17.4,93.0 -20.3,92.2 -24.2,90.9C-25.0,90.7 -26.1,90.3 -26.8,90.2C-28.4,89.7 -31.0,88.6 -32.7,87.7C-33.5,87.2 -34.7,86.7 -35.4,86.4C-36.2,86.2 -37.3,85.6 -38.2,85.1C-39.0,84.6 -39.7,84.2 -39.8,84.2C-39.9,84.2 -40.3,83.9 -40.8,83.6C-41.2,83.3 -42.2,82.8 -42.9,82.4C-45.3,81.2 -46.9,80.2 -48.1,79.4C-48.7,79.0 -49.6,78.4 -50.0,78.1C-50.4,77.8 -51.1,77.3 -51.5,77.0C-51.9,76.6 -52.3,76.3 -52.4,76.3C-53.1,76.3 -54.5,75.4 -55.7,74.1C-56.5,73.4 -57.5,72.5 -58.0,72.2C-58.4,71.8 -59.2,71.1 -59.7,70.5C-60.1,69.9 -60.8,69.2 -61.1,68.9C-61.5,68.6 -61.9,68.3 -62.0,68.1C-62.2,67.7 -64.5,65.4 -67.6,62.3C-69.2,60.8 -69.6,60.2 -72.0,57.1C-73.5,55.1 -74.0,54.3 -74.8,52.6C-75.2,51.8 -75.9,50.8 -76.3,50.3C-77.2,49.4 -77.6,48.7 -78.1,47.4C-78.3,46.9 -78.7,46.2 -79.0,45.9C-79.2,45.5 -79.6,44.8 -79.8,44.3C-80.0,43.7 -80.5,42.7 -81.0,42.0C-81.5,41.3 -82.0,40.3 -82.1,39.8C-82.3,39.3 -82.6,38.5 -82.9,38.0C-83.3,37.1 -84.7,32.8 -84.9,31.8C-85.0,31.5 -85.2,30.9 -85.5,30.5C-85.7,30.1 -86.0,29.3 -86.1,28.8C-86.4,27.2 -86.9,25.4 -87.4,24.2C-87.7,23.4 -87.9,22.6 -88.0,21.4C-88.2,18.4 -89.3,16.9 -91.9,15.6C-92.8,15.2 -93.9,14.5 -94.4,14.1C-94.9,13.7 -95.8,13.1 -96.5,12.8C-97.2,12.5 -98.3,11.8 -98.9,11.4C-99.4,10.9 -100.4,10.2 -101.0,9.8C-101.6,9.5 -102.3,8.9 -102.7,8.6C-103.0,8.3 -103.8,7.8 -104.4,7.4C-105.1,7.1 -105.9,6.6 -106.2,6.3C-108.2,4.5 -109.5,3.2 -112.2,0.0C-112.5,-0.3 -113.5,-1.1 -114.3,-1.8C-116.0,-3.2 -117.5,-4.6 -121.2,-8.5C-124.2,-11.7 -124.6,-12.1 -125.2,-13.6C-126.0,-15.1 -127.7,-17.8 -128.9,-19.2C-129.5,-19.8 -130.1,-20.8 -130.5,-21.7C-130.9,-22.4 -131.5,-23.5 -131.9,-24.0C-132.3,-24.5 -133.0,-25.6 -133.4,-26.4C-133.8,-27.2 -134.4,-28.2 -134.6,-28.5C-134.9,-28.9 -135.3,-29.6 -135.4,-30.2C-136.0,-32.2 -136.4,-32.8 -137.5,-32.9L-138.0,-32.9L-137.3,-35.4C-127.9,-71.4 -104.6,-102.7 -73.0,-121.5C-71.8,-122.3 -70.5,-123.0 -70.2,-123.2C-69.3,-123.8 -69.6,-123.4 -71.0,-122.4C-71.7,-121.9 -72.3,-121.4 -72.3,-121.3C-72.4,-121.3 -72.8,-121.0 -73.2,-120.6C-73.7,-120.3 -74.3,-119.8 -74.7,-119.5C-75.0,-119.2 -75.7,-118.7 -76.3,-118.3C-76.9,-118.0 -77.9,-117.2 -78.6,-116.5C-79.2,-115.8 -80.2,-115.0 -80.8,-114.6C-82.6,-113.2 -86.0,-109.7 -86.6,-108.5C-86.9,-108.0 -87.5,-107.2 -87.9,-106.8C-88.2,-106.4 -88.8,-105.8 -89.1,-105.4C-89.3,-105.1 -90.0,-104.3 -90.5,-103.8C-91.0,-103.3 -91.9,-102.2 -92.4,-101.3C-92.9,-100.4 -93.6,-99.4 -93.9,-99.0C-94.6,-98.3 -96.5,-94.5 -96.9,-93.2C-97.0,-92.9 -97.4,-92.1 -97.8,-91.3C-98.5,-89.9 -98.9,-88.7 -99.2,-86.3C-99.4,-85.3 -99.6,-84.7 -100.0,-84.1C-100.3,-83.6 -100.5,-83.0 -100.6,-82.4C-100.6,-81.8 -100.8,-80.8 -100.9,-80.0C-101.2,-78.3 -101.3,-66.4 -101.0,-64.5C-100.6,-61.3 -100.1,-59.3 -99.7,-58.3C-99.1,-57.2 -98.7,-55.5 -98.7,-54.8C-98.7,-54.6 -98.4,-54.0 -98.2,-53.4C-97.9,-52.8 -97.6,-52.0 -97.5,-51.5C-97.2,-50.2 -96.9,-49.5 -96.2,-48.3C-95.8,-47.8 -95.4,-47.0 -95.3,-46.7C-94.9,-45.5 -94.3,-44.4 -93.6,-43.8C-92.2,-42.6 -92.3,-42.7 -90.4,-39.7C-90.2,-39.3 -89.7,-38.6 -89.3,-38.2C-88.9,-37.8 -88.1,-36.8 -87.7,-36.0C-86.1,-33.5 -84.9,-33.2 -83.0,-34.8C-82.1,-35.5 -81.5,-36.6 -81.2,-38.0C-80.9,-39.0 -80.2,-40.4 -77.7,-45.1C-77.4,-45.8 -76.9,-46.8 -76.8,-47.2C-76.6,-47.6 -76.1,-48.4 -75.7,-48.8C-75.3,-49.3 -74.9,-49.9 -74.7,-50.2C-74.6,-50.5 -74.1,-51.2 -73.7,-51.7C-73.2,-52.2 -72.6,-53.1 -72.3,-53.7C-71.8,-54.7 -71.1,-55.4 -68.0,-58.8C-66.6,-60.4 -66.3,-60.7 -63.9,-63.0C-62.9,-63.9 -61.6,-65.3 -61.0,-66.1C-60.4,-66.9 -59.6,-67.8 -59.2,-68.2C-58.9,-68.5 -58.1,-69.3 -57.4,-69.9C-56.8,-70.6 -55.9,-71.4 -55.4,-71.7C-55.0,-72.0 -54.2,-72.7 -53.6,-73.2C-52.7,-74.2 -51.9,-74.8 -49.0,-76.4C-47.9,-77.0 -47.4,-77.4 -47.0,-77.9C-46.7,-78.4 -46.1,-78.8 -45.2,-79.3C-44.4,-79.7 -43.8,-80.1 -43.8,-80.2C-43.7,-80.2 -43.1,-80.5 -42.3,-80.8C-41.5,-81.1 -40.4,-81.7 -39.7,-82.1C-39.1,-82.5 -38.3,-82.9 -37.9,-83.1C-37.5,-83.3 -36.8,-83.7 -36.3,-84.1C-35.8,-84.5 -35.0,-84.9 -34.6,-85.1C-34.1,-85.2 -33.3,-85.6 -32.7,-85.9C-32.2,-86.2 -31.2,-86.7 -30.6,-86.8C-29.9,-87.0 -28.3,-87.7 -26.9,-88.4C-24.9,-89.4 -24.2,-89.7 -23.2,-89.8C-22.4,-89.9 -21.4,-90.3 -20.7,-90.6C-19.4,-91.1 -16.5,-91.9 -14.9,-92.1C-14.4,-92.1 -13.6,-92.3 -13.3,-92.5C-12.9,-92.7 -12.0,-92.9 -11.2,-93.1C-10.5,-93.2 -9.7,-93.4 -9.3,-93.5C-7.7,-93.9 -5.1,-94.0 4.3,-94.0C16.5,-94.0 20.1,-93.9 20.7,-93.7C20.9,-93.6 21.6,-93.4 22.2,-93.3C22.8,-93.2 23.7,-93.0 24.3,-92.8C24.9,-92.7 26.8,-92.2 28.6,-91.8C30.5,-91.4 32.0,-91.0 32.4,-90.8C33.1,-90.4 36.2,-89.3 37.7,-89.0C38.2,-88.9 39.2,-88.5 39.9,-88.2C40.6,-87.8 41.5,-87.5 41.8,-87.4C42.4,-87.3 44.1,-86.4 44.5,-86.1C44.6,-86.0 45.3,-85.5 46.1,-85.2C48.6,-83.8 49.7,-83.2 50.3,-82.6C51.3,-81.7 51.9,-81.3 53.5,-80.6C54.3,-80.2 55.1,-79.8 55.2,-79.6C55.4,-79.5 55.9,-79.2 56.3,-79.0C57.4,-78.4 60.1,-75.9 60.7,-75.0C60.9,-74.7 61.3,-74.3 61.6,-74.1C62.2,-73.7 64.2,-71.4 65.0,-70.0C65.3,-69.6 65.9,-68.9 66.3,-68.6C66.7,-68.2 67.5,-67.4 68.1,-66.8C68.6,-66.1 69.4,-65.3 69.8,-64.8C70.2,-64.4 70.8,-63.5 71.3,-62.9C71.7,-62.3 72.1,-61.7 72.2,-61.7C72.3,-61.6 72.6,-60.9 73.0,-60.0C73.4,-59.2 74.0,-57.9 74.4,-57.2C75.1,-56.0 75.4,-55.3 76.3,-53.1C76.5,-52.6 76.8,-51.7 76.9,-51.1C77.3,-49.2 78.1,-46.5 78.3,-46.3C78.4,-46.2 78.6,-45.7 78.8,-45.2C79.2,-44.1 79.1,-24.5 78.7,-23.4C78.0,-21.5 77.1,-18.8 76.8,-17.5C76.7,-16.7 76.4,-15.7 76.2,-15.3C76.0,-14.9 75.7,-14.2 75.5,-13.7C75.3,-13.2 74.8,-12.1 74.3,-11.2C73.8,-10.3 73.2,-9.2 73.1,-8.8C72.9,-8.3 72.4,-7.6 72.0,-7.2C71.6,-6.7 71.0,-5.8 70.7,-5.1C70.3,-4.3 69.7,-3.4 69.4,-3.0C69.0,-2.6 68.5,-1.8 68.3,-1.3C67.9,-0.6 67.6,-0.2 66.8,0.5C66.2,1.0 64.8,2.3 63.8,3.6C62.7,4.8 61.3,6.3 60.5,7.0C59.8,7.7 59.0,8.6 58.7,9.0C58.1,9.9 57.8,10.2 56.8,10.7C56.3,11.0 55.6,11.5 55.2,11.9C54.7,12.3 53.8,12.9 52.8,13.4C52.0,13.8 51.0,14.4 50.7,14.7C49.8,15.6 47.7,16.9 46.2,17.4C45.0,17.9 44.1,18.5 43.1,19.4C42.6,19.8 40.0,21.1 38.9,21.5C38.4,21.7 37.3,22.2 36.5,22.6C35.7,23.0 34.6,23.5 34.0,23.7C33.5,23.9 32.6,24.2 32.2,24.5C31.8,24.8 31.3,25.0 31.1,25.0C31.0,25.0 30.1,25.3 29.1,25.6C28.2,25.9 26.9,26.3 26.3,26.4C25.7,26.6 24.9,26.9 24.4,27.2C23.9,27.4 23.1,27.7 22.3,27.8C20.1,28.2 17.7,28.8 14.0,30.2C13.2,30.4 12.6,30.5 10.8,30.5C8.4,30.5 6.5,30.9 5.0,31.6C3.4,32.4 2.0,32.5 -3.7,32.3C-7.1,32.1 -8.4,32.2 -12.4,32.8C-16.5,33.5 -24.9,33.3 -30.4,32.6C-35.3,31.9 -36.2,33.9 -32.3,36.8C-31.8,37.2 -30.9,38.0 -30.2,38.6C-29.6,39.2 -28.6,40.0 -28.0,40.3C-27.4,40.7 -26.6,41.3 -26.2,41.8C-25.7,42.3 -24.9,42.9 -24.2,43.2C-23.5,43.6 -22.5,44.2 -22.1,44.5C-21.6,44.9 -20.8,45.4 -20.2,45.6C-19.7,45.8 -18.9,46.3 -18.5,46.6C-17.3,47.4 -16.4,47.8 -14.9,48.0C-13.6,48.1 -13.4,48.2 -10.7,49.7C-9.7,50.2 -9.5,50.3 -7.9,50.3C-6.6,50.3 -5.8,50.4 -3.9,50.9C1.2,52.3 0.2,52.2 8.4,52.2L15.8,52.2L18.2,51.7C19.5,51.4 21.3,51.0 22.2,50.8C23.1,50.5 24.6,50.3 25.5,50.2C26.6,50.0 27.6,49.8 28.2,49.6C30.4,48.7 31.9,48.2 33.0,47.9C34.4,47.6 35.1,47.2 36.3,46.4C36.8,46.1 37.6,45.8 38.1,45.6C38.7,45.4 39.4,45.0 39.8,44.7C40.2,44.4 41.0,43.9 41.7,43.5C42.4,43.1 43.2,42.5 43.6,42.3C44.5,41.6 45.8,40.7 46.3,40.6C47.2,40.3 49.9,37.9 51.2,36.3C52.9,34.2 56.8,34.4 58.4,36.7C59.0,37.4 60.8,39.0 62.9,40.5C64.8,41.8 66.4,43.1 67.8,44.4C68.4,45.0 69.2,45.7 69.4,45.9C69.7,46.2 70.1,46.6 70.3,46.9C70.5,47.2 71.1,47.7 71.5,48.0C72.0,48.3 72.8,48.9 73.3,49.4C73.8,50.0 74.7,50.6 75.2,50.9C75.8,51.1 76.7,51.8 77.2,52.3C77.8,52.8 79.2,54.0 80.2,54.9C84.3,58.1 85.7,60.1 85.1,61.5C84.9,62.1 80.9,66.1 79.7,67.0C78.2,68.0 76.7,69.2 76.0,69.9C75.6,70.3 75.0,70.8 74.7,71.0C74.3,71.2 73.6,71.9 72.9,72.5C72.3,73.1 71.1,74.0 70.4,74.4C69.6,74.9 68.8,75.4 68.6,75.6C68.4,75.8 67.8,76.2 67.2,76.5C66.6,76.8 65.9,77.3 65.6,77.6C65.0,78.2 63.5,79.0 62.6,79.2C61.9,79.4 60.8,79.9 60.1,80.5C59.0,81.3 57.6,82.1 57.0,82.3C56.6,82.4 56.0,82.7 55.6,83.0C55.1,83.3 54.2,83.8 53.6,84.1C52.9,84.4 52.0,84.9 51.4,85.2C50.9,85.6 50.0,86.0 49.5,86.1C48.2,86.5 47.8,86.6 47.2,87.1C46.9,87.3 46.3,87.6 46.0,87.7C45.5,87.9 41.8,89.3 41.1,89.7C40.9,89.8 39.9,90.0 38.9,90.3C37.9,90.5 36.9,90.8 36.7,90.9C36.2,91.2 32.7,92.3 31.6,92.5C30.4,92.8 28.3,93.2 26.8,93.4C26.0,93.5 25.0,93.8 24.6,94.0C23.7,94.4 24.0,94.4 12.4,95.0C7.7,95.3 2.6,95.3 1.7,95.2ZM-11.8,-10.5C-9.5,-10.7 -7.0,-11.1 -6.0,-11.4C-5.6,-11.5 -4.7,-11.7 -4.1,-11.7C1.2,-12.2 2.2,-12.4 6.5,-13.6C7.0,-13.7 7.8,-13.9 8.2,-13.9C9.7,-14.1 11.7,-14.7 13.3,-15.3C14.2,-15.7 15.7,-16.2 16.8,-16.4C18.5,-16.9 19.4,-17.2 21.1,-18.3C21.6,-18.6 22.4,-19.0 22.9,-19.1C23.4,-19.2 24.2,-19.6 24.7,-19.9C25.1,-20.2 25.9,-20.6 26.3,-20.8C26.8,-20.9 27.6,-21.5 28.2,-22.0C28.8,-22.5 29.7,-23.2 30.2,-23.5C31.2,-24.2 33.8,-26.8 34.1,-27.5C34.3,-27.7 34.8,-28.6 35.3,-29.4L36.2,-30.8L36.2,-32.5C36.2,-34.6 35.8,-36.4 35.0,-38.1C34.6,-38.8 34.3,-39.5 34.3,-39.6C34.3,-40.5 30.0,-45.1 28.0,-46.4C26.4,-47.4 23.5,-48.8 22.2,-49.2C21.6,-49.4 20.3,-49.5 19.3,-49.6C18.4,-49.6 17.3,-49.8 16.9,-49.9C14.1,-50.9 11.0,-51.2 6.1,-51.0C1.0,-50.8 -0.0,-50.7 -2.5,-49.8C-4.1,-49.3 -4.7,-49.2 -5.9,-49.2C-7.1,-49.2 -7.5,-49.1 -9.0,-48.5C-10.0,-48.1 -11.7,-47.6 -12.8,-47.3C-13.8,-47.1 -15.0,-46.6 -15.3,-46.4C-15.7,-46.2 -16.6,-45.7 -17.3,-45.3C-18.9,-44.6 -20.8,-43.3 -22.8,-41.8C-23.5,-41.3 -24.3,-40.7 -24.6,-40.6C-24.9,-40.5 -25.6,-39.9 -26.3,-39.2C-26.9,-38.6 -28.1,-37.6 -28.8,-36.9C-30.0,-35.8 -33.0,-32.8 -34.9,-30.8C-35.4,-30.3 -36.0,-29.5 -36.3,-28.9C-36.6,-28.3 -37.2,-27.5 -37.7,-27.0C-38.1,-26.5 -38.7,-25.6 -39.0,-25.1C-39.3,-24.5 -39.8,-23.6 -40.2,-22.9C-40.7,-22.3 -41.0,-21.7 -41.0,-21.6C-41.0,-21.3 -41.9,-19.5 -42.4,-18.8C-42.6,-18.4 -43.0,-17.7 -43.2,-17.0C-43.4,-16.4 -43.7,-15.7 -44.0,-15.4C-44.6,-14.7 -44.6,-14.2 -44.2,-13.4C-43.9,-12.7 -43.0,-12.2 -42.1,-12.2C-41.4,-12.2 -37.0,-11.3 -36.5,-11.0C-35.2,-10.3 -17.8,-9.9 -11.8,-10.5ZM-4.5,-141.7C-4.4,-141.8 -2.5,-141.8 0.0,-141.8C3.4,-141.8 3.9,-141.8 2.5,-141.7C-0.3,-141.5 -4.8,-141.5 -4.5,-141.7Z"/><path fill="url(#ejk)" fill-rule="evenodd" d="M-65.1,64.8C-65.6,64.3 -66.7,63.2 -67.6,62.3C-69.2,60.8 -69.6,60.2 -72.0,57.1C-73.5,55.1 -74.0,54.3 -74.8,52.6C-75.2,51.8 -75.9,50.8 -76.3,50.3C-77.2,49.4 -77.6,48.7 -78.1,47.4C-78.3,46.9 -78.7,46.2 -79.0,45.9C-79.2,45.5 -79.6,44.8 -79.8,44.3C-80.0,43.7 -80.5,42.7 -81.0,42.0C-81.5,41.3 -82.0,40.3 -82.1,39.8C-82.3,39.3 -82.6,38.5 -82.9,38.0C-83.3,37.1 -84.7,32.8 -84.9,31.8C-85.0,31.5 -85.2,30.9 -85.5,30.5C-85.7,30.1 -86.0,29.3 -86.1,28.8C-86.4,27.3 -86.8,25.8 -87.3,24.6C-87.6,23.6 -87.7,23.2 -87.7,21.0L-87.7,18.5L-85.2,18.5C-82.5,18.5 -81.5,18.7 -79.5,19.9C-79.0,20.3 -77.9,20.7 -77.1,21.0C-76.2,21.3 -74.9,21.8 -74.1,22.1C-73.4,22.5 -71.9,23.0 -71.0,23.3C-70.0,23.6 -68.7,24.1 -68.0,24.4C-67.4,24.7 -65.9,25.2 -64.6,25.6C-63.4,25.9 -61.9,26.4 -61.3,26.6C-60.1,27.2 -58.9,27.5 -57.1,27.8C-55.5,28.1 -54.3,28.4 -53.0,29.0C-51.7,29.6 -50.5,29.8 -47.1,30.3C-45.3,30.6 -43.2,31.1 -41.1,31.9C-40.8,32.0 -40.2,32.2 -39.7,32.4C-39.2,32.5 -38.4,32.7 -38.0,32.7L-37.1,32.7L-37.2,35.5C-37.2,38.0 -37.3,38.4 -37.5,38.6C-37.7,38.7 -37.8,38.9 -37.8,38.9C-37.8,39.0 -38.0,39.2 -38.2,39.4C-38.5,39.6 -38.7,39.9 -38.7,40.1C-38.7,40.3 -38.8,40.5 -38.9,40.5C-39.0,40.5 -39.2,40.7 -39.2,41.0C-39.3,41.2 -39.4,41.6 -39.6,41.7C-39.7,41.9 -39.8,42.1 -39.8,42.2C-39.8,42.4 -40.0,42.5 -40.2,42.5C-40.4,42.5 -40.5,42.6 -40.5,43.0C-40.5,43.3 -40.6,43.5 -40.7,43.5C-40.8,43.5 -40.8,43.7 -40.8,44.0C-40.8,44.4 -40.9,44.5 -41.2,44.5C-41.4,44.5 -41.5,44.6 -41.5,44.8C-41.5,45.0 -41.7,45.2 -41.9,45.3C-42.1,45.5 -42.4,45.7 -42.4,45.9C-42.5,46.0 -42.6,46.2 -42.8,46.2C-43.1,46.2 -43.5,46.6 -43.5,46.9C-43.5,47.1 -43.6,47.2 -43.8,47.2C-44.0,47.2 -44.2,47.3 -44.2,47.5C-44.3,47.7 -44.5,47.8 -44.8,47.8C-45.1,47.8 -45.2,47.9 -45.2,48.2C-45.2,48.3 -45.2,48.5 -45.3,48.5C-45.4,48.5 -45.5,48.7 -45.5,48.9C-45.5,49.2 -45.6,49.4 -45.9,49.5C-46.7,49.8 -47.5,50.7 -47.5,51.3C-47.5,51.7 -47.6,52.1 -47.8,52.3C-48.0,52.5 -48.2,52.7 -48.2,52.8C-48.2,52.9 -48.3,53.1 -48.4,53.1C-48.5,53.2 -48.7,53.3 -48.8,53.5C-48.8,53.7 -49.0,53.8 -49.2,53.8C-49.4,53.8 -49.5,53.9 -49.5,54.0C-49.5,54.1 -49.6,54.2 -49.7,54.2C-49.8,54.2 -50.0,54.3 -50.2,54.5C-50.4,54.7 -50.5,54.9 -50.5,55.0C-50.5,55.1 -50.6,55.2 -50.7,55.2C-50.8,55.2 -50.8,55.3 -50.8,55.5C-50.8,55.7 -50.9,55.8 -51.0,55.8C-51.1,55.8 -51.5,56.6 -51.5,56.9C-51.5,57.1 -51.6,57.2 -51.6,57.2C-51.9,57.2 -52.8,58.1 -52.8,58.3C-52.8,58.4 -52.9,58.5 -53.0,58.5C-53.1,58.5 -53.2,58.6 -53.2,58.7C-53.2,58.8 -53.3,59.0 -53.5,59.2C-54.0,59.7 -54.2,60.0 -54.2,60.2C-54.2,60.4 -54.2,60.5 -54.3,60.5C-54.4,60.5 -54.5,60.7 -54.5,60.8C-54.5,61.1 -54.6,61.2 -55.1,61.2C-55.4,61.2 -55.7,61.2 -55.7,61.3C-55.7,61.4 -55.8,61.5 -56.1,61.7C-56.3,61.8 -56.5,62.0 -56.6,62.2C-56.6,62.4 -56.8,62.5 -56.9,62.5C-57.1,62.5 -57.2,62.7 -57.2,63.0C-57.2,63.3 -57.3,63.5 -57.4,63.5C-57.6,63.5 -57.7,63.8 -57.7,64.4C-57.8,65.3 -57.9,65.3 -58.6,65.5C-59.0,65.6 -60.4,65.7 -61.8,65.7L-64.3,65.7L-65.1,64.8Z"/></svg></div><h2>Office passcode</h2><p>Ask IT Support for the office passcode. You only enter it once on this computer.</p><input id="kgi" maxlength="12" spellcheck="false" placeholder="K7Q2XM" aria-label="Office passcode"><div id="kge" class="kge" role="alert"></div><button class="b p kgb">Continue</button></form></div><div id="gate"><iframe id="gf" title="Welcome"></iframe></div><div id="mod"></div><div id="toast"></div><div id="pal" hidden><div><input id="pq" placeholder="Jump to any workspace or page…"><div id="pl"></div></div></div>
 <script>
 const $=s=>document.querySelector(s),KEY='nexus-v1';
@@ -814,6 +945,79 @@ function softResume(){let f=null;try{f=sessionStorage.getItem('soft-resume');ses
   if(!b||!b.u)return false;const r=POS[b.r]||'admin';let mv=null;try{mv=JSON.parse(LS.get('me-v1'))}catch(x){}ui.me={u:b.u,r,id:mv&&mv.r==r?mv.id:''};setTimeout(registerMe,300);ui.r=r;ui.v=0;ui.anim=true;ui.rm=true;
   try{const w=JSON.parse(f);if(w&&R[w.r]&&(r=='admin'||w.r==r)){ui.r=w.r;ui.v=Math.min(+w.v||0,flat(w.r).length-1)}}catch(e){}
   $('#gate').hidden=true;$('#app').style.visibility='visible';_render();return true}
+/*LIQUID:START — shared by the Hub and the website: smart template choice + liquid job cards*/
+const EJ_CATS = [['hosp', 'Hospitality & food'], ['clean', 'Cleaning & housekeeping'], ['secur', 'Security'], ['drive', 'Driving & logistics'], ['tech', 'IT & technology'], ['fin', 'Finance & accounting'], ['sales', 'Sales & marketing'], ['health', 'Health & care'], ['build', 'Construction & trades'], ['edu', 'Education & childcare'], ['office', 'Office & administration'], ['gen', 'Other']];
+const EJ_TPL = {
+  hosp:  { n: 'Hospitality', ic: '☕', c: ['#FF8A3D', '#E8335A', '#FFC857'], kw: 'waiter waitress waiters server barista bartender barman barmaid chef cook kitchen restaurant hotel cafe coffee bar mucoma dishwasher steward catering food hospitality serveur serveuse cuisinier cuisine umutetsi umukarani' },
+  clean: { n: 'Cleaning', ic: '✨', c: ['#14B8A6', '#0EA5E9', '#A7F3D0'], kw: 'cleaner cleaning housekeeper housekeeping laundry janitor sweeper maid hygiene sanitation nettoyage menage umukozi isuku' },
+  secur: { n: 'Security', ic: '🛡️', c: ['#1E3A8A', '#2563EB', '#67E8F9'], kw: 'guard security watchman askari bouncer patrol cctv surveillance gardien securite' },
+  drive: { n: 'Driving & logistics', ic: '🚚', c: ['#F97316', '#374151', '#FDBA74'], kw: 'driver moto motorcycle rider delivery courier logistics warehouse loader truck transport dispatch chauffeur livreur umushoferi' },
+  tech:  { n: 'Technology', ic: '💻', c: ['#6D28D9', '#06B6D4', '#A78BFA'], kw: 'developer software programmer engineer it network helpdesk support data analyst designer web android devops technician computer developpeur informatique' },
+  fin:   { n: 'Finance', ic: '💰', c: ['#047857', '#0D9488', '#FCD34D'], kw: 'accountant accounting cashier bookkeeper finance auditor teller payroll tax budget comptable caissier umubaruramari' },
+  sales: { n: 'Sales & marketing', ic: '📣', c: ['#DB2777', '#F43F5E', '#FDA4AF'], kw: 'sales marketing promoter agent brand merchandiser representative advertising commercial vendeur commercial umucuruzi' },
+  health:{ n: 'Health & care', ic: '🩺', c: ['#0E7490', '#10B981', '#FECDD3'], kw: 'nurse doctor pharmacist caregiver lab laboratory clinic hospital midwife dentist medical health care infirmier umuforomo' },
+  build: { n: 'Construction & trades', ic: '🔧', c: ['#CA8A04', '#475569', '#FDE047'], kw: 'mason builder plumber electrician carpenter welder mechanic painter construction foreman technician tiler carreleur macon umwubatsi' },
+  edu:   { n: 'Education', ic: '🎓', c: ['#0284C7', '#F59E0B', '#7DD3FC'], kw: 'teacher tutor nanny daycare trainer instructor lecturer school childcare nursery enseignant nounou umwarimu' },
+  office:{ n: 'Office & admin', ic: '🗂️', c: ['#4338CA', '#7C3AED', '#C4B5FD'], kw: 'receptionist secretary admin administrator assistant clerk manager supervisor hr officer coordinator customer service call center callcenter data entry reception secretaire gestionnaire' },
+  gen:   { n: 'Urgent job', ic: '⚡', c: ['#6E5BB3', '#3A2C6E', '#B9A8F5'], kw: '' }
+};
+const ejNorm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+const ejStem = w => w.length > 4 ? w.replace(/(ies|es|s)$/, m => m === 'ies' ? 'y' : '') : w;
+// Chooses the template that fits a job from its TITLE and CATEGORY only.
+// A clear word in the title (“Cleaner”) beats a loosely chosen category.
+function ejPick(title, category) {
+  const t = ejNorm(title), toks = t.split(' ').filter(Boolean).map(ejStem), score = {};
+  for (const [id, T] of Object.entries(EJ_TPL)) {
+    if (!T.kw) continue; let s = 0;
+    for (const k of T.kw.split(' ')) {
+      const ks = ejStem(k);
+      if (toks.includes(ks) || toks.includes(k)) s += 4;
+      else if (ks.length >= 5 && t.includes(ks)) s += 2.5;
+      else if (k.includes(' ') && t.includes(k)) s += 4;
+    }
+    if (id === category) s += 3;
+    score[id] = s;
+  }
+  let best = 'gen', top = 0;
+  for (const [id, s] of Object.entries(score)) if (s > top) { top = s; best = id; }
+  return top >= 2 ? best : (EJ_TPL[category] ? category : 'gen');
+}
+const ejNum = n => Number(n).toLocaleString('en-US');
+const ejPer = { month: 'month', week: 'week', day: 'day', hour: 'hour', job: 'job' };
+function ejPay(m) {
+  const a = Number(m.salMin) || 0, b = Number(m.salMax) || 0;
+  if (!a && !b) return { v: m.neg ? 'Negotiable' : 'Pay on request', u: '' };
+  const v = a && b && a !== b ? ejNum(a) + ' – ' + ejNum(b) : ejNum(a || b);
+  return { v: (a && b ? '' : a ? 'From ' : 'Up to ') + v, u: 'RWF / ' + (ejPer[m.per] || 'month') + (m.neg ? ' · negotiable' : '') };
+}
+// One liquid card. mini = tiny tab version (icon + title only).
+function ejCard(p, mini) {
+  const m = p.meta || {}, id = EJ_TPL[p.tpl] ? p.tpl : 'gen', T = EJ_TPL[id], pay = ejPay(m);
+  const req = (m.req || []).slice(0, 4).map(r => `<li>${esc(r)}</li>`).join('');
+  const ben = (m.ben || []).slice(0, 4).map(r => `<span>${esc(r)}</span>`).join('');
+  return `<div class="lqw${mini ? ' mini' : ''}"><div class="lq lq-${id}" style="--a:${T.c[0]};--b:${T.c[1]};--c:${T.c[2]}">
+  <i class="lq-b1"></i><i class="lq-b2"></i><i class="lq-b3"></i><i class="lq-d" aria-hidden="true"></i>
+  <div class="lq-glass">
+    <div class="lq-top"><span class="lq-ic" aria-hidden="true">${T.ic}</span><span class="lq-cat">${esc((EJ_CATS.find(c => c[0] === (m.cat || id)) || [0, T.n])[1])}</span>${m.type ? `<span class="lq-type">${esc(m.type)}</span>` : ''}</div>
+    <h4 class="lq-t">${esc(p.title)}</h4>
+    ${mini ? '' : `<div class="lq-pay"><b>${esc(pay.v)}</b><small>${esc(pay.u)}</small></div>
+    ${m.loc ? `<div class="lq-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="10" r="2.6"/></svg>${esc(m.loc)}</div>` : ''}
+    ${m.openings > 1 ? `<div class="lq-open">${esc(m.openings)} positions</div>` : ''}
+    ${req ? `<ul class="lq-req">${req}</ul>` : ''}
+    ${ben ? `<div class="lq-ben">${ben}</div>` : ''}
+    ${m.desc ? `<p class="lq-dsc">${esc(m.desc)}</p>` : ''}`}
+  </div><span class="lq-spec" aria-hidden="true"></span></div></div>`;
+}
+// the card reacts to your finger / pointer: it tilts and its light follows you
+function ejLiquidInit() {
+  if (window.__lqOn) return; window.__lqOn = true;
+  const calm = matchMedia('(prefers-reduced-motion:reduce)').matches; if (calm) return;
+  const set = (el, e) => { const r = el.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height; el.style.setProperty('--mx', (x * 100).toFixed(1) + '%'); el.style.setProperty('--my', (y * 100).toFixed(1) + '%'); el.style.setProperty('--rx', ((.5 - y) * 11).toFixed(2) + 'deg'); el.style.setProperty('--ry', ((x - .5) * 13).toFixed(2) + 'deg'); el.classList.add('hot'); };
+  const off = el => { el.classList.remove('hot'); ['--mx', '--my', '--rx', '--ry'].forEach(k => el.style.removeProperty(k)); };
+  document.addEventListener('pointermove', e => { const el = e.target.closest && e.target.closest('.lqw:not(.mini) .lq'); if (el) set(el, e); }, { passive: true });
+  document.addEventListener('pointerout', e => { const el = e.target.closest && e.target.closest('.lq'); if (el && !el.contains(e.relatedTarget)) off(el); }, { passive: true });
+}
+/*LIQUID:END*/
 // ===================== Urgent hiring room =====================
 // Identity comes from this device's own key (approved by Admin), never from a typed name.
 // What you can do comes from Admin's grant: Publish, Review, or both.
@@ -846,12 +1050,12 @@ V.urgent=function(){const g=ui.ug,m=g.me;
  if(!m)return'<h1>Urgent hiring</h1><div class=empty>Loading…</div>';
  if(!m.signedIn)return`<h1>Urgent hiring</h1><div class="uggate"><div class=ugmark>⚡</div><h2>This device isn’t approved yet</h2><p>Urgent hiring only opens on a device Admin has approved for you, so nobody can use another person’s account. Admin approves new devices in <b>Urgent hiring → Access</b>.</p></div>`;
  if(!m.post&&!m.review)return`<h1>Urgent hiring</h1><div class=ugroom>${ugLockedSec('Publish an urgent job','Not given to you',UG_GHOST_FORM)}${ugLockedSec('New applications','Not given to you',UG_GHOST_ROWS)}${ugLockedSec('Called','Not given to you',UG_GHOST_ROWS)}<div class="uggate over"><div class=ugmark>⚡</div><h2>Urgent hiring is closed for you</h2><p>Admin chooses who can publish urgent jobs to elitejobsrwanda.com and who can call the people who apply. When Admin gives you access, this room opens by itself.</p></div></div>`;
- setTimeout(()=>ugHydrate($('#main')),0);
+ setTimeout(()=>{ugHydrate($('#main'));ugShowStart();ejLiquidInit()},0);
  const can=[m.post&&'Publish',m.review&&'Review'].filter(Boolean);
  const conn=m.connection&&!m.connection.live?`<div class="card ugwarn">The Hub isn’t connected to the website yet, so nothing can be published or received. ${m.admin||itKey()?'Connect it below in <b>Website connection</b>.':'Admin or IT can connect it.'}</div>`:'';
  const apps=g.apps||[],nw=apps.filter(a=>a.status=='new'),dn=apps.filter(a=>a.status=='done').sort((a,b)=>b.reviewedAt-a.reviewedAt);
  const row=a=>`<button class="ugrow" style="view-transition-name:ugr-${a.id}" data-a="ugopen|${a.id}"><img class=ugav alt="" data-ugimg="${a.id}:0" style="view-transition-name:${g.open==a.id?'none':'uga-'+a.id}"><div><b>${esc(a.data.name)}</b><small>${esc(a.title)} · ${agoT(a.got)}</small></div>${a.status=='done'?`<span class="ugout o-${a.outcome}">${UGL[a.outcome]||''}</span>`:'<span class=ugnew>New</span>'}</button>`;
- const s1=m.post?`<section class=ugs><h3>Publish an urgent job</h3>${ugForm()}${ugPosts()}</section>`:ugLockedSec('Publish an urgent job','Publishing isn’t given to you',UG_GHOST_FORM);
+ const wide=g.mode=='endover',s1=m.post?`<section class="ugs${wide?' wide':''}"><h3>Publish an urgent job</h3>${ugSeg()}${wide?eoRoot():ugForm()}${ugShowHTML()}${ugPosts()}</section>`:ugLockedSec('Publish an urgent job','Publishing isn’t given to you',UG_GHOST_FORM);
  const s2=m.review?`<section class=ugs><h3>New applications${nw.length?` <em class=ugn>${nw.length}</em>`:''}</h3>${g.appsErr?`<p class=bad>${esc(g.appsErr)}</p>`:''}${nw.length?nw.map(row).join(''):'<div class=empty>No one is waiting. New applications from the website appear here within a minute.</div>'}</section>`:ugLockedSec('New applications','Reviewing isn’t given to you',UG_GHOST_ROWS);
  const s3=m.review?`<section class=ugs><h3>Called</h3>${dn.length?dn.slice(0,60).map(row).join(''):'<div class=empty>People you’ve called move here with what happened.</div>'}</section>`:ugLockedSec('Called','Reviewing isn’t given to you',UG_GHOST_ROWS);
  return`<h1>Urgent hiring</h1><p class=sub>You can: ${can.join(' and ')}. Everything here goes to and comes from elitejobsrwanda.com.</p>${conn}<div class=ugroom>${s1}${s2}${s3}</div>${m.admin?ugAdmin():(itKey()?ugConn():'')}`};
@@ -867,20 +1071,108 @@ function ugPosts(){const g=ui.ug,P=g.posts;if(g.postsErr)return`<p class=bad>${e
 function ugConn(){const c=ui.ug.cfg||{};return`<div class=card><h3>Website connection</h3><p class=sub>The Hub collects applications from elitejobsrwanda.com every minute and publishes urgent jobs there. Use the same Hub key you saved in Cloudflare (HUB_TOKEN).</p>
  <form class=ugf id=ugcfg autocomplete=off><div class=ug2><label>Website address<input name=site placeholder="https://elitejobsrwanda.com" value="${esc(c.site||'')}"></label><label>Hub key<input name=token type=password placeholder="${c.hasToken?'Saved — type a new one to change it':'Paste the key'}"></label></div>
  <div class=row>${btn('Save connection','ugcfg','p')}${btn('Check now','ugsync')}<span class=${c.lastError?'bad':'sub'} style="margin:0">${c.lastError?esc(c.lastError):c.lastSync?'Last checked '+agoT(c.lastSync):'Not checked yet'}</span></div></form></div>`}
-function ugAdmin(){const g=ui.ug,G=g.grants||{staff:[],grants:{}},a=g.acc||{};
- const people=G.staff.filter(s=>!a.role||s.role==a.role),sel=G.staff.find(s=>s.id==a.uid),cur=sel?(G.grants[sel.id]||{}):{};
- const granted=Object.entries(G.grants).map(([id,x])=>({p:G.staff.find(s=>s.id==id),x})).filter(o=>o.p);
- const waiting=(g.devs||[]).filter(d=>!d.ok);const r=g.rep;
- return`<h2 class=ugh2>Admin</h2><div class=two><div class=card><h3>Access</h3><p class=sub>Choose a position, then the person. Publish lets them put urgent jobs on the website. Review lets them see applicants and call them.</p>
- <div class=ug2><label>Position<select data-ugacc=role><option value="">All positions</option>${UG_POS.map(k=>`<option value=${k} ${a.role==k?'selected':''}>${R[k].n}</option>`).join('')}</select></label>
- <label>Person<select data-ugacc=uid><option value="">Choose…</option>${people.map(s=>`<option value="${s.id}" ${a.uid==s.id?'selected':''}>${esc(s.name)} · ${esc(s.dept)}</option>`).join('')}</select></label></div>
- ${sel?`<div class=ugtog><label><input type=checkbox id=ugp ${cur.post?'checked':''}> Publish urgent jobs</label><label><input type=checkbox id=ugr ${cur.review?'checked':''}> Review and call applicants</label></div><div class=row>${btn('Save access for '+esc(sel.name.split(' ')[0]),'uggrant','p')}</div>`:people.length?'':'<div class=empty>No one in this position has signed in yet.</div>'}
- <h4 class=ugh4>Who has access</h4>${granted.length?granted.map(o=>`<div class=ugpost><div><b>${esc(o.p.name)}</b><small>${esc(o.p.dept)} · ${[o.x.post&&'Publish',o.x.review&&'Review'].filter(Boolean).join(' + ')}</small></div>${btn('Change','ugpick|'+o.p.id)}</div>`).join(''):'<div class=empty>Only you, so far.</div>'}
- ${waiting.length?`<h4 class=ugh4>Devices waiting for approval</h4>${waiting.map(d=>`<div class=ugpost><div><b>${esc(d.name)}</b><small>${esc(d.dept||'')} · new device ${agoT(d.t)}</small></div>${btn('Approve','ugdev|'+d.id+'|1','p')}${btn('Remove','ugdev|'+d.id+'|0')}</div>`).join('')}`:''}</div>
+function ugGrantCard(key,title,desc,post,review){const g=ui.ug,G=g.grants||{staff:[],grants:{}},a=(g.acc&&g.acc[key])||{};
+ const people=G.staff.filter(s=>!a.role||s.role==a.role),sel=G.staff.find(s=>s.id==a.uid);
+ const has=Object.entries(G.grants).map(([id,x])=>({p:G.staff.find(s=>s.id==id),x})).filter(o=>o.p&&!!o.x.post==post&&!!o.x.review==review);
+ return`<div class="card ugg ugg-${key}"><h3>${title}</h3><p class=sub>${desc}</p>
+ <div class=ug2><label>Position<select data-ugacc="${key}.role"><option value="">All positions</option>${UG_POS.map(k=>`<option value=${k} ${a.role==k?'selected':''}>${R[k].n}</option>`).join('')}</select></label>
+ <label>Person<select data-ugacc="${key}.uid"><option value="">Choose…</option>${people.map(s=>`<option value="${s.id}" ${a.uid==s.id?'selected':''}>${esc(s.name)} · ${esc(s.dept)}</option>`).join('')}</select></label></div>
+ ${sel?`<div class=row>${btn('Give '+esc(sel.name.split(' ')[0])+' '+(post&&review?'both':post?'publish only':'review only'),'uggrant|'+key,'p')}</div>`:people.length?'':'<div class=empty>No one in this position has signed in yet.</div>'}
+ <h4 class=ugh4>${has.length?'Has this now':'Nobody yet'}</h4>${has.map(o=>`<div class=ugpost><div><b>${esc(o.p.name)}</b><small>${esc(o.p.dept)}</small></div>${btn('Remove','ugrevoke|'+o.p.id)}</div>`).join('')}</div>`}
+function ugAdmin(){const g=ui.ug;const waiting=(g.devs||[]).filter(d=>!d.ok);const r=g.rep;
+ return`<h2 class=ugh2>Admin · who can use Urgent hiring</h2><p class=sub>Pick a position, then the person, in the section that matches what you want to give. Saving a person in a section replaces what they had before. Every change is logged.</p>
+ <div class=ugthree>${ugGrantCard('pub','Publish only','They put urgent jobs on the website. They can’t see applicants.',true,false)}${ugGrantCard('rev','Review only','They see applicants and call them, and get the notifications. They can’t publish.',false,true)}${ugGrantCard('both','Publish and review','Both: they publish jobs and call the people who apply.',true,true)}</div>
+ <div class=two>${waiting.length?`<div class=card><h3>Devices waiting for approval</h3>${waiting.map(d=>`<div class=ugpost><div><b>${esc(d.name)}</b><small>${esc(d.dept||'')} · new device ${agoT(d.t)}</small></div>${btn('Approve','ugdev|'+d.id+'|1','p')}${btn('Remove','ugdev|'+d.id+'|0')}</div>`).join('')}</div>`:''}
  <div class=card><h3>Report</h3>${r?`<div class=g><div class=k><span>Applied</span><b>${r.total}</b><i>${r.week} this week</i></div><div class=k><span>Waiting</span><b>${r.waiting}</b><i>to be called</i></div><div class=k><span>Coming</span><b>${r.outcomes.coming}</b><i>on site</i></div></div>
  ${Object.entries(r.labels).map(([k,l])=>{const n=r.outcomes[k]||0,mx=Math.max(1,r.called);return`<div class=bar><span>${l}</span><div><i style="width:${n/mx*100}%"></i></div><b>${n}</b></div>`}).join('')}
  ${r.byPost.length?`<h4 class=ugh4>By job</h4>${tb(['Job','Applied','Called','Coming'],r.byPost.slice(0,10).map(p=>[esc(p.title),p.applied,p.called,p.coming]))}`:''}
  ${Object.keys(r.byReviewer).length?`<h4 class=ugh4>Calls made</h4>${Object.entries(r.byReviewer).map(([n,c])=>`<div class=ugpost><div><b>${esc(n)}</b></div><span>${c}</span></div>`).join('')}`:''}`:'<div class=empty>Loading…</div>'}</div></div>${ugConn()}`}
+// ---------- Endover: full job cards → stacked on the right → published together ----------
+const EO_PER=[['month','Per month'],['week','Per week'],['day','Per day'],['hour','Per hour'],['job','Per job']];
+const EO_TYPE=['Full-time','Part-time','One day','Contract','Internship'];
+const EO_BEN=['Meals','Transport','Housing','Tips','Insurance','Training','Uniform','Bonus'];
+const eoMo=()=>(new Date().getDay()+6)%7; // Mon=0 … Sun=6 — one distinct motion per day, then the loop starts again
+const EO_DAY=['Glide','Flip','Zoom','Cube','Rise','Swing','Iris'];
+function eo(){const g=ui.ug;if(!g.eo){let l=[];try{l=JSON.parse(LS.get('ug-batch')||'[]')}catch(e){}g.eo={f:{life:'24',ben:[]},list:Array.isArray(l)?l:[],sel:null,busy:false}}return g.eo}
+function eoSave(){LS.set('ug-batch',JSON.stringify(eo().list))}
+function eoRead(){const f=$('#eof');if(!f)return eo().f;const fd=new FormData(f),d={};for(const[k,v]of fd.entries())if(k!='ben')d[k]=v;d.ben=fd.getAll('ben');d.neg=!!fd.get('neg');eo().f=d;return d}
+function eoBuild(f){const cat=f.cat||'gen',title=String(f.title||'').trim(),tpl=EJ_TPL[f.tpl]?f.tpl:ejPick(title,cat);
+ const n=v=>{const x=Number(String(v||'').replace(/[^0-9.]/g,''));return x>0?x:0},lines=s=>String(s||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,8);
+ return{title,tpl,meta:{cat,type:f.type||'',salMin:n(f.salMin),salMax:n(f.salMax),per:f.per||'month',neg:!!f.neg,loc:String(f.loc||'').trim(),openings:Math.max(1,Math.min(999,n(f.open)||1)),exp:String(f.exp||'').trim(),edu:String(f.edu||'').trim(),req:lines(f.req),ben:(f.ben||[]).slice(0,8),desc:String(f.desc||'').trim().slice(0,400)}}}
+function eoPrev(){const f=eo().f,sel=eo().sel!=null?eo().list.find(x=>x.id==eo().sel):null;
+ if(sel)return ejCard(sel.post);
+ if(!String(f.title||'').trim())return`<div class=eoghost><span>⚡</span><b>Your card appears here</b><small>Type a job title — the Hub picks the template that fits.</small></div>`;
+ return ejCard(eoBuild(f))}
+function eoTplLine(){const f=eo().f,t=String(f.title||'').trim();if(!t)return'Template: chosen for you once there is a title';const id=eoBuild(f).tpl,T=EJ_TPL[id];return`Template: <b>${T.ic} ${esc(T.n)}</b> ${f.tpl?'· chosen by you':'· picked from the title and category'}`}
+function eoForm(){const f=eo().f;return`<form class=ugf id=eof autocomplete=off>
+ <label>Job title<input name=title maxlength=80 placeholder="5 waiters for tonight" value="${esc(f.title||'')}"></label>
+ <div class=ug2><label>Category<select name=cat>${EJ_CATS.map(([k,l])=>`<option value=${k} ${(f.cat||'gen')==k?'selected':''}>${l}</option>`).join('')}</select></label>
+ <label>Type of work<select name=type><option value="">—</option>${EO_TYPE.map(t=>`<option ${f.type==t?'selected':''}>${t}</option>`).join('')}</select></label></div>
+ <div class=ug3><label>Pay from (RWF)<input name=salMin inputmode=numeric placeholder="150000" value="${esc(f.salMin||'')}"></label><label>Pay up to (RWF)<input name=salMax inputmode=numeric placeholder="250000" value="${esc(f.salMax||'')}"></label>
+ <label>Paid<select name=per>${EO_PER.map(([k,l])=>`<option value=${k} ${(f.per||'month')==k?'selected':''}>${l}</option>`).join('')}</select></label></div>
+ <label class=ugck><input type=checkbox name=neg ${f.neg?'checked':''}> Pay is negotiable</label>
+ <div class=ug2><label>Where<input name=loc maxlength=80 placeholder="Kigali, Kimihurura" value="${esc(f.loc||'')}"></label><label>How many people<input name=open inputmode=numeric placeholder="1" value="${esc(f.open||'')}"></label></div>
+ <div class=ug2><label>Experience<input name=exp maxlength=60 placeholder="1 year or more" value="${esc(f.exp||'')}"></label><label>Education<input name=edu maxlength=60 placeholder="Secondary school" value="${esc(f.edu||'')}"></label></div>
+ <label>Requirements <small>(one per line)</small><textarea name=req rows=3 maxlength=500 placeholder="Speaks Kinyarwanda and English&#10;Can start tomorrow">${esc(f.req||'')}</textarea></label>
+ <div class=eoben><span>They also get</span>${EO_BEN.map(b=>`<label class=eochip><input type=checkbox name=ben value="${b}" ${(f.ben||[]).includes(b)?'checked':''}><i>${b}</i></label>`).join('')}</div>
+ <label>Description<textarea name=desc rows=3 maxlength=400 placeholder="What the person will do, hours, what to bring…">${esc(f.desc||'')}</textarea></label>
+ <div class=ug2><label>How long it stays up<select name=life>${UGLIFE.map(([v,l])=>`<option value=${v} ${(f.life||'24')==v?'selected':''}>${l}</option>`).join('')}</select></label><label id=eountil ${f.life=='custom'?'':'hidden'}>Ends at<input type=datetime-local name=until value="${esc(f.until||'')}"></label></div>
+ <label>Template <select name=tpl><option value="">Choose for me (recommended)</option>${Object.entries(EJ_TPL).map(([k,T])=>`<option value=${k} ${f.tpl==k?'selected':''}>${T.ic} ${T.n}</option>`).join('')}</select></label>
+</form>`}
+function eoStack(){const L=eo().list;return L.length?L.map((x,i)=>`<div class="eotab${eo().sel==x.id?' on':''}" data-id="${x.id}" role=button tabindex=0 data-a="eosel|${x.id}" style="--i:${i}"><span class=eoth>${ejCard({title:x.post.title,tpl:x.post.tpl,meta:x.post.meta},true)}</span><span class=eott><b>${esc(x.post.title)}</b><small>${esc(x.post.meta.loc)} · ${esc(UGLIFE.find(l=>l[0]==x.life)?.[1]||'until '+(x.until||'').slice(0,10))}</small></span><button class=eox data-a="eodel|${x.id}" aria-label="Remove ${esc(x.post.title)}">✕</button></div>`).join(''):'<div class=eoempty>Finished jobs slide in here, like tabs.</div>'}
+function eoPanel(){const e=eo(),sel=e.sel!=null?e.list.find(x=>x.id==e.sel):null,n=e.list.length;
+ return`<div class=eog><div class=eoform>${eoForm()}</div>
+ <div class=eomid><div class=eoprev id=eoprev>${eoPrev()}</div><small class=eotpl id=eotpl>${eoTplLine()}</small>
+  <div class=row>${sel?btn('Edit this job','eoedit|'+sel.id)+btn('Back to the form','eosel|'):btn(e.busy?'Adding…':'Add job','eoadd','p')}</div></div>
+ <aside class=eoside><h4 class=ugh4>Ready to publish${n?' · '+n:''}</h4><div class=eostack id=eostack>${eoStack()}</div></aside></div>
+ <div class=eobar><button class="b p eogo" data-a=eogo ${n&&!e.busy?'':'disabled'}>${e.busy?'Publishing…':n?'Endover — publish '+n+' job'+(n>1?'s':'')+' to the website':'Endover'}</button><small>${n?'All of them go live on elitejobsrwanda.com together and leave by themselves when their time ends.':'Add at least one job first.'}</small></div>`}
+function eoRoot(){return`<div class=eoroot id=eoroot data-mo="${eoMo()}">${eoPanel()}</div>`}
+function eoMount(){const r=$('#eoroot');if(r)r.innerHTML=eoPanel()}
+function eoLive(){const f=eoRead();const p=$('#eoprev'),t=$('#eotpl');if(!p)return;
+ const u=$('#eountil');if(u)u.hidden=f.life!='custom';
+ if(eo().sel!=null){eo().sel=null;eoMount();return}
+ const prevTpl=p.dataset.tpl,nb=String(f.title||'').trim()?eoBuild(f):null,k=nb?nb.tpl:'';
+ p.innerHTML=eoPrev();t.innerHTML=eoTplLine();
+ if(k!==prevTpl){p.dataset.tpl=k;if(k){p.classList.remove('eo-in');void p.offsetWidth;p.classList.add('eo-in');haptic('tick')}}
+ const l=p.querySelector('.lq');if(l)l.classList.add('hot-off')}
+function eoCheck(f){const b=eoBuild(f),m=b.meta;
+ if(b.title.length<3)return'Give the job a short title';if(!m.loc)return'Add where the job is';
+ if(m.salMin&&m.salMax&&m.salMin>m.salMax)return'The lowest pay can’t be higher than the highest pay';
+ if(f.life=='custom'){if(!f.until)return'Choose when it ends';if(Date.parse(f.until)<Date.now()+10*6e4)return'The end time must be at least 10 minutes away'}return''}
+function eoFly(from,toEl,done){const calm=matchMedia('(prefers-reduced-motion:reduce)').matches;if(calm||!from||!toEl||!toEl.animate){done();return}
+ const a=from.getBoundingClientRect(),b=toEl.getBoundingClientRect();if(!a.width||!b.width){done();return}
+ const c=from.cloneNode(true);Object.assign(c.style,{position:'fixed',left:a.left+'px',top:a.top+'px',width:a.width+'px',height:a.height+'px',margin:0,zIndex:90,pointerEvents:'none',transformOrigin:'top left',borderRadius:'22px',overflow:'hidden'});document.body.append(c);
+ const dx=b.left-a.left,dy=b.top-a.top,s=Math.max(.14,b.width/a.width);
+ const an=c.animate([{transform:'none',opacity:1,filter:'none'},{transform:`translate(${dx*.55}px,${dy*.2}px) scale(${(1+s)/2})`,opacity:.95,offset:.55},{transform:`translate(${dx}px,${dy}px) scale(${s})`,opacity:.9,filter:'blur(.4px)'}],{duration:620,easing:'cubic-bezier(.32,.72,0,1)',fill:'forwards'});
+ an.onfinish=()=>{c.remove();done()};an.oncancel=()=>{c.remove();done()}}
+Object.assign(A,{
+ ugmode(m){ui.ug.mode=m=='endover'?'endover':'flyer';haptic('soft');const e=flat(ui.r)[ui.v];const go=()=>refreshMain();
+  if(document.startViewTransition&&!matchMedia('(prefers-reduced-motion:reduce)').matches){const v=document.startViewTransition(go);[v.ready,v.finished,v.updateCallbackDone].forEach(p=>p.catch(()=>{}))}else go();setTimeout(()=>ugHydrate($('#main')),0)},
+ eosel(id){const e=eo();e.sel=id?+id:null;if(!id)e.sel=null;haptic('soft');eoMount()},
+ eodel(id){const e=eo();e.list=e.list.filter(x=>x.id!=id);if(e.sel==id)e.sel=null;eoSave();haptic('medium');eoMount()},
+ eoedit(id){const e=eo(),x=e.list.find(y=>y.id==id);if(!x)return;e.f=Object.assign({},x.form);e.list=e.list.filter(y=>y.id!=id);e.sel=null;eoSave();eoMount()},
+ eoadd(){const e=eo();if(e.busy)return;const f=eoRead(),er=eoCheck(f);if(er){haptic('error');return toast('✖ '+er)}
+  const post=eoBuild(f),item={id:Date.now(),post,form:Object.assign({},f),life:f.life,until:f.life=='custom'?new Date(f.until).toISOString():''};
+  const src=$('#eoprev .lqw');e.list.push(item);e.f={life:f.life,ben:[],cat:f.cat};eoSave();haptic('medium');
+  const clone=src;eoMount();const tab=document.querySelector('.eotab[data-id="'+item.id+'"]');if(tab)tab.classList.add('fresh');
+  eoFly(clone,tab&&tab.querySelector('.eoth'),()=>{if(tab){tab.classList.remove('fresh');tab.classList.add('eopop')}haptic('success')})},
+ async eogo(){const e=eo();if(e.busy||!e.list.length)return;e.busy=true;eoMount();let ok=0;
+  for(const x of e.list.slice()){const body={kind:'card',title:x.post.title,tpl:x.post.tpl,meta:x.post.meta};if(x.until)body.until=x.until;else body.hours=+x.life;
+   try{await api('/api/urgent/posts',body);ok++;const t=document.querySelector('.eotab[data-id="'+x.id+'"]');if(t)t.classList.add('sent');haptic('success');await new Promise(r=>setTimeout(r,360));e.list=e.list.filter(y=>y.id!=x.id);eoSave()}
+   catch(er){e.busy=false;eoMount();haptic('error');toast('✖ '+x.post.title+': '+er.message+(ok?' ('+ok+' already published)':''));if(ok)LOADERS.urgent();return}}
+  e.busy=false;e.sel=null;toast('✔ '+ok+' job'+(ok>1?'s are':' is')+' on elitejobsrwanda.com now');LOADERS.urgent()}});
+document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('#eof'))eoLive()});
+document.addEventListener('change',e=>{if(e.target.closest&&e.target.closest('#eof'))eoLive()});
+document.addEventListener('keydown',e=>{if((e.key=='Enter'||e.key==' ')&&e.target.classList&&e.target.classList.contains('eotab')){e.preventDefault();A.eosel(e.target.dataset.id)}});
+document.addEventListener('submit',e=>{if(e.target.id=='eof'){e.preventDefault();e.stopImmediatePropagation()}},true);
+// ---------- weekday showcase: what is live on the website, one distinct motion per day of the week ----------
+function ugSeg(){const m=ui.ug.mode=='endover';return`<div class=ugseg role=tablist aria-label="How to publish"><button role=tab aria-selected=${!m} class="${m?'':'on'}" data-a="ugmode|flyer">Flyer</button><button role=tab aria-selected=${m} class="${m?'on':''}" data-a="ugmode|endover">Endover</button></div>`}
+function ugShowHTML(){const L=(ui.ug.posts||[]).filter(p=>p.live);if(!L.length)return'';return`<div class=ugshow id=ugshow data-mo="${eoMo()}" data-n="-1"><div class=ugshc></div><small>On the website now · today’s motion: ${EO_DAY[eoMo()]}</small></div>`}
+function ugShowStep(){const el=$('#ugshow');if(!el){clearInterval(ui.ug.sh);ui.ug.sh=0;return}const L=(ui.ug.posts||[]).filter(p=>p.live);if(!L.length)return;
+ const n=(+el.dataset.n+1)%L.length,p=L[n],c=el.querySelector('.ugshc');el.dataset.n=n;
+ c.innerHTML=`<span class=ugsht>${p.kind=='card'?ejCard({title:p.title,tpl:p.tpl},true):'<span class=ugshf>🖼️</span>'}</span><span><b>${esc(p.title)}</b><small>${ugLeft(p.expires)} · ${p.applied} applied</small></span>`;
+ c.classList.remove('u-adv');void c.offsetWidth;c.classList.add('u-adv')}
+function ugShowStart(){clearInterval(ui.ug.sh);if(!$('#ugshow'))return;ugShowStep();ui.ug.sh=setInterval(ugShowStep,3800)}
 // ---------- candidate card (opens in front, everything behind blurs) ----------
 function ugCard(id){const a=(ui.ug.apps||[]).find(x=>x.id==id);if(!a)return'';const d=a.data,ch=ui.ug.pick||'';
  const F=[['Phone',d.phone],['WhatsApp',d.whatsapp],['National ID',d.idno],['Born',d.born],['Lives in',d.lives],['Experience',d.experience],['Last job',d.lastJob],['Education',d.education],['Languages',d.languages],['Can start',d.start]].filter(x=>x[1]);
@@ -910,8 +1202,8 @@ Object.assign(A,{
   if(g.life=='custom'){if(!d.until)return toast('✖ Choose when it ends');body.until=new Date(d.until).toISOString()}else body.hours=+g.life;
   g.busy='pub';g.f=d;refreshMain();api('/api/urgent/posts',body).then(()=>{g.busy=null;g.f={};g.flyer=null;haptic('success');toast('✔ Published — it’s on elitejobsrwanda.com now');LOADERS.urgent()}).catch(e=>{g.busy=null;refreshMain();toast('✖ '+e.message)})},
  ugdown(id){api('/api/urgent/posts/remove',{id}).then(()=>{toast('Taken down from the website');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
- uggrant(){const g=ui.ug,uid=g.acc&&g.acc.uid;if(!uid)return;api('/api/urgent/grants',{uid,post:$('#ugp').checked,review:$('#ugr').checked}).then(()=>{toast('✔ Access saved');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
- ugpick(uid){const s=(ui.ug.grants.staff||[]).find(x=>x.id==uid);ui.ug.acc={role:s?s.role:'',uid};refreshMain()},
+ uggrant(key){const g=ui.ug,a=g.acc&&g.acc[key],uid=a&&a.uid;if(!uid)return;const post=key!='rev',review=key!='pub';api('/api/urgent/grants',{uid,post,review}).then(()=>{g.acc[key]={role:a.role,uid:''};toast('✔ Access saved');haptic('success');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
+ ugrevoke(uid){api('/api/urgent/grants',{uid,post:false,review:false}).then(()=>{toast('Access removed');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
  ugdev(id,ok){api('/api/devices',{id,ok:ok=='1'}).then(()=>{toast(ok=='1'?'✔ Device approved':'Device removed');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
  ugcfg(){const d=Object.fromEntries(new FormData($('#ugcfg')));api('/api/urgent/cfg',d).then(c=>{ui.ug.cfg=c;toast('✔ Saved. Checking the website…');setTimeout(LOADERS.urgent,2500)}).catch(e=>toast('✖ '+e.message))},
  ugsync(){toast('Checking the website…');api('/api/urgent/sync',{}).then(c=>{ui.ug.cfg=c;toast(c.lastError?'✖ '+c.lastError:'✔ Connected');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))}
@@ -919,7 +1211,7 @@ Object.assign(A,{
 document.addEventListener('submit',e=>{if(e.target.id=='ugpub'||e.target.id=='ugcfg'){e.preventDefault();e.stopImmediatePropagation()}},true); // the button's own tap already did the work
 document.addEventListener('change',e=>{const t=e.target;if(!t.dataset)return;const g=ui.ug;
  if(t.dataset.uglife){const f=$('#ugpub');g.f=Object.fromEntries(new FormData(f));g.life=t.value;refreshMain()}
- if(t.dataset.ugacc){g.acc=g.acc||{};g.acc[t.dataset.ugacc]=t.value;if(t.dataset.ugacc=='role')g.acc.uid='';refreshMain()}
+ if(t.dataset.ugacc){const[k,f]=t.dataset.ugacc.split('.');g.acc=g.acc||{};g.acc[k]=g.acc[k]||{};g.acc[k][f]=t.value;if(f=='role')g.acc[k].uid='';refreshMain()}
  if(t.dataset.ugflyer&&t.files[0]){const f=$('#ugpub');g.f=Object.fromEntries(new FormData(f));const file=t.files[0],img=new Image(),u=URL.createObjectURL(file);
   img.onload=()=>{const s=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
    const data=c.toDataURL('image/jpeg',.85);g.flyer={data,url:data,w:c.width,h:c.height};URL.revokeObjectURL(u);refreshMain()};img.onerror=()=>toast('✖ That file isn’t a picture');img.src=u}},true);
