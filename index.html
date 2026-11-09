@@ -206,6 +206,16 @@ i.ugav{display:block}
 ::view-transition-group(ugcard){animation-duration:.42s;animation-timing-function:cubic-bezier(.2,.9,.25,1)}
 ::view-transition-old(ugcard){animation:ugout .25s ease both}::view-transition-new(ugcard){animation:ugin .42s cubic-bezier(.2,.9,.25,1) both}
 @keyframes ugin{from{opacity:0;transform:scale(.92) translateY(20px)}}@keyframes ugout{to{opacity:0;transform:scale(.94) translateY(16px)}}
+/* ---- review by position ---- */
+.ugpt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:inherit;background:var(--s2);border:1px solid transparent;border-radius:16px;padding:11px 12px;margin-bottom:8px;cursor:pointer;transition:transform .25s cubic-bezier(.34,1.56,.44,1),border-color .2s}
+.ugpt:hover{transform:translateX(3px);border-color:var(--ac)}.ugpt>span:nth-child(2){flex:1;min-width:0;display:grid;gap:2px}.ugpt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ugpt small{color:var(--mu)}
+.ugpi{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--s1);font-size:18px;flex:none}
+.ugback{border:0;background:none;color:var(--ac);font:inherit;font-weight:700;cursor:pointer;padding:2px 0 8px}.ugpn{margin:4px 0 2px;display:flex;align-items:center;gap:8px;font-size:17px}
+.ugview .ugrow{animation:ugIn .35s cubic-bezier(.22,1,.36,1) both}@keyframes ugIn{from{opacity:0;transform:translateY(8px)}}
+.ugtiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 12px}.ugchipsm{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.ugchipsm i{font-style:normal;font-size:11px;padding:2px 8px}
+.ugfl{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.ugoc{border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-weight:600;font-size:13px;border-radius:99px;padding:6px 13px;cursor:pointer}.ugoc.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.ugdaylist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:0 12px}
+.ugposl{margin:0 0 4px;padding:6px 12px;border-radius:12px;background:color-mix(in srgb,var(--ac) 14%,transparent);display:inline-block}.ugposl small{color:var(--mu)}
 /*LIQUID:START*/
 .lqw{container-type:inline-size;width:100%}
 .lq{position:relative;overflow:hidden;isolation:isolate;aspect-ratio:4/5;border-radius:8cqw;color:#fff;background:linear-gradient(150deg,var(--a),var(--b));
@@ -1053,16 +1063,41 @@ V.urgent=function(){const g=ui.ug,m=g.me;
  setTimeout(()=>{ugHydrate($('#main'));ugShowStart();ejLiquidInit()},0);
  const can=[m.post&&'Publish',m.review&&'Review'].filter(Boolean);
  const conn=m.connection&&!m.connection.live?`<div class="card ugwarn">The Hub isn’t connected to the website yet, so nothing can be published or received. ${m.admin||itKey()?'Connect it below in <b>Website connection</b>.':'Admin or IT can connect it.'}</div>`:'';
- const apps=g.apps||[],nw=apps.filter(a=>a.status=='new'),dn=apps.filter(a=>a.status=='done').sort((a,b)=>b.reviewedAt-a.reviewedAt);
- const row=a=>`<button class="ugrow" style="view-transition-name:ugr-${a.id}" data-a="ugopen|${a.id}"><img class=ugav alt="" data-ugimg="${a.id}:0" style="view-transition-name:${g.open==a.id?'none':'uga-'+a.id}"><div><b>${esc(a.data.name)}</b><small>${esc(a.title)} · ${agoT(a.got)}</small></div>${a.status=='done'?`<span class="ugout o-${a.outcome}">${UGL[a.outcome]||''}</span>`:'<span class=ugnew>New</span>'}</button>`;
+ const apps=g.apps||[];
  const wide=g.mode=='endover',s1=m.post?`<section class="ugs${wide?' wide':''}"><h3>Publish an urgent job</h3>${ugSeg()}${wide?eoRoot():ugForm()}${ugShowHTML()}${ugPosts()}</section>`:ugLockedSec('Publish an urgent job','Publishing isn’t given to you',UG_GHOST_FORM);
- const s2=m.review?`<section class=ugs><h3>New applications${nw.length?` <em class=ugn>${nw.length}</em>`:''}</h3>${g.appsErr?`<p class=bad>${esc(g.appsErr)}</p>`:''}${nw.length?nw.map(row).join(''):'<div class=empty>No one is waiting. New applications from the website appear here within a minute.</div>'}</section>`:ugLockedSec('New applications','Reviewing isn’t given to you',UG_GHOST_ROWS);
- const s3=m.review?`<section class=ugs><h3>Called</h3>${dn.length?dn.slice(0,60).map(row).join(''):'<div class=empty>People you’ve called move here with what happened.</div>'}</section>`:ugLockedSec('Called','Reviewing isn’t given to you',UG_GHOST_ROWS);
- return`<h1>Urgent hiring</h1><p class=sub>You can: ${can.join(' and ')}. Everything here goes to and comes from elitejobsrwanda.com.</p>${conn}<div class=ugroom>${s1}${s2}${s3}</div>${m.admin?ugAdmin():(itKey()?ugConn():'')}`};
+ const s2=ugNewSec(m);
+ const s3=m.review?`<section class=ugs><h3>Called</h3>${(()=>{const dn=apps.filter(a=>a.status=='done').sort((a,b)=>b.reviewedAt-a.reviewedAt);return dn.length?dn.slice(0,60).map(ugRow).join(''):'<div class=empty>People you’ve called move here with what happened.</div>'})()}</section>`:ugLockedSec('Called','Reviewing isn’t given to you',UG_GHOST_ROWS);
+ const s4=ugDaySec(m);
+ return`<h1>Urgent hiring</h1><p class=sub>You can: ${can.join(' and ')}. Everything here goes to and comes from elitejobsrwanda.com.</p>${conn}<div class=ugroom>${s1}${s2}${s3}${s4}</div>${m.admin?ugAdmin():(itKey()?ugConn():'')}`};
+// ---------- reviewing by position: New applications → Called → Daily review of urgent jobs ----------
+const ugPosName=a=>String((a.data&&a.data.position)||a.title||'Urgent job').trim();
+const ugPosKey=a=>ugPosName(a).toLowerCase().replace(/\s+/g,' ');
+function ugGroups(){const m=new Map();(ui.ug.apps||[]).forEach(a=>{const k=ugPosKey(a);let g=m.get(k);if(!g){g={key:k,name:ugPosName(a),list:[]};m.set(k,g)}g.list.push(a)});
+ return[...m.values()].map(g=>{g.nw=g.list.filter(a=>a.status=='new').sort((a,b)=>a.got-b.got);g.dn=g.list.filter(a=>a.status=='done').sort((a,b)=>b.reviewedAt-a.reviewedAt);g.last=g.dn.length?g.dn[0].reviewedAt:0;g.newest=g.nw.length?Math.max(...g.nw.map(a=>a.got)):0;return g})}
+function ugVT(fn){const go=()=>{fn();refreshMain();ugHydrate($('#main'))};if(document.startViewTransition&&!matchMedia('(prefers-reduced-motion:reduce)').matches){const v=document.startViewTransition(go);[v.ready,v.finished,v.updateCallbackDone].forEach(p=>p.catch(()=>{}))}else go()}
+const ugDayName=t=>{const d=new Date(t),n=new Date(),k=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime(),df=Math.round((k(n)-k(d))/864e5);return df<=0?'Today':df==1?'Yesterday':d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'})};
+function ugRow(a){const g=ui.ug;return`<button class="ugrow" style="view-transition-name:ugr-${a.id}" data-a="ugopen|${a.id}"><img class=ugav alt="" data-ugimg="${a.id}:0" style="view-transition-name:${g.open==a.id?'none':'uga-'+a.id}"><div><b>${esc(a.data.name)}</b><small>${esc(ugPosName(a))} · ${agoT(a.got)}</small></div>${a.status=='done'?`<span class="ugout o-${a.outcome}">${UGL[a.outcome]||''}</span>`:'<span class=ugnew>New</span>'}</button>`}
+function ugNewSec(m){const g=ui.ug,G=ugGroups(),open=g.vNew&&G.find(x=>x.key==g.vNew&&x.nw.length),total=G.reduce((n,x)=>n+x.nw.length,0);
+ if(!m.review)return ugLockedSec('New applications','Reviewing isn’t given to you',UG_GHOST_ROWS);
+ const head=`<h3>New applications${total?` <em class=ugn>${total}</em>`:''}</h3>${g.appsErr?`<p class=bad>${esc(g.appsErr)}</p>`:''}`;
+ if(open)return`<section class="ugs ugview">${head}<button class=ugback data-a="ugpos|new|">← All positions</button><h4 class=ugpn>${esc(open.name)} <em class=ugn>${open.nw.length}</em></h4><small class=sub>Open one, call the person, then tell the Hub what happened. They move to Called by themselves.</small>${open.nw.map(ugRow).join('')}</section>`;
+ const L=G.filter(x=>x.nw.length).sort((a,b)=>b.newest-a.newest);
+ return`<section class=ugs>${head}${L.length?L.map(x=>`<button class=ugpt data-a="ugpos|new|${encodeURIComponent(x.key)}"><span class=ugpi>📌</span><span><b>${esc(x.name)}</b><small>${x.nw.length} waiting${x.dn.length?' · '+x.dn.length+' called':''} · ${agoT(x.newest)}</small></span><em class=ugn>${x.nw.length}</em></button>`).join(''):'<div class=empty>No one is waiting. New applications from the website appear here within a minute, grouped by position.</div>'}</section>`}
+function ugDaySec(m){const g=ui.ug,G=ugGroups().filter(x=>!x.nw.length&&x.dn.length).sort((a,b)=>b.last-a.last);
+ if(!m.review)return`<section class="ugs wide locked" aria-disabled=true><h3>Daily review of urgent jobs</h3><div class=ugghost aria-hidden=true>${UG_GHOST_ROWS}</div><div class=uglock><b>🔒 Reviewing isn’t given to you</b><span>Admin can give you this in Urgent hiring → Access.</span></div></section>`;
+ const open=g.vDay&&G.find(x=>x.key==g.vDay.k),head='<h3>Daily review of urgent jobs</h3>';
+ if(open){const f=g.vDay.f||'',cnt={};open.dn.forEach(a=>cnt[a.outcome]=(cnt[a.outcome]||0)+1);const L=open.dn.filter(a=>!f||a.outcome==f);
+  return`<section class="ugs wide ugview">${head}<button class=ugback data-a="ugpos|day|">← All finished positions</button><h4 class=ugpn>${esc(open.name)} <em class=ugn>${open.dn.length}</em></h4>
+  <div class=ugfl><button class="ugoc ${f?'':'on'}" data-a="ugflag|">All · ${open.dn.length}</button>${Object.entries(UGL).filter(([k])=>cnt[k]).map(([k,l])=>`<button class="ugoc o-${k} ${f==k?'on':''}" data-a="ugflag|${k}">${l} · ${cnt[k]}</button>`).join('')}</div>
+  <div class=ugdaylist>${L.map(ugRow).join('')}</div></section>`}
+ if(!G.length)return`<section class="ugs wide">${head}<div class=empty>When every applicant of a position has been called, the position moves here so you can review it later with each person’s result.</div></section>`;
+ const days=[];G.forEach(x=>{const d=ugDayName(x.last);let b=days.find(y=>y.d==d);if(!b)days.push(b={d,L:[]});b.L.push(x)});
+ return`<section class="ugs wide">${head}${days.map(b=>`<h4 class=ugh4>${b.d}</h4><div class=ugtiles>${b.L.map(x=>{const cnt={};x.dn.forEach(a=>cnt[a.outcome]=(cnt[a.outcome]||0)+1);return`<button class=ugpt data-a="ugpos|day|${encodeURIComponent(x.key)}"><span class=ugpi>✅</span><span><b>${esc(x.name)}</b><small>${x.dn.length} people called</small><span class=ugchipsm>${Object.entries(UGL).filter(([k])=>cnt[k]).map(([k,l])=>`<i class="ugout o-${k}">${cnt[k]} ${l}</i>`).join('')}</span></span></button>`}).join('')}</div>`).join('')}</section>`}
 function ugForm(){const g=ui.ug,f=g.f||{};return`<form class=ugf id=ugpub autocomplete=off>
  <label>Job title<input name=title maxlength=80 required placeholder="5 waiters for tonight" value="${esc(f.title||'')}"></label>
  <div class=ug2><label>Kind of work<input name=role maxlength=60 placeholder="Hospitality" value="${esc(f.role||'')}"></label><label>Where<input name=place maxlength=80 placeholder="Kigali, Kimihurura" value="${esc(f.place||'')}"></label></div>
  <label>Short description<textarea name=text maxlength=600 rows=3 placeholder="Pay, hours, what to bring…">${esc(f.text||'')}</textarea></label>
+ <label>Positions on this flyer <small>(one per line — people choose one when they apply)</small><textarea name=positions maxlength=500 rows=3 placeholder="Waiter&#10;Cleaner&#10;Driver">${esc(f.positions||'')}</textarea></label>
  <label class=ugdrop>${g.flyer?`<img src="${g.flyer.url}" alt="Flyer preview">`:'<span>Add the flyer or a photo of the job</span>'}<input type=file name=flyer accept="image/*" data-ugflyer=1></label>
  <div class=ug2><label>How long it stays up<select name=life data-uglife=1>${UGLIFE.map(([v,l])=>`<option value=${v} ${g.life==v?'selected':''}>${l}</option>`).join('')}</select></label>${g.life=='custom'?`<label>Ends at<input type=datetime-local name=until value="${esc(f.until||'')}"></label>`:'<span></span>'}</div>
  <div class=row>${btn(g.busy=='pub'?'Publishing…':'Publish to the website','ugpublish','p')}</div></form>`}
@@ -1179,7 +1214,7 @@ function ugCard(id){const a=(ui.ug.apps||[]).find(x=>x.id==id);if(!a)return'';co
  const tel=String(d.phone||'').replace(/[^+0-9]/g,''),wa=String(d.whatsapp||d.phone||'').replace(/\D/g,'').replace(/^0/,'250');
  return`<div class=ugbk data-a=ugclose></div><article class=ugcard role=dialog aria-modal=true aria-label="${esc(d.name)}"><button class="b x" data-a=ugclose aria-label=Close>✕</button>
  <div class=ugph><img class=ugbig alt="Photo of ${esc(d.name)}" data-ugimg="${a.id}:${ui.ug.ph||0}" style="view-transition-name:uga-${a.id}"><div class=ugthumbs>${[0,1,2].map(n=>`<button data-a="ugph|${n}" class="${(ui.ug.ph||0)==n?'on':''}" aria-label="Photo ${n+1}"><img alt="" data-ugimg="${a.id}:${n}"></button>`).join('')}</div></div>
- <div class=ugbody><h2>${esc(d.name)}</h2><p class=sub>Applied for <b>${esc(a.title)}</b> · ${new Date(a.created||a.got).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'})}</p>
+ <div class=ugbody><h2>${esc(d.name)}</h2><p class=ugposl>📌 Position: <b>${esc(ugPosName(a))}</b>${ugPosName(a).toLowerCase()!=String(a.title||'').toLowerCase()?` <small>· from the post “${esc(a.title)}”</small>`:''}</p><p class=sub>Applied ${new Date(a.created||a.got).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'})}</p>
  <dl class=ugdl>${F.map(([k,v])=>`<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>${d.about?`<p class=ugabout>${esc(d.about)}</p>`:''}
  <div class=ugcall><a class="b p" href="tel:${esc(tel)}">📞 Call ${esc(d.phone)}</a>${wa?`<a class=b href="https://wa.me/${esc(wa)}" target=_blank rel=noopener>WhatsApp</a>`:''}</div>
  ${a.status=='done'?`<div class=ugdone><span class="ugout o-${a.outcome}">${UGL[a.outcome]}</span><small>Called by ${esc(a.reviewer||'')} · ${agoT(a.reviewedAt)}</small>${a.note?`<p>${esc(a.note)}</p>`:''}<div class=row>${btn('Call again','ugreopen|'+a.id)}</div></div>`
@@ -1188,6 +1223,8 @@ function ugCard(id){const a=(ui.ug.apps||[]).find(x=>x.id==id);if(!a)return'';co
 function ugShow(fn){const go=()=>{fn();const o=$('#ugc');o.innerHTML=ui.ug.open?ugCard(ui.ug.open):'';o.hidden=!ui.ug.open;document.body.classList.toggle('ugopen',!!ui.ug.open);if(ui.ug.open)ugHydrate(o);refreshMain();ugHydrate($('#main'))};
  if(document.startViewTransition&&!matchMedia('(prefers-reduced-motion:reduce)').matches){const v=document.startViewTransition(go);[v.ready,v.finished,v.updateCallbackDone].forEach(p=>p.catch(()=>{}))}else go()}
 Object.assign(A,{
+ ugpos(w,k){const g=ui.ug;haptic('soft');ugVT(()=>{if(w=='new')g.vNew=k?decodeURIComponent(k):null;else g.vDay=k?{k:decodeURIComponent(k),f:''}:null})},
+ ugflag(f){haptic('tick');ui.ug.vDay.f=f;refreshMain();ugHydrate($('#main'))},
  ugopen(id){ugShow(()=>{ui.ug.open=id;ui.ug.ph=0;ui.ug.pick='';ui.ug.note=''})},
  ugclose(){if(!ui.ug.open)return;ugShow(()=>{ui.ug.open=null})},
  ugph(n){ui.ug.ph=+n;const o=$('#ugc');o.innerHTML=ugCard(ui.ug.open);ugHydrate(o)},
@@ -1198,7 +1235,7 @@ Object.assign(A,{
  ugreopen(id){api('/api/urgent/reopen',{id}).then(()=>{const a=ui.ug.apps.find(x=>x.id==id);a.status='new';ugShow(()=>{ui.ug.open=null});toast('Moved back to New applications')}).catch(e=>toast('✖ '+e.message))},
  ugpublish(){const g=ui.ug,f=$('#ugpub');if(!f||g.busy)return;const d=Object.fromEntries(new FormData(f));
   if(!d.title||d.title.trim().length<3)return toast('✖ Give the job a short title');if(!g.flyer)return toast('✖ Add the flyer or a photo');
-  const body={title:d.title,role:d.role,place:d.place,text:d.text,image:g.flyer.data,w:g.flyer.w,h:g.flyer.h};
+  const body={title:d.title,role:d.role,place:d.place,text:d.text,positions:d.positions||'',image:g.flyer.data,w:g.flyer.w,h:g.flyer.h};
   if(g.life=='custom'){if(!d.until)return toast('✖ Choose when it ends');body.until=new Date(d.until).toISOString()}else body.hours=+g.life;
   g.busy='pub';g.f=d;refreshMain();api('/api/urgent/posts',body).then(()=>{g.busy=null;g.f={};g.flyer=null;haptic('success');toast('✔ Published — it’s on elitejobsrwanda.com now');LOADERS.urgent()}).catch(e=>{g.busy=null;refreshMain();toast('✖ '+e.message)})},
  ugdown(id){api('/api/urgent/posts/remove',{id}).then(()=>{toast('Taken down from the website');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
