@@ -307,8 +307,11 @@ i.ugav{display:block}
 .pcw{container-type:inline-size;width:100%;height:100%}
 .pc{position:relative;height:100%;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;background:#171230;color:#fff;font-family:inherit;isolation:isolate}
 .pc-ph{position:relative;flex:1 1 58%;min-height:0;overflow:hidden;background:linear-gradient(135deg,var(--a),var(--b))}
-.pc-f{position:absolute;inset:0;opacity:0;transform:scale(1.1);transition:opacity .4s ease,transform 1.2s cubic-bezier(.22,1,.36,1)}
-.pc-f.on{opacity:1;transform:scale(1)}
+.pc-f{position:absolute;inset:0;opacity:0;transform:scale(1.08);filter:blur(6px);transition:opacity 1.6s cubic-bezier(.4,0,.2,1),transform 2.4s cubic-bezier(.22,1,.36,1),filter 1.6s ease}
+.pc-f.on{opacity:1;transform:scale(1);filter:blur(0);z-index:1}
+/* slow cinematic drift on the photo that is showing */
+.pc-f.on img{animation:pcKB 9s ease-in-out infinite alternate}
+@keyframes pcKB{from{transform:scale(1) translate(0,0)}to{transform:scale(1.1) translate(-2%,-1.5%)}}
 .pc-f img{width:100%;height:100%;object-fit:cover;display:block}
 .pc-art{background:radial-gradient(120% 90% at 20% 10%,var(--c),transparent 55%),linear-gradient(135deg,var(--a),var(--b));display:grid;place-items:center}
 .pc-ic{font-size:clamp(48px,26cqw,120px);filter:drop-shadow(0 8px 18px rgba(0,0,0,.3))}
@@ -320,9 +323,9 @@ i.ugav{display:block}
 .pc-d{margin:0;color:rgba(255,255,255,.72);font-size:14px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pc-foot{display:flex;justify-content:space-between;gap:10px;color:rgba(255,255,255,.6);font-size:13px;margin-top:4px}
 .pcw.mini .pc{border-radius:24%;box-shadow:0 1px 6px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.25)}
-.pcw.mini .pc-ph{flex:1;aspect-ratio:1}.pcw.mini .pc-f{transition:none}
+.pcw.mini .pc-ph{flex:1;aspect-ratio:1}.pcw.mini .pc-f{transition:none;filter:none}.pcw.mini .pc-f.on img{animation:none}
 .pcw.mini .pc-ic{font-size:34cqw}
-@media (prefers-reduced-motion:reduce){.pc-f{transition:none;transform:none}}
+@media (prefers-reduced-motion:reduce){.pc-f{transition:none;transform:none;filter:none}.pc-f.on img{animation:none}}
 .pc-cr{position:absolute;right:8px;bottom:8px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.45);color:rgba(255,255,255,.85)}
 /*LIQUID:END*/
 /* ---- Endover + weekday showcase ---- */
@@ -1364,8 +1367,8 @@ function eoVault(){const v=eov(),k=eoKey(),pk=v.pick;
  ${k?`<small class=eovk>Searching Unsplash. <button type=button data-a=eokey|>Change key</button></small>`:`<details class=eovk><summary>Search every job (free Unsplash key)</summary><div class=row><input id=eokeyin placeholder="Paste the Access Key" autocomplete=off><button type=button class="b p" data-a=eokey|set>Save</button></div><small>Get it free at unsplash.com/developers → New application. It stays on this computer only.</small></details>`}`}
 function eoVaultPaint(){const el=$('#eovault');if(el)el.innerHTML=eoVault()}
 function eoPicks(){return eov().pick}
-// the preview card swaps its two photos: 1 s each
-setInterval(()=>{const c=$('#eoprev .pc');if(!c)return;const fs=c.querySelectorAll('.pc-f');if(fs.length<2)return;const i=[...fs].findIndex(f=>f.classList.contains('on'));ejPhotoSwap(c,(i+1)%fs.length)},1000);
+// the preview card swaps its two photos: 3.5 s each
+setInterval(()=>{const c=$('#eoprev .pc');if(!c)return;const fs=c.querySelectorAll('.pc-f');if(fs.length<2)return;const i=[...fs].findIndex(f=>f.classList.contains('on'));ejPhotoSwap(c,(i+1)%fs.length)},3500);
 Object.assign(A,{
  ugmode(m){ui.ug.mode=m=='endover'?'endover':'flyer';haptic('soft');const e=flat(ui.r)[ui.v];const go=()=>refreshMain();
   if(document.startViewTransition&&!matchMedia('(prefers-reduced-motion:reduce)').matches){const v=document.startViewTransition(go);[v.ready,v.finished,v.updateCallbackDone].forEach(p=>p.catch(()=>{}))}else go();setTimeout(()=>ugHydrate($('#main')),0)},
