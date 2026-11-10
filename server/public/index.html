@@ -327,6 +327,8 @@ i.ugav{display:block}
 .pcw.mini .pc-ic{font-size:34cqw}
 @media (prefers-reduced-motion:reduce){.pc-f{transition:none;transform:none;filter:none}.pc-f.on img{animation:none}}
 .pc-cr{position:absolute;right:8px;bottom:8px;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.45);color:rgba(255,255,255,.85)}
+.ico{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:middle;overflow:visible}
+.pc-ic .ico,.lq-ic .ico{color:#fff;filter:drop-shadow(0 2px 4px rgba(0,0,0,.28))}
 /*LIQUID:END*/
 /* ---- Endover + weekday showcase ---- */
 .ugs.wide{grid-column:1/-1}
@@ -1045,19 +1047,22 @@ function softResume(){let f=null;try{f=sessionStorage.getItem('soft-resume');ses
   $('#gate').hidden=true;$('#app').style.visibility='visible';_render();return true}
 /*LIQUID:START — shared by the Hub and the website: smart template choice + liquid job cards*/
 const EJ_CATS = [['hosp', 'Hospitality & food'], ['clean', 'Cleaning & housekeeping'], ['secur', 'Security'], ['drive', 'Driving & logistics'], ['tech', 'IT & technology'], ['fin', 'Finance & accounting'], ['sales', 'Sales & marketing'], ['health', 'Health & care'], ['build', 'Construction & trades'], ['edu', 'Education & childcare'], ['office', 'Office & administration'], ['gen', 'Other']];
+const EJ_GLYPH = {"cup": "<path d='M5 9.5h11v4.2A5.3 5.3 0 0 1 10.7 19h-.4A5.3 5.3 0 0 1 5 13.7z'/><path d='M16 11h1.4a2.6 2.6 0 0 1 0 5.2H15.6'/><path d='M8.2 6.6c0-1 1-1.3 1-2.3M11.4 6.6c0-1 1-1.3 1-2.3'/><path d='M4 21h14'/>", "sparkle": "<path d='M11 3.5c.6 3.9 2.1 5.4 6 6-3.9.6-5.4 2.1-6 6-.6-3.9-2.1-5.4-6-6 3.9-.6 5.4-2.1 6-6z'/><path d='M18 14.5c.3 1.9 1 2.6 2.9 2.9-1.9.3-2.6 1-2.9 2.9-.3-1.9-1-2.6-2.9-2.9 1.9-.3 2.6-1 2.9-2.9z'/>", "shield": "<path d='M12 3.2 19 6v5.6c0 4.4-2.9 8-7 9.2-4.1-1.2-7-4.8-7-9.2V6z'/><path d='m8.8 12.2 2.2 2.2 4.3-4.6'/>", "truck": "<path d='M2.8 6.5h11v9.8h-11z'/><path d='M13.8 9.5h3.8l3 3.4v3.4h-6.8'/><circle cx='7' cy='17.6' r='1.9'/><circle cx='17' cy='17.6' r='1.9'/>", "laptop": "<rect x='4.5' y='5' width='15' height='10.5' rx='1.6'/><path d='M2.5 18.8h19'/><path d='m10 8.6-2 1.7 2 1.7M14 8.6l2 1.7-2 1.7'/>", "note": "<rect x='3' y='6.5' width='18' height='11' rx='2'/><circle cx='12' cy='12' r='2.6'/><path d='M6.5 10v4M17.5 10v4'/>", "megaphone": "<path d='M4 10.2v3.6c0 .7.5 1.2 1.2 1.2H7l8.8 4V5L7 9H5.2C4.5 9 4 9.5 4 10.2z'/><path d='m8 15 1.3 4.4M19 9.5a3.4 3.4 0 0 1 0 5'/>", "pulse": "<path d='M12 20s-7.5-4.4-7.5-10A4.1 4.1 0 0 1 12 7.7 4.1 4.1 0 0 1 19.5 10c0 5.6-7.5 10-7.5 10z'/><path d='M7.2 12.6h2.3l1.2-2.2 1.9 4.2 1.3-2h2.9'/>", "hardhat": "<path d='M5.5 15.5v-1.8a6.5 6.5 0 0 1 13 0v1.8'/><path d='M10 8.6V6.4c0-.5.4-.9.9-.9h2.2c.5 0 .9.4.9.9v2.2'/><path d='M3.5 15.5h17v1.8c0 .7-.5 1.2-1.2 1.2H4.7c-.7 0-1.2-.5-1.2-1.2z'/>", "cap": "<path d='M2.5 9.5 12 5l9.5 4.5L12 14z'/><path d='M6.5 11.6v4c0 1.3 2.5 2.9 5.5 2.9s5.5-1.6 5.5-2.9v-4M21.5 9.5v5'/>", "folder": "<path d='M3.5 7.4c0-.9.7-1.6 1.6-1.6h4.2l2 2h7.6c.9 0 1.6.7 1.6 1.6v8.2c0 .9-.7 1.6-1.6 1.6H5.1c-.9 0-1.6-.7-1.6-1.6z'/><path d='M3.5 10.8h17'/>", "bolt": "<path d='M13.4 2.8 5.4 13.4h6l-.9 7.8 8.1-10.6h-6.1z'/>"};
+// line icons drawn in the Apple / Huawei manner (24px grid, round joins) — no emoji anywhere
+const ejIco = (n, c) => `<svg class="ico${c ? ' ' + c : ''}" viewBox="0 0 24 24" aria-hidden="true">${EJ_GLYPH[n] || EJ_GLYPH.bolt}</svg>`;
 const EJ_TPL = {
-  hosp:  { n: 'Hospitality', ic: '☕', c: ['#FF8A3D', '#E8335A', '#FFC857'], kw: 'waiter waitress waiters server barista bartender barman barmaid chef cook kitchen restaurant hotel cafe coffee bar mucoma dishwasher steward catering food hospitality serveur serveuse cuisinier cuisine umutetsi umukarani' },
-  clean: { n: 'Cleaning', ic: '✨', c: ['#14B8A6', '#0EA5E9', '#A7F3D0'], kw: 'cleaner cleaning housekeeper housekeeping laundry janitor sweeper maid hygiene sanitation nettoyage menage umukozi isuku' },
-  secur: { n: 'Security', ic: '🛡️', c: ['#1E3A8A', '#2563EB', '#67E8F9'], kw: 'guard security watchman askari bouncer patrol cctv surveillance gardien securite' },
-  drive: { n: 'Driving & logistics', ic: '🚚', c: ['#F97316', '#374151', '#FDBA74'], kw: 'driver moto motorcycle rider delivery courier logistics warehouse loader truck transport dispatch chauffeur livreur umushoferi' },
-  tech:  { n: 'Technology', ic: '💻', c: ['#6D28D9', '#06B6D4', '#A78BFA'], kw: 'developer software programmer engineer it network helpdesk support data analyst designer web android devops technician computer developpeur informatique' },
-  fin:   { n: 'Finance', ic: '💰', c: ['#047857', '#0D9488', '#FCD34D'], kw: 'accountant accounting cashier bookkeeper finance auditor teller payroll tax budget comptable caissier umubaruramari' },
-  sales: { n: 'Sales & marketing', ic: '📣', c: ['#DB2777', '#F43F5E', '#FDA4AF'], kw: 'sales marketing promoter agent brand merchandiser representative advertising commercial vendeur commercial umucuruzi' },
-  health:{ n: 'Health & care', ic: '🩺', c: ['#0E7490', '#10B981', '#FECDD3'], kw: 'nurse doctor pharmacist caregiver lab laboratory clinic hospital midwife dentist medical health care infirmier umuforomo' },
-  build: { n: 'Construction & trades', ic: '🔧', c: ['#CA8A04', '#475569', '#FDE047'], kw: 'mason builder plumber electrician carpenter welder mechanic painter construction foreman technician tiler carreleur macon umwubatsi' },
-  edu:   { n: 'Education', ic: '🎓', c: ['#0284C7', '#F59E0B', '#7DD3FC'], kw: 'teacher tutor nanny daycare trainer instructor lecturer school childcare nursery enseignant nounou umwarimu' },
-  office:{ n: 'Office & admin', ic: '🗂️', c: ['#4338CA', '#7C3AED', '#C4B5FD'], kw: 'receptionist secretary admin administrator assistant clerk manager supervisor hr officer coordinator customer service call center callcenter data entry reception secretaire gestionnaire' },
-  gen:   { n: 'Urgent job', ic: '⚡', c: ['#6E5BB3', '#3A2C6E', '#B9A8F5'], kw: '' }
+  hosp:  { n: 'Hospitality', ic: '☕', g: 'cup', c: ['#FF8A3D', '#E8335A', '#FFC857'], kw: 'waiter waitress waiters server barista bartender barman barmaid chef cook kitchen restaurant hotel cafe coffee bar mucoma dishwasher steward catering food hospitality serveur serveuse cuisinier cuisine umutetsi umukarani' },
+  clean: { n: 'Cleaning', ic: '✨', g: 'sparkle', c: ['#14B8A6', '#0EA5E9', '#A7F3D0'], kw: 'cleaner cleaning housekeeper housekeeping laundry janitor sweeper maid hygiene sanitation nettoyage menage umukozi isuku' },
+  secur: { n: 'Security', ic: '🛡️', g: 'shield', c: ['#1E3A8A', '#2563EB', '#67E8F9'], kw: 'guard security watchman askari bouncer patrol cctv surveillance gardien securite' },
+  drive: { n: 'Driving & logistics', ic: '🚚', g: 'truck', c: ['#F97316', '#374151', '#FDBA74'], kw: 'driver moto motorcycle rider delivery courier logistics warehouse loader truck transport dispatch chauffeur livreur umushoferi' },
+  tech:  { n: 'Technology', ic: '💻', g: 'laptop', c: ['#6D28D9', '#06B6D4', '#A78BFA'], kw: 'developer software programmer engineer it network helpdesk support data analyst designer web android devops technician computer developpeur informatique' },
+  fin:   { n: 'Finance', ic: '💰', g: 'note', c: ['#047857', '#0D9488', '#FCD34D'], kw: 'accountant accounting cashier bookkeeper finance auditor teller payroll tax budget comptable caissier umubaruramari' },
+  sales: { n: 'Sales & marketing', ic: '📣', g: 'megaphone', c: ['#DB2777', '#F43F5E', '#FDA4AF'], kw: 'sales marketing promoter agent brand merchandiser representative advertising commercial vendeur commercial umucuruzi' },
+  health:{ n: 'Health & care', ic: '🩺', g: 'pulse', c: ['#0E7490', '#10B981', '#FECDD3'], kw: 'nurse doctor pharmacist caregiver lab laboratory clinic hospital midwife dentist medical health care infirmier umuforomo' },
+  build: { n: 'Construction & trades', ic: '🔧', g: 'hardhat', c: ['#CA8A04', '#475569', '#FDE047'], kw: 'mason builder plumber electrician carpenter welder mechanic painter construction foreman technician tiler carreleur macon umwubatsi' },
+  edu:   { n: 'Education', ic: '🎓', g: 'cap', c: ['#0284C7', '#F59E0B', '#7DD3FC'], kw: 'teacher tutor nanny daycare trainer instructor lecturer school childcare nursery enseignant nounou umwarimu' },
+  office:{ n: 'Office & admin', ic: '🗂️', g: 'folder', c: ['#4338CA', '#7C3AED', '#C4B5FD'], kw: 'receptionist secretary admin administrator assistant clerk manager supervisor hr officer coordinator customer service call center callcenter data entry reception secretaire gestionnaire' },
+  gen:   { n: 'Urgent job', ic: '⚡', g: 'bolt', c: ['#6E5BB3', '#3A2C6E', '#B9A8F5'], kw: '' }
 };
 const ejNorm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 const ejStem = w => w.length > 4 ? w.replace(/(ies|es|s)$/, m => m === 'ies' ? 'y' : '') : w;
@@ -1096,7 +1101,7 @@ function ejCard(p, mini) {
   return `<div class="lqw${mini ? ' mini' : ''}"><div class="lq lq-${id}" style="--a:${T.c[0]};--b:${T.c[1]};--c:${T.c[2]}">
   <i class="lq-b1"></i><i class="lq-b2"></i><i class="lq-b3"></i><i class="lq-d" aria-hidden="true"></i>
   <div class="lq-glass">
-    <div class="lq-top"><span class="lq-ic" aria-hidden="true">${T.ic}</span><span class="lq-cat">${esc((EJ_CATS.find(c => c[0] === (m.cat || id)) || [0, T.n])[1])}</span>${m.type ? `<span class="lq-type">${esc(m.type)}</span>` : ''}</div>
+    <div class="lq-top"><span class="lq-ic" aria-hidden="true">${ejIco(T.g)}</span><span class="lq-cat">${esc((EJ_CATS.find(c => c[0] === (m.cat || id)) || [0, T.n])[1])}</span>${m.type ? `<span class="lq-type">${esc(m.type)}</span>` : ''}</div>
     <h4 class="lq-t">${esc(p.title)}</h4>
     ${mini ? '' : `<div class="lq-pay"><b>${esc(pay.v)}</b><small>${esc(pay.u)}</small></div>
     ${m.loc ? `<div class="lq-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="10" r="2.6"/></svg>${esc(m.loc)}</div>` : ''}
@@ -1132,7 +1137,7 @@ function ejPhotos(tpl, title, m) {
 function ejPhotoCard(p, mini) {
   const m = p.meta || {}, id = EJ_TPL[p.tpl] ? p.tpl : 'gen', T = EJ_TPL[id], pay = ejPay(m), ph = ejPhotos(id, p.title, m);
   const cat = esc((EJ_CATS.find(c => c[0] === (m.cat && m.cat !== 'gen' ? m.cat : id)) || [0, T.n])[1]);
-  const art = `<div class="pc-f pc-art"><span class="pc-ic" aria-hidden="true">${T.ic}</span></div>`;
+  const art = `<div class="pc-f pc-art"><span class="pc-ic" aria-hidden="true">${ejIco(T.g)}</span></div>`;
   const frames = ph.map(x => `<div class="pc-f"><img src="${esc(x.u)}" srcset="${esc(x.u)} 1x, ${esc(x.u.replace('w=720', 'w=1440'))} 2x" alt="" loading="eager" decoding="async" onerror="this.parentNode.classList.add('pc-art');this.remove()">${x.by && !mini ? `<span class="pc-cr">Photo: ${esc(x.by)} · Unsplash</span>` : ''}</div>`);
   while (frames.length < 2) frames.push(art);
   const fr = (mini ? frames.slice(0, 1) : frames).map((f, i) => i ? f : f.replace('class="pc-f', 'class="pc-f on')).join('');
@@ -1316,7 +1321,7 @@ function eoPrev(){const f=eo().f,sel=eo().sel!=null?eo().list.find(x=>x.id==eo()
  if(sel)return ejPhotoCard(sel.post);
  if(!String(f.title||'').trim())return`<div class=eoghost><span>⚡</span><b>Your card appears here</b><small>Type a job title — the Hub picks the template that fits.</small></div>`;
  return ejPhotoCard(eoBuild(f))}
-function eoTplLine(){const f=eo().f,t=String(f.title||'').trim();if(!t)return'Template: chosen for you once there is a title';const id=eoBuild(f).tpl,T=EJ_TPL[id];return`Template: <b>${T.ic} ${esc(T.n)}</b> ${f.tpl?'· chosen by you':'· picked from the title and category'}`}
+function eoTplLine(){const f=eo().f,t=String(f.title||'').trim();if(!t)return'Template: chosen for you once there is a title';const id=eoBuild(f).tpl,T=EJ_TPL[id];return`Template: <b>${esc(T.n)}</b> ${f.tpl?'· chosen by you':'· picked from the title and category'}`}
 function eoForm(){const f=eo().f;return`<form class=ugf id=eof autocomplete=off>
  <label>Job title<input name=title maxlength=80 placeholder="5 waiters for tonight" value="${esc(f.title||'')}"></label>
  <div class=eovault id=eovault>${eoVault()}</div>
@@ -1331,7 +1336,7 @@ function eoForm(){const f=eo().f;return`<form class=ugf id=eof autocomplete=off>
  <div class=eoben><span>They also get</span>${EO_BEN.map(b=>`<label class=eochip><input type=checkbox name=ben value="${b}" ${(f.ben||[]).includes(b)?'checked':''}><i>${b}</i></label>`).join('')}</div>
  <label>Description<textarea name=desc rows=3 maxlength=400 placeholder="What the person will do, hours, what to bring…">${esc(f.desc||'')}</textarea></label>
  <div class=ug2><label>How long it stays up<select name=life>${UGLIFE.map(([v,l])=>`<option value=${v} ${(f.life||'24')==v?'selected':''}>${l}</option>`).join('')}</select></label><label id=eountil ${f.life=='custom'?'':'hidden'}>Ends at<input type=datetime-local name=until value="${esc(f.until||'')}"></label></div>
- <label>Template <select name=tpl><option value="">Choose for me (recommended)</option>${Object.entries(EJ_TPL).map(([k,T])=>`<option value=${k} ${f.tpl==k?'selected':''}>${T.ic} ${T.n}</option>`).join('')}</select></label>
+ <label>Template <select name=tpl><option value="">Choose for me (recommended)</option>${Object.entries(EJ_TPL).map(([k,T])=>`<option value=${k} ${f.tpl==k?'selected':''}>${T.n}</option>`).join('')}</select></label>
 </form>`}
 function eoStack(){const L=eo().list;return L.length?L.map((x,i)=>`<div class="eotab${eo().sel==x.id?' on':''}" data-id="${x.id}" role=button tabindex=0 data-a="eosel|${x.id}" style="--i:${i}"><span class=eoth>${ejPhotoCard({title:x.post.title,tpl:x.post.tpl,meta:x.post.meta},true)}</span><span class=eott><b>${esc(x.post.title)}</b><small>${esc(x.post.meta.loc)} · ${esc(UGLIFE.find(l=>l[0]==x.life)?.[1]||'until '+(x.until||'').slice(0,10))}</small></span><button class=eox data-a="eodel|${x.id}" aria-label="Remove ${esc(x.post.title)}">✕</button></div>`).join(''):'<div class=eoempty>Finished jobs slide in here, like tabs.</div>'}
 function eoPanel(){const e=eo(),sel=e.sel!=null?e.list.find(x=>x.id==e.sel):null,n=e.list.length;
