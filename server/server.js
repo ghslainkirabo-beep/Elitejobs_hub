@@ -200,6 +200,7 @@ function activity() {
 function appendActivity(a) { fs.appendFileSync(ACTIVITY, JSON.stringify(a) + '\n'); }
 const office = require('./office.js')({ DATA_DIR, loadState, commit: s => commit(s), broadcast: o => broadcast(o), activity, appendActivity, ai, PORT, ipOf: realIp });
 const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => broadcast(o), appendActivity, secEvent: (t, w) => office.secEvent(t, w) });
+const webjobs = require('./webjobs.js')({ DATA_DIR, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), need: (p, w) => urgent.need(p, w) });
 
 // ---- sign-in anomaly alerts ----
 const fails = new Map();
@@ -368,6 +369,16 @@ const server = http.createServer((req, res) => {
     try { json(res, 200, register(b.name, b.role, b.dev)); } catch (e) { json(res, e.code === 'ROLE_TAKEN' ? 409 : 400, { error: e.message, code: e.code || null }); }
   });
 
+  // ---- regular jobs on the website (identity = trusted device; permission = Admin's Publish grant) ----
+  if (p.startsWith('/api/webjobs')) {
+    const me = whoFrom(req);
+    const run = fn => Promise.resolve().then(fn).then(r => json(res, 200, r)).catch(e => json(res, e.code >= 400 && e.code < 600 ? e.code : 400, { error: e.message || String(e) }));
+    if (p === '/api/webjobs' && !post) return run(() => webjobs.list(me));
+    if (p === '/api/webjobs/save' && post) return readBody(req, 5e4, buf => run(() => webjobs.save(me, JSON.parse(buf.toString() || '{}'))));
+    if (p === '/api/webjobs/close' && post) return readBody(req, 1e4, buf => run(() => webjobs.close(me, String(JSON.parse(buf.toString() || '{}').id || ''))));
+    return send(res, 404, '');
+  }
+
   // ---- Urgent hiring (identity = trusted device; permission = Admin's grant) ----
   if (p.startsWith('/api/urgent/') || p.startsWith('/api/devices')) {
     const me = whoFrom(req), q = url.searchParams;
@@ -431,6 +442,7 @@ const server = http.createServer((req, res) => {
     if (CLOUD) return json(res, 400, { error: 'This Hub is already the cloud Hub.' });
     return jsonBody(req, res, 1e4, b => migrate.send(b.to, String(b.code || '').trim().toUpperCase(), String(b.who || '').slice(0, 60)));
   }
+  if (p === '/api/it/webjobs-key') { if (!hasIT(req)) return send(res, 401, 'IT key required'); if (!post) return json(res, 200, webjobs.keyView()); return jsonBody(req, res, 1e4, b => { const r = webjobs.setKey(b); appendActivity({ t: Date.now(), by: 'IT', text: 'changed the website jobs key' }); return r; }); }
   if (p === '/api/it/move-info' && !post) { if (!hasIT(req)) return send(res, 401, 'IT key required'); return json(res, 200, { cloud: CLOUD, movedTo: movedTo(), files: migrate.list().length }); }
 
   // ---- IT only: AI settings, update source, THE HUB UPDATE ----
