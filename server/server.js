@@ -200,6 +200,7 @@ function activity() {
 function appendActivity(a) { fs.appendFileSync(ACTIVITY, JSON.stringify(a) + '\n'); }
 const office = require('./office.js')({ DATA_DIR, loadState, commit: s => commit(s), broadcast: o => broadcast(o), activity, appendActivity, ai, PORT, ipOf: realIp });
 const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => broadcast(o), appendActivity, secEvent: (t, w) => office.secEvent(t, w) });
+const inquiries = require('./inquiries.js')({ DATA_DIR, broadcast: o => broadcast(o), appendActivity: a => appendActivity(a), urgent });
 const webjobs = require('./webjobs.js')({ DATA_DIR, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), need: (p, w) => urgent.need(p, w) });
 
 // ---- sign-in anomaly alerts ----
@@ -221,7 +222,8 @@ const activeHtml = () => fs.readFileSync(path.join(activeUiDir(), 'index.html'),
 function uiVersion() { try { return hashOf(fs.readFileSync(path.join(activeUiDir(), 'index.html'))); } catch (e) { return 'none'; } }
 function uiInfo() {
   let at = null; try { at = fs.statSync(path.join(activeUiDir(), 'index.html')).mtimeMs; } catch (e) {}
-  return { v: uiVersion(), source: activeUiDir() === LIVE_UI ? 'deployed' : 'built-in', at, canRollback: fs.existsSync(path.join(PREV_UI, 'index.html')) };
+  let engine = ''; try { engine = require('./package.json').version; } catch (e) {}
+  return { v: uiVersion(), source: activeUiDir() === LIVE_UI ? 'deployed' : 'built-in', at, canRollback: fs.existsSync(path.join(PREV_UI, 'index.html')), engine };
 }
 function goLive(html) {
   const live = path.join(LIVE_UI, 'index.html');
@@ -376,6 +378,25 @@ const server = http.createServer((req, res) => {
     if (p === '/api/webjobs' && !post) return run(() => webjobs.list(me));
     if (p === '/api/webjobs/save' && post) return readBody(req, 5e4, buf => run(() => webjobs.save(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/webjobs/close' && post) return readBody(req, 1e4, buf => run(() => webjobs.close(me, String(JSON.parse(buf.toString() || '{}').id || ''))));
+    return send(res, 404, '');
+  }
+
+  // ---- Open jobs inquiry (website "Message us" → rooms → SMS reply). Identity = trusted device; rooms = Admin's grant per position ----
+  if (p.startsWith('/api/inq/')) {
+    const me = whoFrom(req), q = url.searchParams;
+    const run = fn => Promise.resolve().then(fn).then(r => json(res, 200, r)).catch(e => json(res, e.code >= 400 && e.code < 600 ? e.code : 400, { error: e.message || String(e) }));
+    const body = fn => readBody(req, 1e4, buf => run(() => fn(JSON.parse(buf.toString() || '{}'))));
+    const smsWho = () => { if (hasIT(req)) return { name: 'IT', role: 'it' }; if (me && inquiries.isAdmin(me)) return me; throw Object.assign(new Error('Only Admin or IT can change the SMS settings.'), { code: 403 }); };
+    if (p === '/api/inq/me') return run(() => inquiries.me(me));
+    if (p === '/api/inq/room') return run(() => inquiries.room(me, q.get('r') || ''));
+    if (p === '/api/inq/reply' && post) return body(b => inquiries.reply(me, b));
+    if (p === '/api/inq/called' && post) return body(b => inquiries.called(me, b));
+    if (p === '/api/inq/grants' && !post) return run(() => inquiries.grantsView(me));
+    if (p === '/api/inq/grants' && post) return body(b => inquiries.setGrants(me, b));
+    if (p === '/api/inq/sms' && !post) return run(() => { smsWho(); return inquiries.smsView(); });
+    if (p === '/api/inq/sms' && post) return body(b => inquiries.setSms(smsWho(), b));
+    if (p === '/api/inq/sms/test' && post) return body(b => inquiries.testSms(smsWho(), b.to));
+    if (p === '/api/inq/sync' && post) return run(async () => { if (!me) throw Object.assign(new Error('Sign in first.'), { code: 401 }); await inquiries.sync(); return { ok: true }; });
     return send(res, 404, '');
   }
 

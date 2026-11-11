@@ -15,7 +15,7 @@ const http = require('http');
 
 // Only Hub data moves — never this PC's app caches or installer files.
 const FILES = ['activity.jsonl', 'ai.json', 'attendance-settings.json', 'attendance.json', 'data.json', 'devices.json', 'it-key.txt', 'office-passcode.txt',
-  'reports.jsonl', 'trusted-devices.json', 'update-source.json', 'hub-update-history.json', 'website-jobs.json'];
+  'reports.jsonl', 'trusted-devices.json', 'update-source.json', 'hub-update-history.json', 'website-jobs.json', 'inquiries.json', 'inquiry-grants.json', 'sms-config.json'];
 const DIRS = ['docs', 'ui-live', 'urgent-photos'];
 const isUrgentFile = n => /^urgent-[\w-]+\.json$/.test(n);
 

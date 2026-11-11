@@ -236,5 +236,5 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
       outcomes: sum(list), byPost: Object.values(byPost).sort((a, b) => b.applied - a.applied), byReviewer: byRev, labels: OUTCOMES
     };
   }
-  return { rights, me, grantsView, setGrant, cfgView, setCfg, sync, posts, publish, removePost, apps, photo, outcome, reopen, finish, report, need };
+  return { rights, me, grantsView, setGrant, cfgView, setCfg, sync, posts, publish, removePost, apps, photo, outcome, reopen, finish, report, need, remote };
 };
