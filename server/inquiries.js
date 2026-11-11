@@ -9,7 +9,9 @@ const fs = require('fs'), path = require('path');
 
 module.exports = function makeInquiries({ DATA_DIR, broadcast, appendActivity, urgent }) {
   const F = n => path.join(DATA_DIR, n);
-  const LIST = F('inquiries.json'), GR = F('inquiry-grants.json'), SMS = F('sms-config.json');
+  const LIST = F('inquiries.json'), GR = F('inquiry-grants.json'), SMS = F('sms-config.json'), FILES = F('inquiry-files');
+  fs.mkdirSync(FILES, { recursive: true });
+  const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
   const rj = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return d; } };
   const wj = (f, o) => { const t = f + '.tmp'; fs.writeFileSync(t, JSON.stringify(o, null, 1)); fs.renameSync(t, f); };
   const err = (m, code) => Object.assign(new Error(m), { code: code || 400 });
@@ -97,19 +99,35 @@ module.exports = function makeInquiries({ DATA_DIR, broadcast, appendActivity, u
       if (!inquiries.length) return;
       const list = rj(LIST, []), ids = [];
       for (const x of inquiries) {
+        if (list.some(y => y.id === x.id)) { ids.push(x.id); continue; }
+        if (list.some(y => y.status === 'open' && y.phone === x.phone && String(y.title).toLowerCase() === String(x.title).toLowerCase())) { ids.push(x.id); continue; } // already waiting
+        // the application's files come to the Hub first; only then may the website delete its copy
+        const files = [];
+        try {
+          const dir = path.join(FILES, x.id.replace(/[^\w-]/g, '')); fs.mkdirSync(dir, { recursive: true });
+          for (const f of (x.files || [])) {
+            if (!/^(p[0-2]|cv|cert)$/.test(f.k) || !EXT[f.mime]) continue;
+            const r = await urgent.remote(`/api/hub/inquiries/${encodeURIComponent(x.id)}/file/${f.k}`), buf = Buffer.from(await r.arrayBuffer());
+            const name = f.k + '.' + EXT[f.mime]; fs.writeFileSync(path.join(dir, name), buf);
+            files.push({ k: f.k, mime: f.mime, name: String(f.name || name).slice(0, 80), size: buf.length, file: name });
+          }
+        } catch (e) { continue; }                                 // try this one again next minute
+        const { files: _f, ...rest } = x;
+        list.push({ ...rest, created: Number(x.created) || Date.now(), got: Date.now(), title: x.title || 'General message', name: x.name || [x.first, x.last].filter(Boolean).join(' '), status: 'open', files });
         ids.push(x.id);
-        if (list.some(y => y.id === x.id)) continue;
-        if (list.some(y => y.status === 'open' && y.phone === x.phone && String(y.title).toLowerCase() === String(x.title).toLowerCase())) continue; // already waiting
-        list.push({ id: x.id, created: Number(x.created) || Date.now(), got: Date.now(), kind: x.kind, job: x.job || '', title: x.title || 'General message', cat: x.cat || '', loc: x.loc || '', img: x.img || '', name: x.name, phone: x.phone, member: !!x.member, lang: x.lang || 'en', status: 'open' });
       }
       wj(LIST, list);
-      await urgent.remote('/api/hub/inquiries/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+      if (ids.length) await urgent.remote('/api/hub/inquiries/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
       broadcast({ type: 'inq', kind: 'list' });
     } catch (e) { /* tried again next minute */ } finally { syncing = false; }
   }
   setInterval(sync, 60000).unref(); setTimeout(sync, 6000);
   // answered messages are kept 90 days (who answered, when, what), then removed
-  setInterval(() => { const l = rj(LIST, []), keep = l.filter(x => x.status === 'open' || Date.now() - (x.at || x.created) < 90 * DAY); if (keep.length !== l.length) wj(LIST, keep); }, 6 * 36e5).unref();
+  setInterval(() => {
+    const l = rj(LIST, []), keep = l.filter(x => x.status === 'open' || Date.now() - (x.at || x.created) < 90 * DAY);
+    if (keep.length === l.length) return; wj(LIST, keep);
+    l.filter(x => !keep.includes(x)).forEach(x => { try { fs.rmSync(path.join(FILES, String(x.id).replace(/[^\w-]/g, '')), { recursive: true, force: true }); } catch (e) {} });
+  }, 6 * 36e5).unref();
 
   // ---------------- the rooms ----------------
   function me(p) {
@@ -178,5 +196,21 @@ module.exports = function makeInquiries({ DATA_DIR, broadcast, appendActivity, u
       .sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 100).map(x => ({ id: x.id, name: x.name, phone: x.phone, title: x.title, status: x.status, outcome: x.outcome ? CALLED[x.outcome] : 'SMS sent', note: x.status === 'sms' ? x.reply : x.note, by: x.by, at: x.at })) };
   }
 
-  return { me, room, done, reply, called, grantsView, setGrants, smsView, setSms, testSms, sync, isAdmin };
+  // a file of an application (photos, CV, certificate): only for people who can open that room. Opening a certificate is logged.
+  function file(p, id, k) {
+    const x = rj(LIST, []).find(y => y.id === id); if (!x) throw err('Not found', 404);
+    needRoom(p, roomOf(x.created));
+    const f = (x.files || []).find(y => y.k === k); if (!f) throw err('Not found', 404);
+    if (k === 'cert' || k === 'cv') appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `opened the ${k === 'cert' ? 'certificate' : 'CV'} of ${x.name} (${x.title})` });
+    return { path: path.join(FILES, String(x.id).replace(/[^\w-]/g, ''), f.file), type: f.mime, name: f.name };
+  }
+  // exporting contacts is personal data leaving the Hub: allowed in rooms you can open, always logged
+  function exported(p, b) {
+    const r = String(b.room || ''); if (!ROOMS.includes(r)) throw err('Choose a room.'); needRoom(p, r);
+    const n = Math.max(0, Math.min(5000, Number(b.n) || 0)), fmt = ['xlsx', 'pdf', 'csv'].includes(b.format) ? b.format : 'file';
+    appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `exported ${n} contact${n === 1 ? '' : 's'} (${fmt.toUpperCase()}) from Open jobs inquiry “${ROOM_NAME[r]}”${b.what ? ' — ' + String(b.what).slice(0, 80) : ''}` });
+    return { ok: true };
+  }
+
+  return { file, exported, me, room, done, reply, called, grantsView, setGrants, smsView, setSms, testSms, sync, isAdmin };
 };

@@ -69,6 +69,7 @@ module.exports = function makeWebJobs({ DATA_DIR, appendActivity, broadcast, nee
     let id = keepId || slug(title); if (!keepId) { let n = 2; const base = id; while (jobs.some(j => j.id === id)) id = base + '-' + n++; }
     const job = { id, title, category, location: clean(b.location, 60) || 'Kigali', summary, description, requirements };
     const image = String(b.image || '').trim(); if (image) { if (!okImg(image)) throw err('Use a photo from the photo vault.'); job.image = image.split('&auto=')[0].split('?auto=')[0]; }
+    if (b.gender === 'f' || b.gender === 'm') job.gender = b.gender;   // only when the employer requires it — shown on the card before anyone applies
     const day = lines(b.day, 8, 140); if (day.length) job.day = day;
     const bring = lines(b.bring, 8, 140); job.bring = bring.length ? bring : ['Your CV', 'A copy of your national ID', 'Certificates or training papers, if you have them'];
     const next = (Array.isArray(b.next) ? b.next : []).map(String).filter(x => x !== id && jobs.some(j => j.id === x)).slice(0, 4); if (next.length) job.next = next;

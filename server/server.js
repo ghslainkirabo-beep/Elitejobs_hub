@@ -391,6 +391,8 @@ const server = http.createServer((req, res) => {
     if (p === '/api/inq/room') return run(() => inquiries.room(me, q.get('r') || ''));
     if (p === '/api/inq/reply' && post) return body(b => inquiries.reply(me, b));
     if (p === '/api/inq/done') return run(() => inquiries.done(me, q.get('r') || ''));
+    if (p === '/api/inq/file') { try { const f = inquiries.file(me, q.get('id') || '', q.get('k') || ''); return fs.readFile(f.path, (e, d) => e ? send(res, 404, '') : (res.writeHead(200, { 'Content-Type': f.type, 'Cache-Control': 'private, no-store', 'Content-Disposition': (f.type.startsWith('image/') ? 'inline' : 'inline') + '; filename="' + String(f.name).replace(/[^\w.\- ]/g, '_') + '"', 'X-Content-Type-Options': 'nosniff' }), res.end(d))); } catch (e) { return json(res, e.code || 400, { error: e.message }); } }
+    if (p === '/api/inq/exported' && post) return body(b => inquiries.exported(me, b));
     if (p === '/api/inq/called' && post) return body(b => inquiries.called(me, b));
     if (p === '/api/inq/grants' && !post) return run(() => inquiries.grantsView(me));
     if (p === '/api/inq/grants' && post) return body(b => inquiries.setGrants(me, b));
