@@ -1,6 +1,6 @@
 {
   "name": "elitejobs-hub-server",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "private": true,
   "description": "Elitejobs Hub engine for the always-on cloud server (same engine as the Windows app).",
   "main": "server.js",
