@@ -1,8 +1,8 @@
-version: 1.7.4
+version: 1.7.5
 files:
-  - url: Elitejobs-Hub-Setup-1.7.4.exe
-    sha512: 2QdOSTKQND3Vdsc5ZWYzh2SSfLBrNNGphgM4/RCaW5c+SA3WXzgQ4MkjxL1ZtToDeChyIMBHQM92swHq4Kq6JA==
-    size: 80231286
-path: Elitejobs-Hub-Setup-1.7.4.exe
-sha512: 2QdOSTKQND3Vdsc5ZWYzh2SSfLBrNNGphgM4/RCaW5c+SA3WXzgQ4MkjxL1ZtToDeChyIMBHQM92swHq4Kq6JA==
-releaseDate: '2026-11-11T15:33:49.365Z'
+  - url: Elitejobs-Hub-Setup-1.7.5.exe
+    sha512: 0nSD/MW7Rl0ZENE3ERJJUYbDCZVFqmRuJIpnghO/9buKJ51tJX/kZq8lgrc8EPjaX9j9LI6RGYoKI/DUktXjGQ==
+    size: 80233202
+path: Elitejobs-Hub-Setup-1.7.5.exe
+sha512: 0nSD/MW7Rl0ZENE3ERJJUYbDCZVFqmRuJIpnghO/9buKJ51tJX/kZq8lgrc8EPjaX9j9LI6RGYoKI/DUktXjGQ==
+releaseDate: '2026-11-11T15:48:42.610Z'

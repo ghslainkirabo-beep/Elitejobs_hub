@@ -146,17 +146,37 @@ module.exports = function makeInquiries({ DATA_DIR, broadcast, appendActivity, u
       return { ok: true };
     } finally { locks.delete(id); }
   }
+  // the main way to answer: call the person, then record what was said. "Didn't pick up" keeps them in the room for another try.
+  const CALLED = { coming: 'Coming', tomorrow: 'Coming tomorrow', later: 'Will come later', 'not-interested': 'Not interested', 'not-available': 'Not available', wrong: 'Wrong number', other: 'Talked', 'no-answer': 'Didn’t pick up' };
   function called(p, b) {
-    const id = String(b.id || ''), list = rj(LIST, []), x = list.find(y => y.id === id);
+    const id = String(b.id || ''), out = CALLED[b.outcome] ? b.outcome : '', note = String(b.note || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+    if (!out) throw err('Choose what happened on the call.');
+    if (out !== 'no-answer' && note.length < 3) throw err('Write a short note of what you talked about.');
+    const list = rj(LIST, []), x = list.find(y => y.id === id);
     if (!x) throw err('This message isn’t here any more.', 404);
     needRoom(p, roomOf(x.created));
     if (x.status !== 'open' || locks.has(id)) throw err(x.by ? `${x.by} already answered ${x.name}.` : 'Someone is answering this person right now.', 409);
-    Object.assign(x, { status: 'called', note: String(b.note || '').slice(0, 200), by: p.name, byId: p.id, at: Date.now() });
+    if (out === 'no-answer') {
+      x.tries = (x.tries || []).concat({ by: p.name, at: Date.now(), note }).slice(-10);
+      wj(LIST, list);
+      appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `called ${x.name} (${x.title}) — didn’t pick up` });
+      broadcast({ type: 'inq', kind: 'list' });
+      return { ok: true, kept: true };
+    }
+    Object.assign(x, { status: 'called', outcome: out, note, by: p.name, byId: p.id, at: Date.now() });
     wj(LIST, list);
-    appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `called ${x.name} (${x.title})` });
+    appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `called ${x.name} (${x.title}) — ${CALLED[out]}: ${note}` });
     broadcast({ type: 'inq', kind: 'done', id, by: p.name });
     return { ok: true };
   }
+  // what the team already did (calls and SMS), newest first — so everyone sees the notes
+  function done(p, r) {
+    if (!ROOMS.includes(r)) throw err('Choose a room.');
+    needRoom(p, r);
+    const now = Date.now();
+    return { done: rj(LIST, []).filter(x => x.status !== 'open' && roomOf(x.created, now) === r)
+      .sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 100).map(x => ({ id: x.id, name: x.name, phone: x.phone, title: x.title, status: x.status, outcome: x.outcome ? CALLED[x.outcome] : 'SMS sent', note: x.status === 'sms' ? x.reply : x.note, by: x.by, at: x.at })) };
+  }
 
-  return { me, room, reply, called, grantsView, setGrants, smsView, setSms, testSms, sync, isAdmin };
+  return { me, room, done, reply, called, grantsView, setGrants, smsView, setSms, testSms, sync, isAdmin };
 };

@@ -390,6 +390,7 @@ const server = http.createServer((req, res) => {
     if (p === '/api/inq/me') return run(() => inquiries.me(me));
     if (p === '/api/inq/room') return run(() => inquiries.room(me, q.get('r') || ''));
     if (p === '/api/inq/reply' && post) return body(b => inquiries.reply(me, b));
+    if (p === '/api/inq/done') return run(() => inquiries.done(me, q.get('r') || ''));
     if (p === '/api/inq/called' && post) return body(b => inquiries.called(me, b));
     if (p === '/api/inq/grants' && !post) return run(() => inquiries.grantsView(me));
     if (p === '/api/inq/grants' && post) return body(b => inquiries.setGrants(me, b));
