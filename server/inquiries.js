@@ -94,7 +94,7 @@ module.exports = function makeInquiries({ DATA_DIR, broadcast, appendActivity, u
     if (fs.existsSync(F('moved.json')) || syncing) return;
     syncing = true;
     try {
-      let r; try { r = await urgent.remote('/api/hub/inquiries'); } catch (e) { return; }  // not connected yet: nothing to do
+      let r; try { r = await urgent.remote('/api/hub/applications'); } catch (e) { return; }  // not connected yet: nothing to do
       const { inquiries = [] } = await r.json();
       if (!inquiries.length) return;
       const list = rj(LIST, []), ids = [];
@@ -107,7 +107,7 @@ module.exports = function makeInquiries({ DATA_DIR, broadcast, appendActivity, u
           const dir = path.join(FILES, x.id.replace(/[^\w-]/g, '')); fs.mkdirSync(dir, { recursive: true });
           for (const f of (x.files || [])) {
             if (!/^(p[0-2]|cv|cert)$/.test(f.k) || !EXT[f.mime]) continue;
-            const r = await urgent.remote(`/api/hub/inquiries/${encodeURIComponent(x.id)}/file/${f.k}`), buf = Buffer.from(await r.arrayBuffer());
+            const r = await urgent.remote(`/api/hub/applications/${encodeURIComponent(x.id)}/file/${f.k}`), buf = Buffer.from(await r.arrayBuffer());
             const name = f.k + '.' + EXT[f.mime]; fs.writeFileSync(path.join(dir, name), buf);
             files.push({ k: f.k, mime: f.mime, name: String(f.name || name).slice(0, 80), size: buf.length, file: name });
           }
@@ -117,7 +117,7 @@ module.exports = function makeInquiries({ DATA_DIR, broadcast, appendActivity, u
         ids.push(x.id);
       }
       wj(LIST, list);
-      if (ids.length) await urgent.remote('/api/hub/inquiries/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+      if (ids.length) await urgent.remote('/api/hub/applications/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
       broadcast({ type: 'inq', kind: 'list' });
     } catch (e) { /* tried again next minute */ } finally { syncing = false; }
   }
