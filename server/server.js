@@ -61,7 +61,7 @@ const hasOffice = req => req.headers['x-office-key'] === OFFICE_KEY;
 const hasIT = req => req.headers['x-it-key'] === IT_KEY;
 
 // ---- state + safe merging ---------------------------------------------------
-const POSITIONS = { admin: 'Admin', it: 'IT Support', hr: 'HR Manager', ops: 'Operations', int: 'Interview Officer', front: 'Front Desk', rec: 'Receptionist', cc: 'Call Center' };
+const POSITIONS = { admin: 'Admin', it: 'IT Support', hr: 'HR Manager', ops: 'Operations', int: 'Interview Officer', front: 'Front Desk', rec: 'Receptionist', cc: 'Call Center', sm: 'Social Media Manager' };
 function blankState() { return { n: 200, virgin: true, empSeq: 0, staff: [], tickets: [], calls: [], cands: [], ints: [], leaves: [], visitors: [], rooms: [], svc: [], msgs: [], notifs: [], log: [], disabled: {} }; }
 let STATE = null;
 function loadState() {
@@ -394,7 +394,7 @@ const server = http.createServer((req, res) => {
     if (p === '/api/urgent/posts' && !post) return run(() => urgent.posts(me));
     if (p === '/api/urgent/posts' && post) return readBody(req, 12e6, buf => run(() => urgent.publish(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/urgent/posts/remove' && post) return readBody(req, 1e4, buf => run(() => urgent.removePost(me, JSON.parse(buf.toString() || '{}').id)));
-    if (p === '/api/urgent/apps') return run(() => urgent.apps(me));
+    if (p === '/api/urgent/apps') return run(() => urgent.apps(me, { scope: q.get('scope') || '', d: q.get('d') || '' }));
     if (p === '/api/urgent/photo') { try { const f = urgent.photo(me, q.get('app'), q.get('n')); return fs.readFile(f.file, (e, d) => e ? send(res, 404, '') : send(res, 200, d, f.type)); } catch (e) { return send(res, e.code || 400, e.message); } }
     if (p === '/api/urgent/outcome' && post) return readBody(req, 1e4, buf => run(() => urgent.outcome(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/urgent/finish' && post) return readBody(req, 1e4, buf => run(() => urgent.finish(me, JSON.parse(buf.toString() || '{}'))));

@@ -81,7 +81,10 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
       let bad = 0;
       for (const a of apps) {
         try {                                                  // one broken application must never block the ones behind it
-          if (!have.some(x => x.id === a.id)) {
+          const dupOf = !have.some(x => x.id === a.id) && have.find(x => x.post === a.post && posKey(x) === posKey(a) && samePerson(x.data, a.data || {}));
+          if (dupOf) {                                         // the same person applied to the same job again: kept once, logged
+            appendActivity({ t: Date.now(), by: 'Website', uid: '', role: 'web', text: `a repeat application from ${String((a.data && a.data.name) || 'someone').slice(0, 60)} for “${posName(a)}” was not added — they had already applied` });
+          } else if (!have.some(x => x.id === a.id)) {
             const photos = [];
             for (let n = 0; n < 3; n++) {
               try {
@@ -106,14 +109,23 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
     tidy();
   }
   setInterval(sync, 60000); setTimeout(sync, 4000);
+  // ---------------- the working day: it ends at 17:00 Kigali time (UTC+2, no summer time) ----------------
+  // New applicants and Called only show people who applied since the last 17:00. Everyone before that is in Daily review, by the date they applied.
+  const KGL = 2 * 36e5, DAY = 864e5;
+  const cutoff = (t = Date.now()) => { let c = Math.floor((t + KGL) / DAY) * DAY - KGL + 17 * 36e5; if (c > t) c -= DAY; return c; };
+  const kDay = t => new Date(t + KGL).toISOString().slice(0, 10);
+  const applied = a => a.created || a.got;
+  const isLive = (a, cut) => applied(a) >= cut && !a.archivedAt;
+  const digits = v => String(v || '').replace(/\D/g, '');
+  const samePerson = (x, y) => { const p1 = digits(x.phone).slice(-9), p2 = digits(y.phone).slice(-9), i1 = digits(x.idno), i2 = digits(y.idno);
+    return (p1.length === 9 && p1 === p2) || (i1.length >= 10 && i1 === i2); };
   // time-bound housekeeping: reviewed people are saved by date when their day ends, photos go after 60 days, records after 180 days
-  const dayOf = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const posName = a => String((a.data && a.data.position) || a.title || 'Urgent job').trim();
   const posKey = a => posName(a).toLowerCase().replace(/\s+/g, ' ');
   function tidy() {
-    let list = rj(APPS, []), ch = false; const now = Date.now(), today = dayOf(now), p60 = now - 60 * 864e5, p180 = now - 180 * 864e5;
+    let list = rj(APPS, []), ch = false; const now = Date.now(), cut = cutoff(now), p60 = now - 60 * 864e5, p180 = now - 180 * 864e5;
     for (const a of list) {
-      if (a.status === 'done' && !a.archivedAt && dayOf(a.reviewedAt) < today) { a.archivedAt = now; ch = true; }          // the day ended: saved automatically
+      if (a.status === 'done' && !a.archivedAt && applied(a) < cut) { a.archivedAt = now; ch = true; }          // 17:00 passed: saved to Daily review and Job data automatically
       if (a.status === 'done' && a.reviewedAt < p60 && a.photos.length) { a.photos.forEach(n => { try { fs.unlinkSync(path.join(PH, n)); } catch (e) {} }); a.photos = []; ch = true; }
     }
     const keep = list.filter(a => !(a.status === 'done' && a.reviewedAt < p180));
@@ -173,7 +185,20 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
   }
 
   // ---------------- applicants ----------------
-  function apps(p) { need(p, 'review'); tidy(); return { apps: rj(APPS, []).sort((a, b) => b.got - a.got).map(a => ({ ...a, photos: a.photos.length })) }; }
+  // only what the screen needs, never the whole archive at once:
+  //   live — since the last 17:00 (New applicants + Called); day — one date in Daily review; data — saved results (Job data)
+  const light = a => ({ ...a, photos: a.photos.length, day: kDay(applied(a)) });
+  function apps(p, q = {}) {
+    need(p, 'review'); tidy();
+    const all = rj(APPS, []), cut = cutoff(), scope = q.scope || 'live';
+    let list;
+    if (scope === 'day') { const d = /^\d{4}-\d{2}-\d{2}$/.test(q.d || '') ? q.d : kDay(cut - 1); list = all.filter(a => kDay(applied(a)) === d && !isLive(a, cut)); }
+    else if (scope === 'data') list = all.filter(a => a.status === 'done' && a.archivedAt);
+    else list = all.filter(a => isLive(a, cut));
+    const days = {};                                          // the dates Daily review can open, with how many people each
+    all.forEach(a => { if (isLive(a, cut)) return; const d = kDay(applied(a)), x = days[d] || (days[d] = { d, n: 0, waiting: 0, called: 0 }); x.n++; if (a.status === 'done') x.called++; else x.waiting++; });
+    return { apps: list.sort((a, b) => applied(b) - applied(a)).map(light), cutoff: cut, next: cut + DAY, days: Object.values(days).sort((a, b) => a.d < b.d ? 1 : -1) };
+  }
   function photo(p, id, n) {
     need(p, 'review');
     const a = rj(APPS, []).find(x => x.id === id), name = a && a.photos[Number(n)];
@@ -197,7 +222,7 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
   }
   function me(p) {
     const r = rights(p), list = r.review ? rj(APPS, []) : [];
-    return { ...r, newCount: list.filter(a => a.status === 'new').length, connection: (r.admin || r.post || r.review) ? cfgView() : null, outcomes: OUTCOMES };
+    const cut = cutoff(); return { ...r, newCount: list.filter(a => a.status === 'new' && isLive(a, cut)).length, connection: (r.admin || r.post || r.review) ? cfgView() : null, outcomes: OUTCOMES };
   }
   function report(p) {
     need(p, 'admin');
