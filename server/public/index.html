@@ -678,7 +678,7 @@ function note(rs,text){const t=Date.now();lastNotifT=t;S.log.unshift({t,by:ui.me
 const id=p=>{++S.n;return p+'-'+Date.now().toString(36).slice(-3).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase()};
 const Q={tickets:a=>S.tickets.filter(t=>a=='open'?t.st!='resolved':a=='crit'?t.pri=='Critical'&&t.st!='resolved':a=='done'?t.st=='resolved':1),calls:a=>S.calls.filter(c=>a=='all'||c.st==(a=='queue'?'queued':a)),visitors:a=>S.visitors.filter(v=>a=='all'||v.st=={exp:'expected',in:'in'}[a]),cands:a=>S.cands.filter(c=>a=='all'||(a=='walkin'?c.src=='walk-in':c.st==a)),ints:a=>S.ints.filter(i=>a=='all'||i.st==a),leaves:a=>S.leaves.filter(l=>a=='all'||l.st==a)};
 const unread=r=>S.notifs.filter(n=>(n.r==r||n.r=='all')&&!n.read).length;
-const cnt=e=>Q[e.b]&&['open','crit','queue','pending','exp','scheduled'].includes(e.g)?Q[e.b](e.g).length:e.b=='msgs'?S.msgs.filter(m=>!m.done).length:e.b=='inbox'?unread(ui.r):e.b=='urgent'?((ui.ug&&ui.ug.me&&ui.ug.me.newCount)||0):e.b=='inq'?((ui.iq&&ui.iq.me&&ui.iq.me.rooms[e.g]&&ui.iq.me.rooms[e.g].allowed&&ui.iq.me.rooms[e.g].count)||0):0;
+const cnt=e=>e.b=='tasks'?vMyOpen().length:e.b=='vacs'&&e.g=='late'?vLate().length:Q[e.b]&&['open','crit','queue','pending','exp','scheduled'].includes(e.g)?Q[e.b](e.g).length:e.b=='msgs'?S.msgs.filter(m=>!m.done).length:e.b=='inbox'?unread(ui.r):e.b=='urgent'?((ui.ug&&ui.ug.me&&ui.ug.me.newCount)||0):e.b=='inq'?((ui.iq&&ui.iq.me&&ui.iq.me.rooms[e.g]&&ui.iq.me.rooms[e.g].allowed&&ui.iq.me.rooms[e.g].count)||0):0;
 const rb=r=>({it:Q.tickets('open').length,hr:Q.leaves('pending').length,cc:Q.calls('queue').length,rec:Q.calls('queue').length,front:Q.visitors('exp').length,int:Q.ints('scheduled').length,ops:Q.tickets('crit').length,admin:unread('admin')})[r];
 const flat=r=>R[r].nav.flatMap(s=>s[1]);
 const bdg=t=>`<span class="bd ${String(t).toLowerCase().replace(/\W/g,'')}">${t}</span>`,btn=(l,a,p)=>`<button class="b ${p||''}" data-a="${a.replace(/"/g,'&quot;')}">${l}</button>`;
@@ -1930,6 +1930,206 @@ V.devices=function(){const d=ui.dv;if(!d)return'<h1>Devices</h1><div class=empty
  return`<h1>Devices</h1><p class=sub>Each person’s account works for protected rooms only on devices that are trusted for them. If someone changes PC or phone, approve the new one here. Removing a device signs it out of protected rooms. Admin and IT both see every change in the security alerts.</p>
  <div class=two><div class=card><h3>Waiting for approval</h3>${w.length?w.map(row).join(''):'<div class=empty>No device is waiting.</div>'}</div><div class=card><h3>Trusted</h3>${ok.length?ok.map(row).join(''):'<div class=empty>No devices yet.</div>'}</div></div>`};
 {const _d=A.ugdev;A.ugdev=(id,ok)=>{api('/api/devices',{id,ok:ok=='1'}).then(()=>{toast(ok=='1'?'✔ Device approved':'Device removed');const e=flat(ui.r)[ui.v];(e&&e.b=='devices'?LOADERS.devices:LOADERS.urgent)()}).catch(e=>toast('✖ '+e.message))}}
+
+// ---------- Vacancies: every job we recruit for, planned in 5 steps — who does what, by when, and what came of it ----------
+// One vacancy = one plan: 1 Advertise · 2 Screen · 3 Call candidates · 4 Interview · 5 Send to employer.
+// Each step has an owner (a whole team, or one named person), a due time and a status. Late steps turn red and
+// alert the owner and Operations. Candidates are attached to the vacancy and moved stage by stage; every number
+// in the funnel is counted from those moves — nobody types totals. Every change is kept in the vacancy's history.
+LISTS.push('vacs');if(!Array.isArray(S.vacs))S.vacs=[];
+const VSTEPS=[['adv','Advertise','📣','sm'],['scr','Screen applications','🔎','hr'],['call','Call candidates','📞','cc'],['int','Interview','🎤','int'],['emp','Send to employer','🤝','ops']];
+const VSTEP=Object.fromEntries(VSTEPS.map(([k,l,i,t])=>[k,{l,i,t}]));
+const VPLAN=['hr','ops','admin'];
+const vCanPlan=()=>VPLAN.includes(ui.me.r);
+const vStageHow={ // candidate stage → which step owns the next move, and the moves offered
+ applied:{l:'Applied',s:'scr',n:[['qualified','Qualified','p'],['rejected','Not suitable']]},
+ qualified:{l:'Qualified',s:'call',n:[['confirmed','Confirmed for interview','p'],['unreachable','No answer'],['declined','Declined']]},
+ unreachable:{l:'No answer yet',s:'call',n:[['confirmed','Confirmed for interview','p'],['declined','Declined']]},
+ confirmed:{l:'Interview confirmed',s:'int',n:[['passed','Passed','p'],['failed','Did not pass'],['absent','Did not come']]},
+ passed:{l:'Passed interview',s:'emp',n:[['sent','Sent to employer','p']]},
+ sent:{l:'Sent to employer',s:'emp',n:[['approved','Employer accepted','p'],['emprejected','Employer declined']]},
+ approved:{l:'Accepted by employer',s:'emp',n:[['hired','Started work','p'],['noshow','Did not report']]},
+ rejected:{l:'Not suitable'},declined:{l:'Declined'},failed:{l:'Did not pass'},absent:{l:'Did not come'},emprejected:{l:'Employer declined'},hired:{l:'Started work'},noshow:{l:'Did not report to work'}};
+const vIn=(st,...a)=>a.includes(st);
+const vFunnel=v=>{const p=v.pipe||[],c=f=>p.filter(x=>f(x.st)).length;return{
+ applied:p.length,screened:c(s=>s!='applied'),qualified:c(s=>!vIn(s,'applied','rejected')),
+ contacted:c(s=>!vIn(s,'applied','rejected','qualified')),
+ confirmed:c(s=>vIn(s,'confirmed','absent','failed','passed','sent','approved','emprejected','hired','noshow')),
+ interviewed:c(s=>vIn(s,'failed','passed','sent','approved','emprejected','hired','noshow')),
+ passed:c(s=>vIn(s,'passed','sent','approved','emprejected','hired','noshow')),
+ sent:c(s=>vIn(s,'sent','approved','emprejected','hired','noshow')),
+ accepted:c(s=>vIn(s,'approved','hired','noshow')),hired:c(s=>s=='hired')}};
+// time
+const vPad=n=>String(n).padStart(2,'0');
+const vDtl=d=>d.getFullYear()+'-'+vPad(d.getMonth()+1)+'-'+vPad(d.getDate())+'T'+vPad(d.getHours())+':'+vPad(d.getMinutes());
+const vTs=s=>{const t=Date.parse(s||'');return isNaN(t)?0:t};
+const vFmt=s=>{const t=vTs(s);if(!t)return'—';const d=new Date(t),td=new Date(),tm=new Date(Date.now()+864e5),same=(a,b)=>a.toDateString()==b.toDateString();
+ const hm=vPad(d.getHours())+':'+vPad(d.getMinutes());return(same(d,td)?'Today':same(d,tm)?'Tomorrow':d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}))+' · '+hm};
+function vPlanTimes(dl){ // the 5 due times, worked back from the final deadline (the way HR plans it), never in the past, always in order
+ const D=new Date(vTs(dl)||Date.now()+3*864e5),now=Date.now(),day=(d,h)=>{const x=new Date(D);x.setDate(x.getDate()-d);x.setHours(h,0,0,0);return x.getTime()};
+ let t=[now+36e5,day(1,16),day(1,18),D.getTime()-5*36e5,D.getTime()],lo=now+18e5;
+ t=t.map(x=>{x=Math.max(x,lo);lo=x;return x});t[4]=Math.max(t[4],D.getTime());return t.map(x=>vDtl(new Date(Math.round(x/3e5)*3e5)))}
+function vDefaultDeadline(){const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));if(d-Date.now()<1.5*864e5)d.setDate(d.getDate()+7);d.setHours(13,0,0,0);return vDtl(d)}
+// owners
+const vTeams=()=>['sm','it','hr','cc','int','ops','front','rec','admin'].filter(k=>R[k]);
+const vOwnOpts=()=>vTeams().map(k=>['team:'+k,'Team · '+R[k].n]).concat(S.staff.filter(s=>s.on!==false).map(s=>['p:'+s.id,s.name+' ('+s.dept+')']));
+const vOwnName=o=>{o=o||'';if(o.startsWith('team:'))return(R[o.slice(5)]||{n:o}).n+' team';const p=S.staff.find(s=>'p:'+s.id==o);return p?p.name:'—'};
+const vOwnRole=o=>{o=o||'';if(o.startsWith('team:'))return o.slice(5);const p=S.staff.find(s=>'p:'+s.id==o);return p?p.role:'ops'};
+const vMine=s=>{const o=s.own||'';return o=='team:'+ui.me.r||o=='p:'+ui.me.id};
+const vStepState=s=>s.st=='done'?'done':vTs(s.due)&&Date.now()>vTs(s.due)?'late':s.st=='doing'?'doing':'todo';
+const vActive=()=>(S.vacs||[]).filter(v=>v.st=='open');
+const vLate=()=>vActive().flatMap(v=>(v.steps||[]).filter(s=>vStepState(s)=='late').map(s=>({v,s})));
+const vMyOpen=()=>vActive().flatMap(v=>(v.steps||[]).filter(s=>s.st!='done'&&vMine(s)).map(s=>({v,s}))).sort((a,b)=>vTs(a.s.due)-vTs(b.s.due));
+const vHist=(v,text)=>{v.hist=v.hist||[];v.hist.unshift({t:Date.now(),by:actor(),text});if(v.hist.length>200)v.hist.length=200};
+const vFind=id=>(S.vacs||[]).find(x=>x.id==id);
+const vStepOf=(v,k)=>(v.steps||[]).find(s=>s.k==k);
+const vCanStep=(v,k)=>{const s=vStepOf(v,k);return vCanPlan()||(s&&vMine(s))};
+const vSeesPhones=()=>['hr','ops','admin','cc','int'].includes(ui.me.r);
+const vGender={any:'',f:'Women only — employer’s requirement',m:'Men only — employer’s requirement'};
+// ---- forms ----
+const vBase=()=>[['title','Job title (e.g. Bar Manager)'],['employer','Employer (business name)'],['loc','Location (e.g. Kabeza)'],['need','How many people the employer needs',null,{type:'number'}],['sal','Salary (e.g. 200,000 RWF / month)'],['shift','Shift',['Day','Night','Day and night','Full-time','Part-time','Contract']],['gender','Gender — only if the employer requires it',[['any','Any'],['f','Women only (employer’s requirement)'],['m','Men only (employer’s requirement)']]],['pri','Priority',['Normal','High','Urgent']],['deadline','Final deadline — candidates in front of the employer by',null,{type:'datetime-local'}],['desc','Job description',null,{opt:1,area:1}],['req','Requirements (qualifications, experience, skills)',null,{opt:1,area:1}]];
+FM.vac={t:'New vacancy',def:()=>({need:'1',deadline:vDefaultDeadline(),pri:'Normal',gender:'any',shift:'Day'}),f:vBase(),go:d=>{
+ if(!vCanPlan())return toast('Only HR, Operations or Admin can create vacancies');
+ const n=1+Math.max(0,...(S.vacs||[]).map(x=>+String(x.ref||'').replace(/\D/g,'')||0)),times=vPlanTimes(d.deadline);
+ const v={id:id('V'),ref:'VAC-'+String(n).padStart(4,'0'),...d,need:Math.max(1,+d.need||1),st:'open',t:Date.now(),by:actor(),
+  steps:VSTEPS.map(([k],i)=>({k,own:'team:'+VSTEP[k].t,due:times[i],st:'todo'})),pipe:[],hist:[]};
+ vHist(v,'created the vacancy with the 5-step plan');S.vacs.unshift(v);ui.vsel=v.id;
+ VSTEPS.forEach(([k])=>{const s=vStepOf(v,k);note([vOwnRole(s.own)],'📋 New task: '+VSTEP[k].l+' — '+v.title+', '+v.loc+' (due '+vFmt(s.due)+')')});
+ note(['ops','admin'],'📋 New vacancy '+v.ref+': '+v.title+' · '+v.loc+' · '+v.need+' needed by '+vFmt(v.deadline))}};
+FM.vedit={t:'Edit vacancy',def:()=>{const v=vFind(ui.vsel)||{};const o={};vBase().forEach(([n])=>o[n]=v[n]==null?'':String(v[n]).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'"));return o},f:vBase(),go:d=>{
+ const v=vFind(ui.vsel);if(!v||!vCanPlan())return;const ch=vBase().map(([n,l])=>n).filter(n=>String(v[n]??'')!==String(d[n]??''));
+ if(!ch.length)return;if(ch.includes('deadline'))vHist(v,'changed the final deadline from '+vFmt(v.deadline)+' to '+vFmt(d.deadline));
+ Object.assign(v,d,{need:Math.max(1,+d.need||1)});vHist(v,'edited '+ch.filter(n=>n!='deadline').join(', ').replace(/^$/,'the deadline'));note(['ops'],'✏️ '+v.ref+' '+v.title+' was edited')}};
+FM.vstep={t:'Step owner and time',def:()=>{const v=vFind(ui.vsel),s=v&&vStepOf(v,ui.vk);return s?{own:s.own,due:s.due,note:(s.note||'').replace(/&amp;/g,'&')}:{}},
+ f:[['own','Responsible (a whole team, or one person)',vOwnOpts],['due','Due',null,{type:'datetime-local'}],['note','Note for the person responsible',null,{opt:1,area:1}]],go:d=>{
+ const v=vFind(ui.vsel),s=v&&vStepOf(v,ui.vk);if(!s||!vCanPlan())return;const L=VSTEP[s.k].l;
+ if(d.own!==s.own){vHist(v,L+': responsible changed from '+vOwnName(s.own)+' to '+vOwnName(d.own));note([vOwnRole(d.own)],'📋 New task: '+L+' — '+v.title+', '+v.loc+' (due '+vFmt(d.due)+')');s.lateN=0;s.soonN=0}
+ if(d.due!==s.due){vHist(v,L+': due changed from '+vFmt(s.due)+' to '+vFmt(d.due));s.lateN=0;s.soonN=0}
+ if((d.note||'')!==(s.note||''))vHist(v,L+': note updated');Object.assign(s,{own:d.own,due:d.due,note:d.note||''})}};
+FM.vcand={t:'Add a candidate to this vacancy',checkTitle:'🔎 This person may already be in the system:',checkBtn:1,check:d=>d.cid=='new'&&d.name?ML.dupes(d):[],
+ def:()=>({cid:'new'}),f:[['cid','From your candidates',()=>{const v=vFind(ui.vsel),inV=new Set((v&&v.pipe||[]).map(x=>x.cid));return[['new','➕ Someone new (type the name below)']].concat(S.cands.filter(c=>!inV.has(c.id)&&!['hired'].includes(c.st)).slice(0,300).map(c=>[c.id,c.name+' — '+(c.role||'')+(c.phone?' · '+c.phone:'')]))}],['name','Full name (for someone new)',null,{opt:1}],['phone','Phone (for someone new)',null,{opt:1,type:'tel'}]],go:d=>{
+ const v=vFind(ui.vsel);if(!v||!vCanStep(v,'scr'))return toast('Only HR, Operations, Admin or the screening team can add candidates');
+ let c=S.cands.find(x=>x.id==d.cid);
+ if(!c){if(!d.name)return toast('Type the person’s name');const ph=String(d.phone||'').replace(/\D/g,'').slice(-9);c=ph&&S.cands.find(x=>String(x.phone||'').replace(/\D/g,'').slice(-9)==ph);
+  if(!c){c={id:id('k'),name:d.name,phone:d.phone||'',role:v.title,location:'',src:'added',st:'applied',t:Date.now(),by:ui.me.u};S.cands.unshift(c)}}
+ if((v.pipe||[]).some(x=>x.cid==c.id))return toast(c.name+' is already on this vacancy');
+ v.pipe=v.pipe||[];v.pipe.push({cid:c.id,name:c.name,phone:c.phone||'',st:'applied',t:Date.now(),by:actor()});vHist(v,'added candidate '+c.name);
+ const s=vStepOf(v,'scr');if(s&&s.st=='todo')s.st='doing';note([vOwnRole(s?s.own:'team:hr')],'🔎 '+c.name+' to screen for '+v.title+' ('+v.loc+')')}};
+FM.vnext={t:'Decision and next action',def:()=>{const v=vFind(ui.vsel)||{};return{next:(v.next||'').replace(/&amp;/g,'&'),nwho:v.nwho||'team:hr',nwhen:v.nwhen||vDtl(new Date(Date.now()+864e5))}},
+ f:[['next','What happens next (e.g. find 1 more cashier, new interview Monday)',null,{area:1}],['nwho','Responsible',vOwnOpts],['nwhen','By',null,{type:'datetime-local'}]],go:d=>{
+ const v=vFind(ui.vsel);if(!v||!vCanPlan())return;Object.assign(v,d);vHist(v,'next action: '+d.next+' — '+vOwnName(d.nwho)+', by '+vFmt(d.nwhen));note([vOwnRole(d.nwho)],'➡️ '+v.title+' ('+v.loc+'): '+d.next+' — by '+vFmt(d.nwhen))}};
+FM.vclose={t:'Cancel this vacancy',f:[['why','Why is it cancelled? (e.g. employer no longer needs staff)',null,{area:1}]],go:d=>{
+ const v=vFind(ui.vsel);if(!v||!vCanPlan())return;v.st='cancelled';v.closed=Date.now();v.why=d.why;vHist(v,'cancelled the vacancy: '+d.why);note(['ops','admin','hr'],'🗂 '+v.ref+' '+v.title+' cancelled: '+d.why)}};
+// ---- actions ----
+Object.assign(A,{
+ vopen(i){ui.vsel=i;ui.nv=true;refreshMain();$('#main').scrollTop=0},
+ vback(){ui.vsel=null;ui.nv=true;refreshMain()},
+ vform(k,vid,step){ui.vsel=vid||ui.vsel;ui.vk=step||ui.vk;ui.pre={};ui.nv=true;ui.modal=k;render()},
+ vstep(vid,k,to){const v=vFind(vid),s=v&&vStepOf(v,k);if(!s)return;if(!vCanStep(v,k))return toast('This step belongs to '+vOwnName(s.own));
+  const L=VSTEP[k].l;s.st=to;if(to=='done'){s.dt=Date.now();s.dby=actor();vHist(v,L+' — done'+(vTs(s.due)&&s.dt>vTs(s.due)?' (late by '+ago(vTs(s.due)).replace('now','<1m')+')':''));
+   const nx=VSTEPS[VSTEPS.findIndex(x=>x[0]==k)+1];if(nx){const ns=vStepOf(v,nx[0]);if(ns&&ns.st!='done')note([vOwnRole(ns.own)],'▶️ Your turn: '+nx[1]+' — '+v.title+', '+v.loc+' (due '+vFmt(ns.due)+')')}
+   note(['ops'],'✅ '+L+' done — '+v.title+', '+v.loc)}
+  else vHist(v,L+(to=='doing'?' — started':' — reopened'));emit()},
+ vmove(vid,cid,to){const v=vFind(vid),p=v&&(v.pipe||[]).find(x=>x.cid==cid);if(!p)return;const h=vStageHow[p.st];if(!h||!h.n||!h.n.some(x=>x[0]==to))return;
+  if(!vCanStep(v,h.s))return toast('This move belongs to '+vOwnName((vStepOf(v,h.s)||{}).own));
+  const from=p.st;p.st=to;p.u=Date.now();p.ub=actor();vHist(v,p.name+': '+vStageHow[from].l+' → '+vStageHow[to].l);
+  const s=vStepOf(v,h.s);if(s&&s.st=='todo')s.st='doing';
+  const c=S.cands.find(x=>x.id==cid);if(c){if(to=='hired')c.st='hired';else if(vIn(to,'confirmed','passed'))c.st='interview';else if(vIn(to,'sent','approved'))c.st='offer'}
+  const f=vFunnel(v);if(to=='hired'){note(['ops','admin','hr'],'🎉 '+p.name+' started work — '+v.title+', '+v.loc+' ('+f.hired+' of '+v.need+')')}
+  if(to=='passed')note([vOwnRole((vStepOf(v,'emp')||{}).own)],'🤝 '+p.name+' passed the interview — ready to send to '+v.employer);
+  if(to=='confirmed')note([vOwnRole((vStepOf(v,'int')||{}).own)],'🎤 '+p.name+' confirmed for the '+v.title+' interview ('+vFmt((vStepOf(v,'int')||{}).due)+')');
+  emit()},
+ vfill(vid){const v=vFind(vid);if(!v||!vCanPlan())return;const f=vFunnel(v);if(f.hired<v.need)return toast('Only '+f.hired+' of '+v.need+' have started work — it can be marked filled when all have');
+  v.st='filled';v.closed=Date.now();vHist(v,'marked the vacancy filled ('+f.hired+' started work)');note(['ops','admin','hr'],'🏁 '+v.ref+' '+v.title+', '+v.loc+' — filled');emit()},
+ vreopen(vid){const v=vFind(vid);if(!v||!vCanPlan())return;v.st='open';vHist(v,'reopened the vacancy');emit()}});
+// ---- views ----
+const vPill=s=>{const st=vStepState(s),k=VSTEP[s.k];return`<span class="vp is-${st}" title="${k.l} · ${esc(vOwnName(s.own))} · ${vFmt(s.due)}">${st=='done'?'✓':st=='late'?'!':k.i}<em>${k.l}</em></span>`};
+const vStLbl={todo:'Not started',doing:'In progress',done:'Done',late:'Late'};
+function vRow(v){const f=vFunnel(v),dl=vTs(v.deadline),over=v.st=='open'&&dl&&Date.now()>dl,late=(v.steps||[]).filter(s=>vStepState(s)=='late').length;
+ return`<button class="vrow ${over||late?'is-late':''}" data-a="vopen|${v.id}"><div class=vr-t><b>${v.title}</b><small>${v.employer?v.employer+' · ':''}${v.loc} · ${v.ref}${v.pri!='Normal'?' · <i class="vpri '+String(v.pri).toLowerCase()+'">'+v.pri+'</i>':''}</small></div>
+ <div class=vr-steps>${(v.steps||[]).map(vPill).join('')}</div>
+ <div class=vr-n><b>${f.hired}<small>/${v.need}</small></b><small>${f.applied} applied · ${f.interviewed} interviewed</small></div>
+ <div class="vr-d ${over?'bad':''}"><small>${v.st=='open'?'Deadline':v.st=='filled'?'Filled':'Cancelled'}</small><b>${v.st=='open'?vFmt(v.deadline):agoT(v.closed||v.t)}</b>${late?`<i class=vlate>${late} late</i>`:''}</div></button>`}
+V.vacs=function(a){if(ui.vsel&&vFind(ui.vsel))return vDetail(vFind(ui.vsel));
+ const all=S.vacs||[],act=vActive(),late=vLate(),mth=Date.now()-30*864e5,hired=all.reduce((n,v)=>n+(v.pipe||[]).filter(p=>p.st=='hired'&&(p.u||0)>mth).length,0),inprog=act.reduce((n,v)=>n+(v.pipe||[]).filter(p=>!vIn(p.st,'rejected','declined','failed','absent','emprejected','hired','noshow')).length,0);
+ const L=a=='late'?act.filter(v=>(v.steps||[]).some(s=>vStepState(s)=='late')||(vTs(v.deadline)&&Date.now()>vTs(v.deadline))):a=='closed'?all.filter(v=>v.st!='open'):act;
+ L.sort((x,y)=>(vTs(x.deadline)||9e15)-(vTs(y.deadline)||9e15));
+ return`<div class=vhead><div><h1>${a=='late'?'Late steps':a=='closed'?'Closed vacancies':'Vacancies'}</h1><div class=sub>Every job we recruit for, in 5 steps: advertise · screen · call · interview · send to employer. Each step has an owner and a time.</div></div>${vCanPlan()?btn('➕ New vacancy','vform|vac','p'):''}</div>
+ <div class="g mini"><div class=k><span>Active vacancies</span><b>${act.length}</b></div><div class=k><span>People still needed</span><b>${act.reduce((n,v)=>n+Math.max(0,v.need-vFunnel(v).hired),0)}</b></div><div class="k ${late.length?'kbad':''}"><span>Late steps</span><b>${late.length}</b></div><div class=k><span>Candidates in progress</span><b>${inprog}</b></div><div class=k><span>Started work · 30 days</span><b>${hired}</b></div></div>
+ ${a!='closed'?`<div class=vtabs>${btn('Active','nav|vacs|all',a=='all'?'p':'')}${btn('Late','nav|vacs|late',a=='late'?'p':'')}${btn('Closed','nav|vacs|closed',a=='closed'?'p':'')}</div>`:`<div class=vtabs>${btn('Active','nav|vacs|all')}${btn('Closed','nav|vacs|closed','p')}</div>`}
+ ${L.length?`<div class=vlist>${L.map(vRow).join('')}</div>`:`<div class=empty>${a=='late'?'Nothing is late. 👏':a=='closed'?'No closed vacancies yet.':vCanPlan()?'No vacancies yet. Create one and its 5-step plan is made for you.':'No active vacancies right now.'}</div>`}`};
+function vDetail(v){const f=vFunnel(v),plan=vCanPlan(),seePh=vSeesPhones(),left=Math.max(0,v.need-f.hired);
+ const step=s=>{const st=vStepState(s),k=VSTEP[s.k],mine=vCanStep(v,s.k);return`<div class="vstep is-${st}"><span class=vs-ic>${st=='done'?'✓':k.i}</span><div class=vs-b><b>${k.l}</b><small>${esc(vOwnName(s.own))} · due ${vFmt(s.due)}${s.st=='done'?' · done '+agoT(s.dt)+(s.dby?' by '+s.dby:''):''}</small>${s.note?`<p class=vs-note>${s.note}</p>`:''}</div><span class="bd ${st=='late'?'critical':st=='done'?'done':st=='doing'?'progress':''}">${vStLbl[st]}</span>
+  <div class=vs-a>${v.st=='open'&&mine?(s.st=='todo'?btn('Start',`vstep|${v.id}|${s.k}|doing`):'')+(s.st!='done'?btn('Mark done',`vstep|${v.id}|${s.k}|done`,'p'):btn('Reopen',`vstep|${v.id}|${s.k}|todo`)):''}${v.st=='open'&&plan?btn('Edit',`vform|vstep|${v.id}|${s.k}`):''}</div></div>`};
+ const fun=[['Applied',f.applied],['Screened',f.screened],['Qualified',f.qualified],['Called',f.contacted],['Interviewed',f.interviewed],['Passed',f.passed],['Sent to employer',f.sent],['Accepted',f.accepted],['Started work',f.hired]],mx=Math.max(1,f.applied);
+ const pipe=(v.pipe||[]).slice().sort((a,b)=>(b.u||b.t)-(a.u||a.t)).map(p=>{const h=vStageHow[p.st]||{l:p.st},can=v.st=='open'&&h.s&&vCanStep(v,h.s);
+  return[`<b>${p.name}</b>${seePh&&p.phone?`<br><small>${p.phone}</small>`:''}`,`<span class="bd vst-${p.st}">${h.l}</span><br><small>${agoT(p.u||p.t)}${p.ub?' · '+p.ub:''}</small>`,can?(h.n||[]).map(([to,l,c])=>btn(l,`vmove|${v.id}|${p.cid}|${to}`,c||'')).join(''):h.s?`<small>${esc(vOwnName((vStepOf(v,h.s)||{}).own))}</small>`:'']});
+ return`<button class="b vbackb" data-a=vback>← All vacancies</button>
+ <div class=vhead><div><h1>${v.title} · ${v.loc}</h1><div class=sub>${v.ref} · ${v.employer||'Employer not named'} · created ${agoT(v.t)} by ${v.by}</div></div><div>${v.st!='open'?`<span class="bd ${v.st=='filled'?'done':'rejected'}">${v.st=='filled'?'Filled':'Cancelled'}</span>`:''} ${plan&&v.st=='open'?btn('Edit details','vform|vedit|'+v.id):''}</div></div>
+ <div class=vfacts>${[['People needed',v.need],['Salary',v.sal||'—'],['Shift',v.shift||'—'],['Priority',v.pri],['Final deadline',vFmt(v.deadline)],vGender[v.gender]?['Requirement',vGender[v.gender]]:null].filter(Boolean).map(([k,x])=>`<div><small>${k}</small><b>${x}</b></div>`).join('')}</div>
+ ${v.desc||v.req?`<div class="card vtext">${v.desc?`<h4>Job description</h4><p>${v.desc}</p>`:''}${v.req?`<h4>Requirements</h4><p>${v.req}</p>`:''}</div>`:''}
+ <div class=vgrid><div class=card><h3>Plan</h3>${(v.steps||[]).map(step).join('')}</div>
+ <div class=card><h3>Results — counted from the candidates below</h3>${fun.map(([l,n])=>`<div class=bar><span>${l}</span><div><i style="width:${n/mx*100}%"></i></div><b>${n}</b></div>`).join('')}
+  <div class=vdec><div><small>Needed</small><b>${v.need}</b></div><div><small>Started work</small><b>${f.hired}</b></div><div class="${left&&v.st=='open'?'bad':'ok'}"><small>Still needed</small><b>${left}</b></div></div>
+  ${v.next?`<div class=vnext><small>Next action · ${esc(vOwnName(v.nwho))} · by ${vFmt(v.nwhen)}</small><p>${v.next}</p></div>`:''}
+  ${v.st=='cancelled'&&v.why?`<div class=vnext><small>Cancelled</small><p>${v.why}</p></div>`:''}
+  <div class=row>${plan&&v.st=='open'?btn('Decision / next action','vform|vnext|'+v.id)+btn('Mark filled','vfill|'+v.id,f.hired>=v.need?'p':'')+btn('Cancel vacancy','vform|vclose|'+v.id):''}${plan&&v.st!='open'?btn('Reopen','vreopen|'+v.id):''}</div></div></div>
+ <div class=card><div class=vhead><h3>Candidates (${(v.pipe||[]).length})</h3>${v.st=='open'&&vCanStep(v,'scr')?btn('➕ Add candidate','vform|vcand|'+v.id,'p'):''}</div>${pipe.length?tb(['Candidate','Stage','Next move'],pipe):'<div class=empty>No candidates yet. Add people from your candidates, walk-ins and website applications.</div>'}</div>
+ <div class=card><h3>History</h3><div class=feed>${(v.hist||[]).slice(0,40).map(h=>`<div>${h.by} ${h.text} <small>· ${agoT(h.t)}</small></div>`).join('')||'<div class=empty>Nothing yet.</div>'}</div></div>`}
+V.tasks=function(){const M=vMyOpen(),now=Date.now(),eod=new Date();eod.setHours(23,59,59,999);
+ const g=[['Late',M.filter(x=>vStepState(x.s)=='late')],['Today',M.filter(x=>vStepState(x.s)!='late'&&vTs(x.s.due)<=eod.getTime())],['Coming up',M.filter(x=>vTs(x.s.due)>eod.getTime())]];
+ const done=(S.vacs||[]).flatMap(v=>(v.steps||[]).filter(s=>s.st=='done'&&vMine(s)&&s.dt>now-7*864e5).map(s=>({v,s}))).sort((a,b)=>b.s.dt-a.s.dt).slice(0,10);
+ const row=({v,s})=>{const st=vStepState(s),k=VSTEP[s.k];return`<div class="vtask is-${st}"><span class=vs-ic>${k.i}</span><div class=vs-b><b>${k.l} — ${v.title}</b><small>${v.loc}${v.employer?' · '+v.employer:''} · due ${vFmt(s.due)}${s.own.startsWith('team:')?' · your team':''}</small>${s.note?`<p class=vs-note>${s.note}</p>`:''}</div><div class=vs-a>${s.st=='todo'?btn('Start',`vstep|${v.id}|${s.k}|doing`):''}${btn('Mark done',`vstep|${v.id}|${s.k}|done`,'p')}${btn('Open',`vgo|${v.id}`)}</div></div>`};
+ return`<h1>My tasks</h1><div class=sub>Recruitment steps that belong to you or your team, nearest first. Late ones are red and Operations sees them too.</div>
+ ${M.length?g.filter(x=>x[1].length).map(([l,L])=>`<div class=card><h3>${l} <small class=sub>(${L.length})</small></h3>${L.map(row).join('')}</div>`).join(''):'<div class=empty>No open recruitment tasks for you. 🎉</div>'}
+ ${done.length?`<div class=card><h3>Done this week</h3>${done.map(({v,s})=>`<div class=vdone>✓ ${VSTEP[s.k].l} — ${v.title}, ${v.loc} <small>· ${agoT(s.dt)}</small></div>`).join('')}</div>`:''}`};
+A.vgo=function(vid){const i=flat(ui.r).findIndex(e=>e.b=='vacs');ui.vsel=vid;if(i>=0){ui.v=i;ui.pre={};ui.anim=true;render()}else{ui.nv=true;$('#main').innerHTML=vDetail(vFind(vid))}};
+// dashboard: a recruitment card for HR, Operations and Admin; "my tasks" for everyone else
+{const _dash=V.dash;V.dash=function(g){const h=_dash(g),act=vActive();if(!act.length&&!vMyOpen().length)return h;
+ if(vCanPlan()){const late=vLate();return h+`<div class="card vdash"><div class=vhead><h3>Recruitment today</h3>${btn('Open vacancies','vgo|')}</div><div class="g mini"><div class=k><span>Active vacancies</span><b>${act.length}</b></div><div class="k ${late.length?'kbad':''}"><span>Late steps</span><b>${late.length}</b></div><div class=k><span>People still needed</span><b>${act.reduce((n,v)=>n+Math.max(0,v.need-vFunnel(v).hired),0)}</b></div></div>${late.slice(0,5).map(({v,s})=>`<div class=vdone style="color:#e5484d">! ${VSTEP[s.k].l} — ${v.title}, ${v.loc} · ${esc(vOwnName(s.own))} · was due ${vFmt(s.due)}</div>`).join('')}</div>`}
+ const M=vMyOpen().slice(0,4);return h+(M.length?`<div class="card vdash"><div class=vhead><h3>My recruitment tasks</h3>${btn('See all','vtasks')}</div>${M.map(({v,s})=>`<div class="vdone ${vStepState(s)=='late'?'bad':''}">${VSTEP[s.k].i} ${VSTEP[s.k].l} — ${v.title}, ${v.loc} · ${vFmt(s.due)}</div>`).join('')}</div>`:'')}}
+A.vtasks=function(){const i=flat(ui.r).findIndex(e=>e.b=='tasks');if(i>=0){ui.v=i;ui.anim=true;render()}};
+// navigation
+Object.keys(R).forEach(k=>{const me=R[k].nav.find(g=>g[0]=='Me');if(me&&!me[1].some(e=>e.b=='tasks'))me[1].splice(1,0,{l:'My tasks',i:'✅',b:'tasks'})});
+[['hr','Talent'],['ops','Pipeline'],['admin','Operations']].forEach(([k,grp])=>{const g=R[k]&&R[k].nav.find(x=>x[0]==grp);if(g&&!g[1].some(e=>e.b=='vacs'))g[1].unshift({l:'Vacancies',i:'📋',b:'vacs',g:'all'},{l:'Late steps',i:'⏰',b:'vacs',g:'late'})});
+['int','cc','sm','it'].forEach(k=>{if(R[k]&&!flat(k).some(e=>e.b=='vacs'))R[k].nav.splice(2,0,['Recruitment',[{l:'Vacancies',i:'📋',b:'vacs',g:'all'}]])});
+{const _nav=A.nav;A.nav=function(b,g,pre){if(b=='vacs')ui.vsel=null;return _nav(b,g,pre)};const _view=A.view;A.view=function(i){const e=flat(ui.r)[+i];if(e&&e.b=='vacs')ui.vsel=null;return _view(i)}}
+// late and due-soon alerts: the first device that notices sends one alert per step (the flags travel with the step)
+function vWatch(){if(!NET_READY||!ui.me.id||PREVIEW)return;let ch=false;const now=Date.now();
+ vActive().forEach(v=>(v.steps||[]).forEach(s=>{if(s.st=='done')return;const due=vTs(s.due);if(!due)return;const L=VSTEP[s.k].l,who=vOwnName(s.own);
+  if(now>due&&!s.lateN){s.lateN=1;ch=true;vHist(v,L+' is late (was due '+vFmt(s.due)+', '+who+')');note([vOwnRole(s.own),'ops'],'⏰ Late: '+L+' — '+v.title+', '+v.loc+' · '+who+' · was due '+vFmt(s.due))}
+  else if(now<due&&due-now<2*36e5&&!s.soonN){s.soonN=1;ch=true;note([vOwnRole(s.own)],'⏳ Due soon ('+vFmt(s.due)+'): '+L+' — '+v.title+', '+v.loc)}}));
+ if(ch)emit()}
+setInterval(vWatch,60000);setTimeout(vWatch,8000);
+document.head.insertAdjacentHTML('beforeend',`<style>
+.vhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.vhead h1{margin-bottom:4px}
+.k.kbad b{color:#e5484d}.vtabs{display:flex;gap:4px;margin:0 0 12px}
+.vlist{display:flex;flex-direction:column;gap:10px}
+.vrow{display:grid;grid-template-columns:minmax(0,1.3fr) auto 120px 150px;gap:16px;align-items:center;width:100%;text-align:left;padding:14px 16px;border:1px solid var(--bd);border-radius:18px;background:var(--s1);color:inherit;font:inherit;cursor:pointer;transition:.18s}
+.vrow:hover{border-color:var(--ac);transform:translateY(-2px)}.vrow.is-late{border-color:#e5484d55;box-shadow:inset 3px 0 0 #e5484d}
+.vr-t b{display:block;font-size:16px}.vr-t small,.vr-n small,.vr-d small{display:block;color:var(--mu);font-size:12.5px}
+.vr-n b{font-size:22px}.vr-n b small{display:inline;font-size:14px}.vr-d b{font-size:14px}.vr-d.bad b{color:#e5484d}
+.vlate{display:inline-block;margin-top:3px;font-style:normal;font-size:11.5px;font-weight:800;color:#e5484d}
+.vpri{font-style:normal;font-weight:800}.vpri.urgent{color:#e5484d}.vpri.high{color:#e8890c}
+.vr-steps{display:flex;gap:6px}
+.vp{position:relative;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;background:var(--s2);border:1px solid var(--bd)}
+.vp em{display:none}.vp.is-done{background:#2ecc8f22;color:#17a870;border-color:#17a87055}.vp.is-doing{background:#4d8dff22;border-color:#4d8dff66}.vp.is-late{background:#ff4d6d22;color:#e5484d;border-color:#e5484d88}
+.vfacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr));gap:10px;margin:14px 0 16px}.vfacts div{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:10px 12px}.vfacts small{display:block;color:var(--mu);font-size:12px}.vfacts b{font-size:15px}
+.vtext h4{margin:0 0 4px;font-size:13px;color:var(--mu)}.vtext p{margin:0 0 12px;white-space:pre-line;line-height:1.55}
+.vgrid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+.vstep,.vtask{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:11px 0;border-top:1px solid var(--bd)}.vstep:first-of-type,.vtask:first-of-type{border-top:0}
+.vstep .bd{justify-self:end}.vs-a{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:2px}.vtask .vs-a{grid-column:auto}
+.vs-ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:var(--s2);font-weight:800;grid-row:span 2}
+.vstep.is-done .vs-ic{background:#2ecc8f22;color:#17a870}.vstep.is-late .vs-ic,.vtask.is-late .vs-ic{background:#ff4d6d22;color:#e5484d}.vstep.is-doing .vs-ic{background:#4d8dff22}
+.vs-b b{display:block}.vs-b small{color:var(--mu)}.vstep.is-late .vs-b small,.vtask.is-late .vs-b small{color:#e5484d}.vstep.is-late,.vtask.is-late{box-shadow:inset 3px 0 0 #e5484d;padding-left:10px;border-radius:0 12px 12px 0}
+.vs-note{margin:4px 0 0;font-size:13px;white-space:pre-line;color:var(--tx);background:var(--s2);border-radius:10px;padding:6px 9px}
+.vdec{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.vdec div{background:var(--s2);border-radius:12px;padding:8px 10px}.vdec small{display:block;color:var(--mu);font-size:12px}.vdec b{font-size:20px}.vdec .bad b{color:#e5484d}.vdec .ok b{color:#17a870}
+.vnext{border:1px dashed var(--bd);border-radius:12px;padding:8px 10px;margin:8px 0}.vnext small{color:var(--mu)}.vnext p{margin:2px 0 0;white-space:pre-line}
+.vbackb{margin:0 0 10px}.vdone{padding:7px 0;border-top:1px solid var(--bd)}.vdone small{color:var(--mu)}.vdone.bad{color:#e5484d}.vdash{margin-top:16px}
+.vst-hired,.vst-approved{background:#2ecc8f22;color:#17a870}.vst-rejected,.vst-declined,.vst-failed,.vst-absent,.vst-emprejected,.vst-noshow{background:#ff4d6d22;color:#e5484d}.vst-confirmed,.vst-passed,.vst-sent{background:#4d8dff22;color:#4d8dff}.vst-qualified,.vst-unreachable{background:#ffa94d22;color:#e8890c}
+@media(max-width:1000px){.vgrid{grid-template-columns:1fr}.vrow{grid-template-columns:minmax(0,1fr) auto}.vr-steps{grid-column:1/-1;order:3}}
+@media(max-width:560px){.vrow{grid-template-columns:1fr}.vr-n,.vr-d{display:flex;gap:8px;align-items:baseline}.vstep,.vtask{grid-template-columns:32px minmax(0,1fr)}.vstep .bd{grid-column:2;justify-self:start}.vtask .vs-a{grid-column:2}}
+</style>`);
 
 _render();boot();if(PREVIEW)previewStart();else if(!softResume())showGate();
 </script></body></html>
