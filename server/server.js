@@ -202,6 +202,7 @@ const office = require('./office.js')({ DATA_DIR, loadState, commit: s => commit
 const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => broadcast(o), appendActivity, secEvent: (t, w) => office.secEvent(t, w) });
 const inquiries = require('./inquiries.js')({ DATA_DIR, broadcast: o => broadcast(o), appendActivity: a => appendActivity(a), urgent });
 const cvs = require('./cvs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a) });
+const vflow = require('./vflow.js')({ DATA_DIR, urgent, staffOf: () => (loadState().staff || []).filter(x => !x.left), appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
 const webjobs = require('./webjobs.js')({ DATA_DIR, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), need: (p, w) => urgent.need(p, w) });
 
 // ---- sign-in anomaly alerts ----
@@ -404,6 +405,29 @@ const server = http.createServer((req, res) => {
     return send(res, 404, '');
   }
 
+  // ---- Vacancy flow + Elitejobs database (grants and passkeys by Admin) ----
+  if (p.startsWith('/api/vf/')) {
+    const me = whoFrom(req), q = url.searchParams;
+    const run = fn => Promise.resolve().then(fn).then(r => json(res, 200, r)).catch(e => json(res, e.code >= 400 && e.code < 600 ? e.code : 400, { error: e.message || String(e) }));
+    const body = (n, fn) => readBody(req, n, buf => run(() => fn(JSON.parse(buf.toString() || '{}'))));
+    if (!me) return json(res, 401, { error: 'Sign in first.' });
+    if (p === '/api/vf/me') return run(() => vflow.mine(me));
+    if (p === '/api/vf/list') return run(() => vflow.list(me, q.get('scope') || 'active'));
+    if (p === '/api/vf/create' && post) return body(2e4, b => vflow.create(me, b));
+    if (p === '/api/vf/claim' && post) return body(1e4, b => vflow.claimPost(me, String(b.id || '')));
+    if (p === '/api/vf/call' && post) return body(1e4, b => vflow.callApprove(me, String(b.id || '')));
+    if (p === '/api/vf/complete' && post) return body(1e4, b => vflow.complete(me, String(b.id || '')));
+    if (p === '/api/vf/interview' && post) return body(1e4, b => vflow.intApprove(me, String(b.id || '')));
+    if (p === '/api/vf/grants') return run(() => vflow.grantsView(me));
+    if (p === '/api/vf/grant' && post) return body(1e4, b => vflow.setGrant(me, b));
+    if (p === '/api/vf/keys') return run(() => vflow.keysView(me));
+    if (p === '/api/vf/keys/forge' && post) return body(1e4, b => vflow.forge(me, b));
+    if (p === '/api/vf/keys/revoke' && post) return body(1e4, b => vflow.revoke(me, String(b.id || '')));
+    if (p === '/api/vf/db/unlock' && post) return body(1e4, b => vflow.unlock(me, b.key));
+    if (p === '/api/vf/db') return run(() => vflow.dbList(me));
+    return send(res, 404, '');
+  }
+
   // ---- CV studio: search a person, fill a CV from what they sent us, keep the CVs we make ----
   if (p.startsWith('/api/cv/')) {
     const me = whoFrom(req), q = url.searchParams;
@@ -430,7 +454,7 @@ const server = http.createServer((req, res) => {
     if (p === '/api/urgent/cfg' && post) return readBody(req, 1e4, buf => run(() => { if (!hasIT(req)) urgent.need(me, 'admin'); return urgent.setCfg(JSON.parse(buf.toString() || '{}')); }));
     if (p === '/api/urgent/sync' && post) return run(async () => { urgent.need(me, urgent.rights(me).review ? 'review' : 'admin'); await urgent.sync(); return urgent.cfgView(); });
     if (p === '/api/urgent/posts' && !post) return run(() => urgent.posts(me));
-    if (p === '/api/urgent/posts' && post) return readBody(req, 12e6, buf => run(() => urgent.publish(me, JSON.parse(buf.toString() || '{}'))));
+    if (p === '/api/urgent/posts' && post) return readBody(req, 12e6, buf => run(async () => { const b = JSON.parse(buf.toString() || '{}'), j = await urgent.publish(me, b); if (b.vac && j && j.id) vflow.posted(me, String(b.vac), j.id, b.title); return j; }));
     if (p === '/api/urgent/posts/edit' && post) return readBody(req, 2e4, buf => run(() => urgent.editPost(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/urgent/doc') { try { const f = urgent.doc(me, q.get('app'), q.get('k')); return fs.readFile(f.file, (e, d) => e ? send(res, 404, '') : (res.setHeader('Content-Disposition', `inline; filename="${f.name}"`), send(res, 200, d, f.type))); } catch (e) { return send(res, e.code || 400, e.message); } }
     if (p === '/api/urgent/posts/remove' && post) return readBody(req, 1e4, buf => run(() => urgent.removePost(me, JSON.parse(buf.toString() || '{}').id)));
