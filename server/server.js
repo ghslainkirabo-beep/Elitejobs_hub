@@ -202,7 +202,7 @@ const office = require('./office.js')({ DATA_DIR, loadState, commit: s => commit
 const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => broadcast(o), appendActivity, secEvent: (t, w) => office.secEvent(t, w) });
 const inquiries = require('./inquiries.js')({ DATA_DIR, broadcast: o => broadcast(o), appendActivity: a => appendActivity(a), urgent });
 const cvs = require('./cvs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a) });
-const vflow = require('./vflow.js')({ DATA_DIR, urgent, staffOf: () => (loadState().staff || []).filter(x => !x.left), appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
+const vflow = require('./vflow.js')({ DATA_DIR, urgent, staffOf: () => (loadState().staff || []).filter(x => !x.left), stateOf: () => loadState() || {}, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
 const webjobs = require('./webjobs.js')({ DATA_DIR, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), need: (p, w) => urgent.need(p, w) });
 
 // ---- sign-in anomaly alerts ----
@@ -418,6 +418,18 @@ const server = http.createServer((req, res) => {
     if (p === '/api/vf/call' && post) return body(1e4, b => vflow.callApprove(me, String(b.id || '')));
     if (p === '/api/vf/complete' && post) return body(1e4, b => vflow.complete(me, String(b.id || '')));
     if (p === '/api/vf/interview' && post) return body(1e4, b => vflow.intApprove(me, String(b.id || '')));
+    if (p === '/api/vf/upcoming') return run(() => vflow.upcoming(me));
+    if (p === '/api/vf/start' && post) return body(1e4, b => vflow.startInt(me, String(b.id || '')));
+    if (p === '/api/vf/cand' && post) return body(1e4, b => vflow.addCand(me, String(b.id || ''), String(b.app || '')));
+    if (p === '/api/vf/score' && post) return body(1e4, b => vflow.score(me, b));
+    if (p === '/api/vf/absent' && post) return body(1e4, b => vflow.absent(me, b));
+    if (p === '/api/vf/finish' && post) return body(1e4, b => vflow.finish(me, b));
+    if (p === '/api/vf/results') return run(() => vflow.results(me, { day: q.get('day'), q: q.get('q'), min: q.get('min') }));
+    if (p === '/api/vf/push' && post) return body(1e4, b => vflow.push(me, b));
+    if (p === '/api/vf/calls') return run(() => vflow.callList(me));
+    if (p === '/api/vf/called' && post) return body(1e4, b => vflow.called(me, b));
+    if (p === '/api/vf/waiting') return run(() => vflow.waiting(me, { day: q.get('day') }));
+    if (p === '/api/vf/served' && post) return body(1e4, b => vflow.served(me, b));
     if (p === '/api/vf/grants') return run(() => vflow.grantsView(me));
     if (p === '/api/vf/grant' && post) return body(1e4, b => vflow.setGrant(me, b));
     if (p === '/api/vf/keys') return run(() => vflow.keysView(me));
