@@ -556,6 +556,156 @@ img{image-rendering:auto}
 @keyframes iqTray{from{opacity:0;transform:scaleY(.9)}}
 .iqtray:has(.iqopt.on) .iqtray-b small{color:var(--ac)}
 @media (prefers-reduced-motion:reduce){.iqtray .iqopts{animation:none}}
+
+/* urgent posting: what applicants must send */
+.ugrules{border:0;margin:6px 0 2px;padding:14px;border-radius:14px;background:var(--bg2,rgba(0,0,0,.035));display:grid;gap:12px}
+.ugrules legend{float:left;width:100%;padding:0;font-weight:650;font-size:13px;margin-bottom:2px}
+.ugr2{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:640px){.ugr2{grid-template-columns:1fr}}
+.ugtog{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--card,#fff);box-shadow:inset 0 0 0 1px var(--line,rgba(0,0,0,.08));cursor:pointer}
+.ugtog input{position:absolute;opacity:0;pointer-events:none}
+.ugtog i{flex:none;width:36px;height:22px;border-radius:99px;background:rgba(120,120,128,.32);position:relative;transition:background .2s}
+.ugtog i:after{content:"";position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .22s cubic-bezier(.3,.7,.2,1)}
+.ugtog input:checked+i{background:var(--brand,#5B489D)}.ugtog input:checked+i:after{transform:translateX(14px)}
+.ugtog input:focus-visible+i{outline:2px solid var(--brand,#5B489D);outline-offset:2px}
+.ugtog span{display:grid}.ugtog b{font-size:13.5px}.ugtog small{font-size:11.5px;opacity:.65}
+.ugseg3{display:grid;grid-template-columns:repeat(3,1fr);padding:3px;border-radius:12px;background:rgba(120,120,128,.14)}
+.ugseg3 label{position:relative;text-align:center;cursor:pointer}.ugseg3 input{position:absolute;opacity:0}
+.ugseg3 span{display:block;padding:7px 4px;border-radius:9px;font-size:13px;font-weight:560;transition:background .2s,box-shadow .2s}
+.ugseg3 input:checked+span{background:var(--card,#fff);box-shadow:0 1px 4px rgba(0,0,0,.14)}
+.ugseg3 input:focus-visible+span{outline:2px solid var(--brand,#5B489D)}
+.ugrn{font-size:11.5px;opacity:.65}
+.ugpa{display:flex;gap:6px;flex:none}
+.ugdocs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0}.ugdocs small{opacity:.6;font-size:11.5px}
+
+/* ================= CV studio ================= */
+.cvs{--r:18px;--ease:cubic-bezier(.22,.8,.2,1);max-width:1240px;margin:0 auto;padding:6px 2px 60px;color:var(--tx)}
+.cvs svg{width:18px;height:18px;flex:none}
+.cvhd{display:flex;align-items:center;gap:16px;margin:8px 0 22px}
+.cvhd h1{margin:0;font-size:30px;letter-spacing:-.03em;font-weight:760}
+.cvhd p{margin:4px 0 0;color:var(--mu);font-size:14.5px;max-width:60ch;line-height:1.45}
+.cvbadge{width:54px;height:54px;border-radius:15px;display:grid;place-items:center;flex:none;color:#fff;background:linear-gradient(155deg,#8a78e8,#4a3a86);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 10px 24px -10px rgba(74,58,134,.7)}
+.cvbadge svg{width:28px;height:28px}
+.cvsearch{display:flex;align-items:center;gap:12px;padding:0 18px;height:58px;border-radius:16px;background:var(--s1);box-shadow:0 0 0 1px var(--bd),0 8px 28px -18px rgba(20,20,40,.35);transition:box-shadow .25s var(--ease)}
+.cvsearch:focus-within{box-shadow:0 0 0 2px var(--ac),0 12px 32px -18px rgba(20,20,40,.45)}
+.cvsearch svg{color:var(--mu);width:20px;height:20px}
+.cvsearch input{flex:1;border:0;outline:0;background:none;font:inherit;font-size:17px;color:var(--tx);min-width:0}
+.cvres{display:grid;gap:10px;margin:16px 0}
+.cvp{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;text-align:left;padding:14px 16px;border:0;border-radius:var(--r);background:var(--s1);box-shadow:0 0 0 1px var(--bd);color:inherit;font:inherit;cursor:pointer;animation:cvIn .38s var(--ease) both;animation-delay:calc(var(--i)*40ms);transition:transform .2s var(--ease),box-shadow .2s}
+.cvp:hover{box-shadow:0 0 0 1px var(--ac),0 10px 26px -16px rgba(20,20,40,.4);transform:translateY(-1px)}
+.cvp:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+@keyframes cvIn{from{opacity:0;transform:translateY(8px)}}
+.cvav{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:16px;color:#fff;background:linear-gradient(155deg,#8a78e8,#4a3a86);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.cvav.lg,.cvav[lg]{width:88px;height:88px;font-size:28px}
+.cvpt{display:grid;gap:3px;min-width:0}.cvpt b{font-size:16px;letter-spacing:-.01em}
+.cvpt small{color:var(--mu);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cvchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}.cvchips i{font-style:normal;font-size:12px;padding:2px 9px;border-radius:99px;background:var(--s2);color:var(--tx)}
+.cvpm{font-size:12px;color:var(--mu);text-align:right;line-height:1.5}.cvpm b{color:var(--tx)}
+.cvnone{padding:26px;text-align:center;border-radius:var(--r);background:var(--s2);display:grid;gap:4px}.cvnone small{color:var(--mu)}
+.cvskel{display:grid;gap:10px}.cvskel i{height:76px;border-radius:var(--r);background:linear-gradient(90deg,var(--s2),var(--s1),var(--s2));background-size:200% 100%;animation:cvSh 1.2s linear infinite}
+@keyframes cvSh{to{background-position:-200% 0}}
+.cvblank{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:14px;align-items:center;width:100%;text-align:left;padding:16px 18px;border:1.5px dashed var(--bd);border-radius:var(--r);background:none;color:inherit;font:inherit;cursor:pointer;transition:border-color .2s,background .2s}
+.cvblank:hover{border-color:var(--ac);background:var(--s1)}
+.cvblank span{grid-row:1/3;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--s2);color:var(--ac)}
+.cvblank b{font-size:15px}.cvblank small{color:var(--mu);font-size:13px}
+.cverr{color:#d9443b}
+/* editor */
+.cvtop{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;padding:10px 0 12px;margin-bottom:6px;background:linear-gradient(var(--bg) 78%,transparent)}
+.cvbk{display:flex;align-items:center;gap:2px;border:0;background:none;color:var(--ac);font:inherit;font-weight:600;font-size:15px;cursor:pointer;padding:6px 4px}
+.cvseg{display:flex;padding:3px;border-radius:12px;background:var(--s2);margin:0 auto}
+.cvseg button{display:flex;align-items:center;gap:7px;border:0;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--mu);padding:7px 16px;border-radius:9px;cursor:pointer;transition:background .25s var(--ease),color .2s}
+.cvseg button i{font-style:normal;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;background:var(--bd);color:var(--tx)}
+.cvseg button i svg{width:12px;height:12px}
+.cvseg button.on{background:var(--s1);color:var(--tx);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.cvseg button.on i{background:var(--ac);color:#fff}.cvseg button.done i{background:#34c759;color:#fff}
+.cvwho{font-size:12.5px;color:var(--mu);white-space:nowrap}
+.cvgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,440px);gap:28px;align-items:start}
+.cvgrid.s1{grid-template-columns:minmax(0,1fr) minmax(300px,480px)}
+.cvr{position:sticky;top:72px}
+.cvpaper{position:relative;overflow:hidden;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08),0 24px 60px -24px rgba(20,20,40,.45),0 0 0 1px rgba(0,0,0,.04)}
+.cvpaper iframe,.cvthumb iframe{position:absolute;left:0;top:0;width:794px;height:1123px;border:0;transform-origin:0 0;pointer-events:none;background:#fff}
+.cvcap{display:block;text-align:center;margin-top:10px;color:var(--mu);font-size:12.5px}
+.cvsec{background:var(--s1);border-radius:var(--r);box-shadow:0 0 0 1px var(--bd);padding:18px 18px 16px;margin-bottom:14px}
+.cvsec h3{margin:0 0 12px;font-size:15px;letter-spacing:-.01em;display:flex;align-items:baseline;gap:8px}
+.cvsec h3 small{font-weight:500;color:var(--mu);font-size:12.5px}
+.cvhint{margin:8px 0 0;color:var(--mu);font-size:12.5px;line-height:1.45}
+.cv2{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}.cvf.w{grid-column:1/-1}
+.cvf{display:grid;gap:5px;min-width:0;margin-bottom:10px}.cv2 .cvf{margin-bottom:0}
+.cvf span{font-size:12px;font-weight:600;color:var(--mu)}
+.cvf input,.cvf textarea,.cvtagin{font:inherit;font-size:14.5px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:11px;padding:10px 12px;outline:0;transition:border-color .2s,box-shadow .2s;width:100%;box-sizing:border-box}
+.cvf textarea{resize:vertical;line-height:1.5}
+.cvf input:focus,.cvf textarea:focus,.cvtagin:focus{border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 18%,transparent)}
+.cvitem{position:relative;padding:14px;border-radius:14px;background:var(--bg);margin-bottom:10px}
+.cvitem .cvf input,.cvitem .cvf textarea{background:var(--s1)}
+.cvitem.nw{box-shadow:inset 3px 0 0 var(--ac)}
+.cvih{display:flex;align-items:center;gap:8px;margin-bottom:10px}.cvih b{font-size:14px}.cvih small{color:var(--mu);font-size:11.5px}
+.cvx{margin-left:auto;width:28px;height:28px;border-radius:50%;border:0;background:var(--s2);color:var(--mu);display:grid;place-items:center;cursor:pointer;flex:none;transition:background .2s,color .2s}
+.cvx:hover{background:#ff3b30;color:#fff}.cvx svg{width:13px;height:13px}
+.cvadd{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--ac);font:inherit;font-weight:600;font-size:14px;padding:6px 2px;cursor:pointer}
+.cvadd svg{width:16px;height:16px}
+.cvrow{display:flex;align-items:end;gap:8px}.cvrow .cvf{flex:1;margin-bottom:8px}.cvrow .cvx{margin-bottom:14px}
+.cvtags{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.cvtag{display:inline-flex;align-items:center;gap:4px;padding:6px 6px 6px 12px;border-radius:99px;background:color-mix(in srgb,var(--ac) 12%,var(--s1));font-size:13.5px;font-weight:550}
+.cvtag button{width:20px;height:20px;border:0;border-radius:50%;background:none;color:var(--mu);display:grid;place-items:center;cursor:pointer}.cvtag button svg{width:11px;height:11px}
+.cvtag button:hover{background:var(--s2);color:var(--tx)}
+.cvtagin{flex:1;min-width:180px;border-radius:99px;padding:8px 14px}
+.cvlang{display:grid;grid-template-columns:minmax(120px,1fr) auto auto;gap:10px;align-items:end}.cvlang .cvf{margin-bottom:10px}
+.cvlv{display:flex;padding:3px;border-radius:10px;background:var(--s2);margin-bottom:10px}
+.cvlv button{border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--mu);padding:7px 10px;border-radius:8px;cursor:pointer}
+.cvlv button.on{background:var(--s1);color:var(--tx);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.cvlang .cvx{margin-bottom:14px}
+.cvph{display:flex;align-items:center;gap:16px}
+.cvph>img{width:88px;height:88px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px var(--s1),0 0 0 4px var(--bd)}
+.cvphb{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.cvpht{width:46px;height:46px;border-radius:12px;overflow:hidden;border:0;padding:0;cursor:pointer;background:var(--s2);box-shadow:0 0 0 1px var(--bd);transition:transform .2s var(--ease)}
+.cvpht:hover{transform:scale(1.06);box-shadow:0 0 0 2px var(--ac)}.cvpht img{width:100%;height:100%;object-fit:cover}
+.cvlk{display:inline-flex;align-items:center;gap:6px;border:0;background:var(--s2);color:var(--tx);font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:99px;cursor:pointer;transition:background .2s}
+.cvlk:hover{background:color-mix(in srgb,var(--ac) 16%,var(--s2))}
+.cvup{position:relative}.cvup input{position:absolute;inset:0;opacity:0;cursor:pointer}.cvup svg{width:16px;height:16px}
+.cvsaved,.cvdoc{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--bd)}
+.cvsaved:first-of-type,.cvdoc:first-of-type{border-top:0}
+.cvsaved>span:nth-child(2),.cvdoc>span:nth-child(2){display:grid;flex:1;min-width:0}.cvsaved small,.cvdoc small{color:var(--mu);font-size:12px}
+.cvsa{display:flex;gap:6px;align-items:center}.cvsa em{font-style:normal;font-size:12px;color:var(--ac);font-weight:650}
+.cvsw{width:26px;height:34px;border-radius:5px;background:linear-gradient(var(--a) 0 34%,#fff 34%);box-shadow:0 0 0 1px var(--bd)}
+.cvdi{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--ac) 12%,var(--s1));color:var(--ac)}
+.cvpicks{display:grid;gap:12px;padding:12px 14px 14px;margin:2px 0 8px;border-radius:14px;background:var(--bg)}
+.cvpicks small{display:block;font-size:11.5px;font-weight:650;color:var(--mu);margin-bottom:6px}
+.cvchips2{display:flex;flex-wrap:wrap;gap:6px}
+.cvchip{display:inline-flex;align-items:center;gap:5px;border:0;background:var(--s1);box-shadow:0 0 0 1px var(--bd);color:var(--tx);font:inherit;font-size:13px;padding:6px 11px;border-radius:99px;cursor:pointer;transition:box-shadow .2s,background .2s}
+.cvchip svg{width:13px;height:13px;color:var(--ac)}.cvchip:hover{box-shadow:0 0 0 1.5px var(--ac)}
+.cvchip.on{background:color-mix(in srgb,#34c759 14%,var(--s1));box-shadow:none;cursor:default}.cvchip.on svg{color:#34c759}
+.cvquote{margin:0 0 8px;font-size:13.5px;line-height:1.5;color:var(--tx);padding-left:10px;border-left:2px solid var(--bd)}
+.cvlines summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--ac)}
+.cvlines div{display:grid;gap:2px;max-height:260px;overflow:auto;margin-top:8px}
+.cvlines button{text-align:left;border:0;background:none;font:inherit;font-size:12.5px;color:var(--tx);padding:5px 8px;border-radius:7px;cursor:copy}
+.cvlines button:hover{background:var(--s2)}
+.cvnext{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin:18px 0 6px}
+.cvbtn{border:0;font:inherit;font-weight:650;font-size:15px;padding:12px 22px;border-radius:99px;cursor:pointer;background:var(--s2);color:var(--tx);transition:transform .15s var(--ease),filter .2s,box-shadow .2s}
+.cvbtn:active{transform:scale(.97)}.cvbtn[disabled]{opacity:.6;cursor:progress}
+.cvbtn.p{background:var(--ac);color:#fff;box-shadow:0 10px 24px -12px color-mix(in srgb,var(--ac) 80%,transparent)}
+.cvbtn.p:hover{filter:brightness(1.07)}.cvbtn.lg{padding:15px 28px;font-size:16px}
+/* templates */
+.cvtpls{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;align-items:start}
+.cvtpl{display:grid;gap:4px;text-align:left;border:0;background:none;font:inherit;color:inherit;padding:0;cursor:pointer;animation:cvIn .4s var(--ease) both;animation-delay:calc(var(--i)*45ms)}
+.cvthumb{position:relative;display:block;overflow:hidden;border-radius:8px;background:#fff;box-shadow:0 0 0 1px var(--bd),0 10px 24px -16px rgba(20,20,40,.45);transition:transform .25s var(--ease),box-shadow .25s}
+.cvtpl:hover .cvthumb{transform:translateY(-3px)}
+.cvtpl.on .cvthumb{box-shadow:0 0 0 3px var(--ac),0 16px 34px -16px color-mix(in srgb,var(--ac) 70%,transparent)}
+.cvtpl:focus-visible .cvthumb{outline:2px solid var(--ac);outline-offset:3px}
+.cvtpl b{margin-top:8px;font-size:14px}.cvtpl small{font-size:12px;color:var(--mu);line-height:1.35}
+.cvfins{display:flex;flex-wrap:wrap;gap:10px}
+.cvfin{display:flex;align-items:center;gap:9px;border:0;font:inherit;font-size:14px;font-weight:600;color:var(--tx);background:var(--bg);padding:8px 14px 8px 8px;border-radius:99px;cursor:pointer;box-shadow:0 0 0 1px var(--bd);transition:box-shadow .2s}
+.cvfin span{width:26px;height:26px;border-radius:50%;background:conic-gradient(var(--a) 0 50%,var(--b) 0);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.cvfin.on{box-shadow:0 0 0 2px var(--ac)}
+/* finish */
+.cvdone{text-align:center;padding:34px 24px}
+.cvbig{width:72px;height:72px;margin:0 auto 14px;border-radius:20px;display:grid;place-items:center;color:#fff;background:linear-gradient(155deg,#8a78e8,#4a3a86);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 14px 30px -12px rgba(74,58,134,.7)}
+.cvbig svg{width:36px;height:36px}
+.cvdone h2{margin:0;font-size:24px;letter-spacing:-.02em}.cvdone>p{color:var(--mu);max-width:52ch;margin:8px auto 0;line-height:1.5}
+.cvdone .cvnext{justify-content:center;margin-top:22px}
+.cvwarn{display:inline-block;margin:14px auto 0;padding:8px 14px;border-radius:12px;background:color-mix(in srgb,#ff9f0a 16%,var(--s1));font-size:13px}
+.cvok{display:flex;align-items:center;justify-content:center;gap:6px;margin:14px 0 0;color:#248a3d;font-weight:600;font-size:14px}.cvok svg{width:16px;height:16px}
+@media (max-width:980px){.cvgrid,.cvgrid.s1{grid-template-columns:1fr}.cvr{position:relative;top:0;order:-1;max-width:420px;margin:0 auto 6px;width:100%}.cvgrid.s0 .cvr,.cvgrid.s1 .cvr{display:none}.cvwho{display:none}}
+@media (max-width:560px){.cvbk span{display:none}.cvtop{gap:6px}.cv2{grid-template-columns:1fr}.cvseg button{padding:7px 10px;font-size:13px}.cvseg button i{display:none}.cvhd h1{font-size:24px}.cvp{grid-template-columns:auto 1fr}.cvpm{display:none}.cvlang{grid-template-columns:1fr auto}.cvlang .cvlv{grid-column:1/-1;order:3}}
+@media (prefers-reduced-motion:reduce){.cvs *{animation:none!important;transition:none!important}}
 </style></head><body><div id="banner"></div><div class="app" id="app"><nav id="rail"></nav><aside id="side"></aside><div class="col"><header id="top"></header><main id="main"></main></div></div><div id="lock" hidden></div><div id="keygate" hidden><form id="kgf" class="kgc" autocomplete="off"><div class="kgic"><svg viewBox="-150 -150 300 300" width="72" height="72" role="img" aria-label="Elitejobs Rwanda"><defs><linearGradient id="ejk" x1="0" y1="0" x2="1" y2=".7"><stop offset="0" stop-color="#8e8e98"/><stop offset=".55" stop-color="#d9d9df"/><stop offset="1" stop-color="#fff"/></linearGradient></defs><circle r="142.5" fill="#5b489d"/><path fill="#fff" fill-rule="evenodd" d="M1.7,95.2C0.8,95.0 -6.1,94.7 -8.5,94.7C-10.2,94.7 -12.2,94.3 -13.3,93.8C-13.7,93.6 -14.5,93.4 -15.1,93.3C-17.4,93.0 -20.3,92.2 -24.2,90.9C-25.0,90.7 -26.1,90.3 -26.8,90.2C-28.4,89.7 -31.0,88.6 -32.7,87.7C-33.5,87.2 -34.7,86.7 -35.4,86.4C-36.2,86.2 -37.3,85.6 -38.2,85.1C-39.0,84.6 -39.7,84.2 -39.8,84.2C-39.9,84.2 -40.3,83.9 -40.8,83.6C-41.2,83.3 -42.2,82.8 -42.9,82.4C-45.3,81.2 -46.9,80.2 -48.1,79.4C-48.7,79.0 -49.6,78.4 -50.0,78.1C-50.4,77.8 -51.1,77.3 -51.5,77.0C-51.9,76.6 -52.3,76.3 -52.4,76.3C-53.1,76.3 -54.5,75.4 -55.7,74.1C-56.5,73.4 -57.5,72.5 -58.0,72.2C-58.4,71.8 -59.2,71.1 -59.7,70.5C-60.1,69.9 -60.8,69.2 -61.1,68.9C-61.5,68.6 -61.9,68.3 -62.0,68.1C-62.2,67.7 -64.5,65.4 -67.6,62.3C-69.2,60.8 -69.6,60.2 -72.0,57.1C-73.5,55.1 -74.0,54.3 -74.8,52.6C-75.2,51.8 -75.9,50.8 -76.3,50.3C-77.2,49.4 -77.6,48.7 -78.1,47.4C-78.3,46.9 -78.7,46.2 -79.0,45.9C-79.2,45.5 -79.6,44.8 -79.8,44.3C-80.0,43.7 -80.5,42.7 -81.0,42.0C-81.5,41.3 -82.0,40.3 -82.1,39.8C-82.3,39.3 -82.6,38.5 -82.9,38.0C-83.3,37.1 -84.7,32.8 -84.9,31.8C-85.0,31.5 -85.2,30.9 -85.5,30.5C-85.7,30.1 -86.0,29.3 -86.1,28.8C-86.4,27.2 -86.9,25.4 -87.4,24.2C-87.7,23.4 -87.9,22.6 -88.0,21.4C-88.2,18.4 -89.3,16.9 -91.9,15.6C-92.8,15.2 -93.9,14.5 -94.4,14.1C-94.9,13.7 -95.8,13.1 -96.5,12.8C-97.2,12.5 -98.3,11.8 -98.9,11.4C-99.4,10.9 -100.4,10.2 -101.0,9.8C-101.6,9.5 -102.3,8.9 -102.7,8.6C-103.0,8.3 -103.8,7.8 -104.4,7.4C-105.1,7.1 -105.9,6.6 -106.2,6.3C-108.2,4.5 -109.5,3.2 -112.2,0.0C-112.5,-0.3 -113.5,-1.1 -114.3,-1.8C-116.0,-3.2 -117.5,-4.6 -121.2,-8.5C-124.2,-11.7 -124.6,-12.1 -125.2,-13.6C-126.0,-15.1 -127.7,-17.8 -128.9,-19.2C-129.5,-19.8 -130.1,-20.8 -130.5,-21.7C-130.9,-22.4 -131.5,-23.5 -131.9,-24.0C-132.3,-24.5 -133.0,-25.6 -133.4,-26.4C-133.8,-27.2 -134.4,-28.2 -134.6,-28.5C-134.9,-28.9 -135.3,-29.6 -135.4,-30.2C-136.0,-32.2 -136.4,-32.8 -137.5,-32.9L-138.0,-32.9L-137.3,-35.4C-127.9,-71.4 -104.6,-102.7 -73.0,-121.5C-71.8,-122.3 -70.5,-123.0 -70.2,-123.2C-69.3,-123.8 -69.6,-123.4 -71.0,-122.4C-71.7,-121.9 -72.3,-121.4 -72.3,-121.3C-72.4,-121.3 -72.8,-121.0 -73.2,-120.6C-73.7,-120.3 -74.3,-119.8 -74.7,-119.5C-75.0,-119.2 -75.7,-118.7 -76.3,-118.3C-76.9,-118.0 -77.9,-117.2 -78.6,-116.5C-79.2,-115.8 -80.2,-115.0 -80.8,-114.6C-82.6,-113.2 -86.0,-109.7 -86.6,-108.5C-86.9,-108.0 -87.5,-107.2 -87.9,-106.8C-88.2,-106.4 -88.8,-105.8 -89.1,-105.4C-89.3,-105.1 -90.0,-104.3 -90.5,-103.8C-91.0,-103.3 -91.9,-102.2 -92.4,-101.3C-92.9,-100.4 -93.6,-99.4 -93.9,-99.0C-94.6,-98.3 -96.5,-94.5 -96.9,-93.2C-97.0,-92.9 -97.4,-92.1 -97.8,-91.3C-98.5,-89.9 -98.9,-88.7 -99.2,-86.3C-99.4,-85.3 -99.6,-84.7 -100.0,-84.1C-100.3,-83.6 -100.5,-83.0 -100.6,-82.4C-100.6,-81.8 -100.8,-80.8 -100.9,-80.0C-101.2,-78.3 -101.3,-66.4 -101.0,-64.5C-100.6,-61.3 -100.1,-59.3 -99.7,-58.3C-99.1,-57.2 -98.7,-55.5 -98.7,-54.8C-98.7,-54.6 -98.4,-54.0 -98.2,-53.4C-97.9,-52.8 -97.6,-52.0 -97.5,-51.5C-97.2,-50.2 -96.9,-49.5 -96.2,-48.3C-95.8,-47.8 -95.4,-47.0 -95.3,-46.7C-94.9,-45.5 -94.3,-44.4 -93.6,-43.8C-92.2,-42.6 -92.3,-42.7 -90.4,-39.7C-90.2,-39.3 -89.7,-38.6 -89.3,-38.2C-88.9,-37.8 -88.1,-36.8 -87.7,-36.0C-86.1,-33.5 -84.9,-33.2 -83.0,-34.8C-82.1,-35.5 -81.5,-36.6 -81.2,-38.0C-80.9,-39.0 -80.2,-40.4 -77.7,-45.1C-77.4,-45.8 -76.9,-46.8 -76.8,-47.2C-76.6,-47.6 -76.1,-48.4 -75.7,-48.8C-75.3,-49.3 -74.9,-49.9 -74.7,-50.2C-74.6,-50.5 -74.1,-51.2 -73.7,-51.7C-73.2,-52.2 -72.6,-53.1 -72.3,-53.7C-71.8,-54.7 -71.1,-55.4 -68.0,-58.8C-66.6,-60.4 -66.3,-60.7 -63.9,-63.0C-62.9,-63.9 -61.6,-65.3 -61.0,-66.1C-60.4,-66.9 -59.6,-67.8 -59.2,-68.2C-58.9,-68.5 -58.1,-69.3 -57.4,-69.9C-56.8,-70.6 -55.9,-71.4 -55.4,-71.7C-55.0,-72.0 -54.2,-72.7 -53.6,-73.2C-52.7,-74.2 -51.9,-74.8 -49.0,-76.4C-47.9,-77.0 -47.4,-77.4 -47.0,-77.9C-46.7,-78.4 -46.1,-78.8 -45.2,-79.3C-44.4,-79.7 -43.8,-80.1 -43.8,-80.2C-43.7,-80.2 -43.1,-80.5 -42.3,-80.8C-41.5,-81.1 -40.4,-81.7 -39.7,-82.1C-39.1,-82.5 -38.3,-82.9 -37.9,-83.1C-37.5,-83.3 -36.8,-83.7 -36.3,-84.1C-35.8,-84.5 -35.0,-84.9 -34.6,-85.1C-34.1,-85.2 -33.3,-85.6 -32.7,-85.9C-32.2,-86.2 -31.2,-86.7 -30.6,-86.8C-29.9,-87.0 -28.3,-87.7 -26.9,-88.4C-24.9,-89.4 -24.2,-89.7 -23.2,-89.8C-22.4,-89.9 -21.4,-90.3 -20.7,-90.6C-19.4,-91.1 -16.5,-91.9 -14.9,-92.1C-14.4,-92.1 -13.6,-92.3 -13.3,-92.5C-12.9,-92.7 -12.0,-92.9 -11.2,-93.1C-10.5,-93.2 -9.7,-93.4 -9.3,-93.5C-7.7,-93.9 -5.1,-94.0 4.3,-94.0C16.5,-94.0 20.1,-93.9 20.7,-93.7C20.9,-93.6 21.6,-93.4 22.2,-93.3C22.8,-93.2 23.7,-93.0 24.3,-92.8C24.9,-92.7 26.8,-92.2 28.6,-91.8C30.5,-91.4 32.0,-91.0 32.4,-90.8C33.1,-90.4 36.2,-89.3 37.7,-89.0C38.2,-88.9 39.2,-88.5 39.9,-88.2C40.6,-87.8 41.5,-87.5 41.8,-87.4C42.4,-87.3 44.1,-86.4 44.5,-86.1C44.6,-86.0 45.3,-85.5 46.1,-85.2C48.6,-83.8 49.7,-83.2 50.3,-82.6C51.3,-81.7 51.9,-81.3 53.5,-80.6C54.3,-80.2 55.1,-79.8 55.2,-79.6C55.4,-79.5 55.9,-79.2 56.3,-79.0C57.4,-78.4 60.1,-75.9 60.7,-75.0C60.9,-74.7 61.3,-74.3 61.6,-74.1C62.2,-73.7 64.2,-71.4 65.0,-70.0C65.3,-69.6 65.9,-68.9 66.3,-68.6C66.7,-68.2 67.5,-67.4 68.1,-66.8C68.6,-66.1 69.4,-65.3 69.8,-64.8C70.2,-64.4 70.8,-63.5 71.3,-62.9C71.7,-62.3 72.1,-61.7 72.2,-61.7C72.3,-61.6 72.6,-60.9 73.0,-60.0C73.4,-59.2 74.0,-57.9 74.4,-57.2C75.1,-56.0 75.4,-55.3 76.3,-53.1C76.5,-52.6 76.8,-51.7 76.9,-51.1C77.3,-49.2 78.1,-46.5 78.3,-46.3C78.4,-46.2 78.6,-45.7 78.8,-45.2C79.2,-44.1 79.1,-24.5 78.7,-23.4C78.0,-21.5 77.1,-18.8 76.8,-17.5C76.7,-16.7 76.4,-15.7 76.2,-15.3C76.0,-14.9 75.7,-14.2 75.5,-13.7C75.3,-13.2 74.8,-12.1 74.3,-11.2C73.8,-10.3 73.2,-9.2 73.1,-8.8C72.9,-8.3 72.4,-7.6 72.0,-7.2C71.6,-6.7 71.0,-5.8 70.7,-5.1C70.3,-4.3 69.7,-3.4 69.4,-3.0C69.0,-2.6 68.5,-1.8 68.3,-1.3C67.9,-0.6 67.6,-0.2 66.8,0.5C66.2,1.0 64.8,2.3 63.8,3.6C62.7,4.8 61.3,6.3 60.5,7.0C59.8,7.7 59.0,8.6 58.7,9.0C58.1,9.9 57.8,10.2 56.8,10.7C56.3,11.0 55.6,11.5 55.2,11.9C54.7,12.3 53.8,12.9 52.8,13.4C52.0,13.8 51.0,14.4 50.7,14.7C49.8,15.6 47.7,16.9 46.2,17.4C45.0,17.9 44.1,18.5 43.1,19.4C42.6,19.8 40.0,21.1 38.9,21.5C38.4,21.7 37.3,22.2 36.5,22.6C35.7,23.0 34.6,23.5 34.0,23.7C33.5,23.9 32.6,24.2 32.2,24.5C31.8,24.8 31.3,25.0 31.1,25.0C31.0,25.0 30.1,25.3 29.1,25.6C28.2,25.9 26.9,26.3 26.3,26.4C25.7,26.6 24.9,26.9 24.4,27.2C23.9,27.4 23.1,27.7 22.3,27.8C20.1,28.2 17.7,28.8 14.0,30.2C13.2,30.4 12.6,30.5 10.8,30.5C8.4,30.5 6.5,30.9 5.0,31.6C3.4,32.4 2.0,32.5 -3.7,32.3C-7.1,32.1 -8.4,32.2 -12.4,32.8C-16.5,33.5 -24.9,33.3 -30.4,32.6C-35.3,31.9 -36.2,33.9 -32.3,36.8C-31.8,37.2 -30.9,38.0 -30.2,38.6C-29.6,39.2 -28.6,40.0 -28.0,40.3C-27.4,40.7 -26.6,41.3 -26.2,41.8C-25.7,42.3 -24.9,42.9 -24.2,43.2C-23.5,43.6 -22.5,44.2 -22.1,44.5C-21.6,44.9 -20.8,45.4 -20.2,45.6C-19.7,45.8 -18.9,46.3 -18.5,46.6C-17.3,47.4 -16.4,47.8 -14.9,48.0C-13.6,48.1 -13.4,48.2 -10.7,49.7C-9.7,50.2 -9.5,50.3 -7.9,50.3C-6.6,50.3 -5.8,50.4 -3.9,50.9C1.2,52.3 0.2,52.2 8.4,52.2L15.8,52.2L18.2,51.7C19.5,51.4 21.3,51.0 22.2,50.8C23.1,50.5 24.6,50.3 25.5,50.2C26.6,50.0 27.6,49.8 28.2,49.6C30.4,48.7 31.9,48.2 33.0,47.9C34.4,47.6 35.1,47.2 36.3,46.4C36.8,46.1 37.6,45.8 38.1,45.6C38.7,45.4 39.4,45.0 39.8,44.7C40.2,44.4 41.0,43.9 41.7,43.5C42.4,43.1 43.2,42.5 43.6,42.3C44.5,41.6 45.8,40.7 46.3,40.6C47.2,40.3 49.9,37.9 51.2,36.3C52.9,34.2 56.8,34.4 58.4,36.7C59.0,37.4 60.8,39.0 62.9,40.5C64.8,41.8 66.4,43.1 67.8,44.4C68.4,45.0 69.2,45.7 69.4,45.9C69.7,46.2 70.1,46.6 70.3,46.9C70.5,47.2 71.1,47.7 71.5,48.0C72.0,48.3 72.8,48.9 73.3,49.4C73.8,50.0 74.7,50.6 75.2,50.9C75.8,51.1 76.7,51.8 77.2,52.3C77.8,52.8 79.2,54.0 80.2,54.9C84.3,58.1 85.7,60.1 85.1,61.5C84.9,62.1 80.9,66.1 79.7,67.0C78.2,68.0 76.7,69.2 76.0,69.9C75.6,70.3 75.0,70.8 74.7,71.0C74.3,71.2 73.6,71.9 72.9,72.5C72.3,73.1 71.1,74.0 70.4,74.4C69.6,74.9 68.8,75.4 68.6,75.6C68.4,75.8 67.8,76.2 67.2,76.5C66.6,76.8 65.9,77.3 65.6,77.6C65.0,78.2 63.5,79.0 62.6,79.2C61.9,79.4 60.8,79.9 60.1,80.5C59.0,81.3 57.6,82.1 57.0,82.3C56.6,82.4 56.0,82.7 55.6,83.0C55.1,83.3 54.2,83.8 53.6,84.1C52.9,84.4 52.0,84.9 51.4,85.2C50.9,85.6 50.0,86.0 49.5,86.1C48.2,86.5 47.8,86.6 47.2,87.1C46.9,87.3 46.3,87.6 46.0,87.7C45.5,87.9 41.8,89.3 41.1,89.7C40.9,89.8 39.9,90.0 38.9,90.3C37.9,90.5 36.9,90.8 36.7,90.9C36.2,91.2 32.7,92.3 31.6,92.5C30.4,92.8 28.3,93.2 26.8,93.4C26.0,93.5 25.0,93.8 24.6,94.0C23.7,94.4 24.0,94.4 12.4,95.0C7.7,95.3 2.6,95.3 1.7,95.2ZM-11.8,-10.5C-9.5,-10.7 -7.0,-11.1 -6.0,-11.4C-5.6,-11.5 -4.7,-11.7 -4.1,-11.7C1.2,-12.2 2.2,-12.4 6.5,-13.6C7.0,-13.7 7.8,-13.9 8.2,-13.9C9.7,-14.1 11.7,-14.7 13.3,-15.3C14.2,-15.7 15.7,-16.2 16.8,-16.4C18.5,-16.9 19.4,-17.2 21.1,-18.3C21.6,-18.6 22.4,-19.0 22.9,-19.1C23.4,-19.2 24.2,-19.6 24.7,-19.9C25.1,-20.2 25.9,-20.6 26.3,-20.8C26.8,-20.9 27.6,-21.5 28.2,-22.0C28.8,-22.5 29.7,-23.2 30.2,-23.5C31.2,-24.2 33.8,-26.8 34.1,-27.5C34.3,-27.7 34.8,-28.6 35.3,-29.4L36.2,-30.8L36.2,-32.5C36.2,-34.6 35.8,-36.4 35.0,-38.1C34.6,-38.8 34.3,-39.5 34.3,-39.6C34.3,-40.5 30.0,-45.1 28.0,-46.4C26.4,-47.4 23.5,-48.8 22.2,-49.2C21.6,-49.4 20.3,-49.5 19.3,-49.6C18.4,-49.6 17.3,-49.8 16.9,-49.9C14.1,-50.9 11.0,-51.2 6.1,-51.0C1.0,-50.8 -0.0,-50.7 -2.5,-49.8C-4.1,-49.3 -4.7,-49.2 -5.9,-49.2C-7.1,-49.2 -7.5,-49.1 -9.0,-48.5C-10.0,-48.1 -11.7,-47.6 -12.8,-47.3C-13.8,-47.1 -15.0,-46.6 -15.3,-46.4C-15.7,-46.2 -16.6,-45.7 -17.3,-45.3C-18.9,-44.6 -20.8,-43.3 -22.8,-41.8C-23.5,-41.3 -24.3,-40.7 -24.6,-40.6C-24.9,-40.5 -25.6,-39.9 -26.3,-39.2C-26.9,-38.6 -28.1,-37.6 -28.8,-36.9C-30.0,-35.8 -33.0,-32.8 -34.9,-30.8C-35.4,-30.3 -36.0,-29.5 -36.3,-28.9C-36.6,-28.3 -37.2,-27.5 -37.7,-27.0C-38.1,-26.5 -38.7,-25.6 -39.0,-25.1C-39.3,-24.5 -39.8,-23.6 -40.2,-22.9C-40.7,-22.3 -41.0,-21.7 -41.0,-21.6C-41.0,-21.3 -41.9,-19.5 -42.4,-18.8C-42.6,-18.4 -43.0,-17.7 -43.2,-17.0C-43.4,-16.4 -43.7,-15.7 -44.0,-15.4C-44.6,-14.7 -44.6,-14.2 -44.2,-13.4C-43.9,-12.7 -43.0,-12.2 -42.1,-12.2C-41.4,-12.2 -37.0,-11.3 -36.5,-11.0C-35.2,-10.3 -17.8,-9.9 -11.8,-10.5ZM-4.5,-141.7C-4.4,-141.8 -2.5,-141.8 0.0,-141.8C3.4,-141.8 3.9,-141.8 2.5,-141.7C-0.3,-141.5 -4.8,-141.5 -4.5,-141.7Z"/><path fill="url(#ejk)" fill-rule="evenodd" d="M-65.1,64.8C-65.6,64.3 -66.7,63.2 -67.6,62.3C-69.2,60.8 -69.6,60.2 -72.0,57.1C-73.5,55.1 -74.0,54.3 -74.8,52.6C-75.2,51.8 -75.9,50.8 -76.3,50.3C-77.2,49.4 -77.6,48.7 -78.1,47.4C-78.3,46.9 -78.7,46.2 -79.0,45.9C-79.2,45.5 -79.6,44.8 -79.8,44.3C-80.0,43.7 -80.5,42.7 -81.0,42.0C-81.5,41.3 -82.0,40.3 -82.1,39.8C-82.3,39.3 -82.6,38.5 -82.9,38.0C-83.3,37.1 -84.7,32.8 -84.9,31.8C-85.0,31.5 -85.2,30.9 -85.5,30.5C-85.7,30.1 -86.0,29.3 -86.1,28.8C-86.4,27.3 -86.8,25.8 -87.3,24.6C-87.6,23.6 -87.7,23.2 -87.7,21.0L-87.7,18.5L-85.2,18.5C-82.5,18.5 -81.5,18.7 -79.5,19.9C-79.0,20.3 -77.9,20.7 -77.1,21.0C-76.2,21.3 -74.9,21.8 -74.1,22.1C-73.4,22.5 -71.9,23.0 -71.0,23.3C-70.0,23.6 -68.7,24.1 -68.0,24.4C-67.4,24.7 -65.9,25.2 -64.6,25.6C-63.4,25.9 -61.9,26.4 -61.3,26.6C-60.1,27.2 -58.9,27.5 -57.1,27.8C-55.5,28.1 -54.3,28.4 -53.0,29.0C-51.7,29.6 -50.5,29.8 -47.1,30.3C-45.3,30.6 -43.2,31.1 -41.1,31.9C-40.8,32.0 -40.2,32.2 -39.7,32.4C-39.2,32.5 -38.4,32.7 -38.0,32.7L-37.1,32.7L-37.2,35.5C-37.2,38.0 -37.3,38.4 -37.5,38.6C-37.7,38.7 -37.8,38.9 -37.8,38.9C-37.8,39.0 -38.0,39.2 -38.2,39.4C-38.5,39.6 -38.7,39.9 -38.7,40.1C-38.7,40.3 -38.8,40.5 -38.9,40.5C-39.0,40.5 -39.2,40.7 -39.2,41.0C-39.3,41.2 -39.4,41.6 -39.6,41.7C-39.7,41.9 -39.8,42.1 -39.8,42.2C-39.8,42.4 -40.0,42.5 -40.2,42.5C-40.4,42.5 -40.5,42.6 -40.5,43.0C-40.5,43.3 -40.6,43.5 -40.7,43.5C-40.8,43.5 -40.8,43.7 -40.8,44.0C-40.8,44.4 -40.9,44.5 -41.2,44.5C-41.4,44.5 -41.5,44.6 -41.5,44.8C-41.5,45.0 -41.7,45.2 -41.9,45.3C-42.1,45.5 -42.4,45.7 -42.4,45.9C-42.5,46.0 -42.6,46.2 -42.8,46.2C-43.1,46.2 -43.5,46.6 -43.5,46.9C-43.5,47.1 -43.6,47.2 -43.8,47.2C-44.0,47.2 -44.2,47.3 -44.2,47.5C-44.3,47.7 -44.5,47.8 -44.8,47.8C-45.1,47.8 -45.2,47.9 -45.2,48.2C-45.2,48.3 -45.2,48.5 -45.3,48.5C-45.4,48.5 -45.5,48.7 -45.5,48.9C-45.5,49.2 -45.6,49.4 -45.9,49.5C-46.7,49.8 -47.5,50.7 -47.5,51.3C-47.5,51.7 -47.6,52.1 -47.8,52.3C-48.0,52.5 -48.2,52.7 -48.2,52.8C-48.2,52.9 -48.3,53.1 -48.4,53.1C-48.5,53.2 -48.7,53.3 -48.8,53.5C-48.8,53.7 -49.0,53.8 -49.2,53.8C-49.4,53.8 -49.5,53.9 -49.5,54.0C-49.5,54.1 -49.6,54.2 -49.7,54.2C-49.8,54.2 -50.0,54.3 -50.2,54.5C-50.4,54.7 -50.5,54.9 -50.5,55.0C-50.5,55.1 -50.6,55.2 -50.7,55.2C-50.8,55.2 -50.8,55.3 -50.8,55.5C-50.8,55.7 -50.9,55.8 -51.0,55.8C-51.1,55.8 -51.5,56.6 -51.5,56.9C-51.5,57.1 -51.6,57.2 -51.6,57.2C-51.9,57.2 -52.8,58.1 -52.8,58.3C-52.8,58.4 -52.9,58.5 -53.0,58.5C-53.1,58.5 -53.2,58.6 -53.2,58.7C-53.2,58.8 -53.3,59.0 -53.5,59.2C-54.0,59.7 -54.2,60.0 -54.2,60.2C-54.2,60.4 -54.2,60.5 -54.3,60.5C-54.4,60.5 -54.5,60.7 -54.5,60.8C-54.5,61.1 -54.6,61.2 -55.1,61.2C-55.4,61.2 -55.7,61.2 -55.7,61.3C-55.7,61.4 -55.8,61.5 -56.1,61.7C-56.3,61.8 -56.5,62.0 -56.6,62.2C-56.6,62.4 -56.8,62.5 -56.9,62.5C-57.1,62.5 -57.2,62.7 -57.2,63.0C-57.2,63.3 -57.3,63.5 -57.4,63.5C-57.6,63.5 -57.7,63.8 -57.7,64.4C-57.8,65.3 -57.9,65.3 -58.6,65.5C-59.0,65.6 -60.4,65.7 -61.8,65.7L-64.3,65.7L-65.1,64.8Z"/></svg></div><h2>Office passcode</h2><p>Ask IT Support for the office passcode. You only enter it once on this computer.</p><input id="kgi" maxlength="12" spellcheck="false" placeholder="K7Q2XM" aria-label="Office passcode"><div id="kge" class="kge" role="alert"></div><button class="b p kgb">Continue</button></form></div><div id="gate"><iframe id="gf" title="Welcome"></iframe></div><div id="mod"></div><div id="toast"></div><div id="pal" hidden><div><input id="pq" placeholder="Jump to any workspace or page…"><div id="pl"></div></div></div>
 <script>
 const $=s=>document.querySelector(s),KEY='nexus-v1';
@@ -1618,15 +1768,30 @@ function ugRevCard(m){
  return`<section class="ugs wide ugrev"><h3>Review applicants</h3>${g.appsErr?`<p class=bad>${esc(g.appsErr)}</p>`:''}<div class="ugseg ugrt" role=tablist aria-label="Review sections">${tabs.map(([k,l,n])=>`<button role=tab aria-selected=${t==k} class="${t==k?'on':''}" data-a="ugrt|${k}">${l}${n?` <em>${n}</em>`:''}</button>`).join('')}</div><div id=ugrevhead>${ugRevHead(t)}</div><div id=ugrevlist class=ugrevlist>${ugRevList(t)}</div></section>`}
 function ugRevRefresh(){const t=ui.ug.rt||'new',h=$('#ugrevhead'),l=$('#ugrevlist');if(!h||!l)return refreshMain();h.innerHTML=ugRevHead(t);l.innerHTML=ugRevList(t);ugHydrate(l)}
 function ugMidnight(){clearTimeout(ui.ug.mid);clearInterval(ui.ug.cdt);ui.ug.cdt=setInterval(()=>{const e=$('#ugcd');if(e)e.textContent=ugCd();else clearInterval(ui.ug.cdt)},20000);const ms=ugNext()-Date.now()+1500;ui.ug.mid=setTimeout(()=>{const e=flat(ui.r)[ui.v];if(e&&e.b=='urgent'){toast('17:00 — today’s applicants moved to Daily review. New applicants starts fresh.');LOADERS.urgent()}ugMidnight()},Math.min(ms,2147483000))}
+// What applicants must send, chosen per urgent job. The website enforces it (same no-CV list as the website).
+const NO_CV=/\b(clean(er|ing)?|house ?(keeper|help|girl|boy)|housekeeping|mucoma|maid|security|guard|bouncer|data entry|kitchen (help|helper|porter)|dish ?wash(er)?|car ?wash(er)?|gardener|porter|loader|delivery|rider|usher|promoter)\b/i;
+const UG_G=[['any','Everyone'],['f','Women only'],['m','Men only']];
+function ugRulesFrom(f){f=f||{};return f._r?{cv:!!f.r_cv,dip:!!f.r_dip,gender:f.r_g||'any',t:1}:{cv:!NO_CV.test(String(f.title||'')),dip:false,gender:'any'}}
+function ugRulesHTML(f){const r=ugRulesFrom(f);return`<fieldset class=ugrules><legend>What applicants must send</legend><input type=hidden name=_r value=1>
+ <div class=ugr2><label class=ugtog><input type=checkbox name=r_cv data-ugrcv ${r.cv?'checked':''} ${r.t?'data-touched=1':''}><i aria-hidden=true></i><span><b>CV required</b><small>Off for jobs that need no experience</small></span></label>
+ <label class=ugtog><input type=checkbox name=r_dip ${r.dip?'checked':''}><i aria-hidden=true></i><span><b>Diploma required</b><small>Or a certificate</small></span></label></div>
+ <div class=ugseg3 role=radiogroup aria-label="Who can apply">${UG_G.map(([k,l])=>`<label><input type=radio name=r_g value=${k} ${r.gender==k?'checked':''}><span>${l}</span></label>`).join('')}</div>
+ <small class=ugrn>Who can apply is the employer’s requirement. The website stops anyone else from sending an application.</small></fieldset>`}
+const ugRulesRead=f=>({cv:!!(f&&f.querySelector('[name=r_cv]:checked')),dip:!!(f&&f.querySelector('[name=r_dip]:checked')),gender:((f&&f.querySelector('[name=r_g]:checked'))||{}).value||'any'});
+const ugRulesLine=r=>r?[r.cv?'CV':'',r.dip?'Diploma':'',r.gender=='f'?'Women only':r.gender=='m'?'Men only':''].filter(Boolean).join(' · '):'';
+// typing a title switches "CV required" for you (cleaner, security… need none) until you touch the switch yourself
+document.addEventListener('input',e=>{const t=e.target;if(!t||t.name!='title'||!t.form)return;const c=t.form.querySelector('[data-ugrcv]');if(c&&!c.dataset.touched)c.checked=!NO_CV.test(t.value)});
+document.addEventListener('change',e=>{if(e.target&&e.target.matches&&e.target.matches('[data-ugrcv]'))e.target.dataset.touched=1});
 function ugForm(){const g=ui.ug,f=g.f||{};return`<form class=ugf id=ugpub autocomplete=off>
  <label>Job title<input name=title maxlength=80 required placeholder="5 waiters for tonight" value="${esc(f.title||'')}"></label>
  <div class=ug2><label>Kind of work<input name=role maxlength=60 placeholder="Hospitality" value="${esc(f.role||'')}"></label><label>Where<input name=place maxlength=80 placeholder="Kigali, Kimihurura" value="${esc(f.place||'')}"></label></div>
  <label>Short description<textarea name=text maxlength=600 rows=3 placeholder="Pay, hours, what to bring…">${esc(f.text||'')}</textarea></label>
  <label class=ugdrop>${g.flyer?`<img src="${g.flyer.url}" alt="Flyer preview">`:'<span>Add the flyer or a photo of the job</span>'}<input type=file name=flyer accept="image/*" data-ugflyer=1></label>
+ ${ugRulesHTML(f)}
  <div class=ug2><label>How long it stays up<select name=life data-uglife=1>${UGLIFE.map(([v,l])=>`<option value=${v} ${g.life==v?'selected':''}>${l}</option>`).join('')}</select></label>${g.life=='custom'?`<label>Ends at<input type=datetime-local name=until value="${esc(f.until||'')}"></label>`:'<span></span>'}</div>
  <div class=row>${btn(g.busy=='pub'?'Publishing…':'Publish to the website','ugpublish','p')}</div></form>`}
 function ugPosts(){const g=ui.ug,P=g.posts;if(g.postsErr)return`<p class=bad>${esc(g.postsErr)}</p>`;if(!P)return'';if(!P.length)return'<div class=empty>No live urgent jobs. What you publish shows on elitejobsrwanda.com and is deleted for good when its time ends or you take it down.</div>';
- return`<div class=ugposts>${P.slice(0,12).map(p=>`<div class="ugpost"><div><b>${esc(p.title)}</b><small>${ugLeft(p.expires)} · ${p.applied} applied${p.by?' · by '+esc(p.by):''}</small></div>${ui.ug.me.post?btn('Take down','ugdown|'+p.id):''}</div>`).join('')}</div>`}
+ return`<div class=ugposts>${P.slice(0,12).map(p=>`<div class="ugpost"><div><b>${esc(p.title)}</b><small>${ugLeft(p.expires)} · ${p.applied} applied${p.by?' · by '+esc(p.by):''}${ugRulesLine(p.rules)?' · '+esc(ugRulesLine(p.rules)):''}</small></div>${ui.ug.me.post?`<span class=ugpa>${btn('Edit','ugedit|'+p.id)}${btn('Take down','ugdown|'+p.id)}</span>`:''}</div>`).join('')}</div>`}
 function ugConn(){const c=ui.ug.cfg||{};return`<div class=card><h3>Website connection</h3><p class=sub>The Hub collects applications from elitejobsrwanda.com every minute and publishes urgent jobs there. Use the same Hub key you saved in Cloudflare (HUB_TOKEN).</p>
  <form class=ugf id=ugcfg autocomplete=off><div class=ug2><label>Website address<input name=site placeholder="https://elitejobsrwanda.com" value="${esc(c.site||'')}"></label><label>Hub key<input name=token type=password placeholder="${c.hasToken?'Saved — type a new one to change it':'Paste the key'}"></label></div>
  <div class=row>${btn('Save connection','ugcfg','p')}${btn('Check now','ugsync')}<span class=${c.lastError?'bad':'sub'} style="margin:0">${c.lastError?esc(c.lastError):c.lastSync?'Last checked '+agoT(c.lastSync):'Not checked yet'}</span></div></form></div>`}
@@ -1646,6 +1811,13 @@ function ugAdmin(){const g=ui.ug;const waiting=(g.devs||[]).filter(d=>!d.ok);con
  ${Object.entries(r.labels).map(([k,l])=>{const n=r.outcomes[k]||0,mx=Math.max(1,r.called);return`<div class=bar><span>${l}</span><div><i style="width:${n/mx*100}%"></i></div><b>${n}</b></div>`}).join('')}
  ${r.byPost.length?`<h4 class=ugh4>By job</h4>${tb(['Job','Applied','Called','Coming'],r.byPost.slice(0,10).map(p=>[esc(p.title),p.applied,p.called,p.coming]))}`:''}
  ${Object.keys(r.byReviewer).length?`<h4 class=ugh4>Calls made</h4>${Object.entries(r.byReviewer).map(([n,c])=>`<div class=ugpost><div><b>${esc(n)}</b></div><span>${c}</span></div>`).join('')}`:''}`:'<div class=empty>Loading…</div>'}</div></div>`}
+const ugUn=v=>String(v==null?'':v).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&');
+const ugLocal=t=>{const d=new Date(t-new Date(t).getTimezoneOffset()*6e4);return d.toISOString().slice(0,16)};
+FM.ugedit={t:'Edit urgent job',f:[],def:()=>{const p=ui.ug.edit||{},m=p.meta||{},r=p.rules||{};return{title:p.title,until:ugLocal(p.expires||Date.now()),salMin:m.salMin||'',salMax:m.salMax||'',loc:m.loc||p.place||'',desc:m.desc||p.text||'',place:p.place||'',text:p.text||'',cv:r.cv?'1':'0',dip:r.dip?'1':'0',gender:r.gender||'any'}},
+ checkTitle:'⚠ Check this first:',checkBtn:'Save anyway',check:d=>{const t=Date.parse(d.until),w=[];if(!(t>Date.now()+6e4))w.push({msg:'The end time is in the past — the website will refuse it.'});if(t>Date.now()+90*864e5)w.push({msg:'A post can stay up for 90 days at most.'});if(+d.salMin&&+d.salMax&&+d.salMin>+d.salMax)w.push({msg:'The lowest pay is higher than the highest pay.'});return w},
+ go:d=>{const p=ui.ug.edit;if(!p)return;const b={id:p.id,title:ugUn(d.title),until:new Date(d.until).toISOString(),rules:{cv:d.cv=='1',dip:d.dip=='1',gender:d.gender}};
+  if(p.kind=='card')b.meta={salMin:+String(d.salMin).replace(/\D/g,'')||0,salMax:+String(d.salMax).replace(/\D/g,'')||0,loc:ugUn(d.loc),desc:ugUn(d.desc)};else{b.place=ugUn(d.place);b.text=ugUn(d.text)}
+  api('/api/urgent/posts/edit',b).then(()=>{haptic('success');toast('✔ Saved — the website shows the change now');LOADERS.urgent()}).catch(e=>{haptic('error');toast('✖ '+e.message)})}};
 // ---------- Endover: full job cards → stacked on the right → published together ----------
 const EO_PER=[['month','Per month'],['week','Per week'],['day','Per day'],['hour','Per hour'],['job','Per job']];
 const EO_TYPE=['Full-time','Part-time','One day','Contract','Internship'];
@@ -1676,6 +1848,7 @@ function eoForm(){const f=eo().f;return`<form class=ugf id=eof autocomplete=off>
  <label>Requirements <small>(one per line)</small><textarea name=req rows=3 maxlength=500 placeholder="Speaks Kinyarwanda and English&#10;Can start tomorrow">${esc(f.req||'')}</textarea></label>
  <div class=eoben><span>They also get</span>${EO_BEN.map(b=>`<label class=eochip><input type=checkbox name=ben value="${b}" ${(f.ben||[]).includes(b)?'checked':''}><i>${b}</i></label>`).join('')}</div>
  <label>Description<textarea name=desc rows=3 maxlength=400 placeholder="What the person will do, hours, what to bring…">${esc(f.desc||'')}</textarea></label>
+ ${ugRulesHTML(f)}
  <div class=ug2><label>How long it stays up<select name=life>${UGLIFE.map(([v,l])=>`<option value=${v} ${(f.life||'24')==v?'selected':''}>${l}</option>`).join('')}</select></label><label id=eountil ${f.life=='custom'?'':'hidden'}>Ends at<input type=datetime-local name=until value="${esc(f.until||'')}"></label></div>
  <label>Template <select name=tpl><option value="">Choose for me (recommended)</option>${Object.entries(EJ_TPL).map(([k,T])=>`<option value=${k} ${f.tpl==k?'selected':''}>${T.n}</option>`).join('')}</select></label>
 </form>`}
@@ -1757,12 +1930,12 @@ Object.assign(A,{
  eodel(id){const e=eo();e.list=e.list.filter(x=>x.id!=id);if(e.sel==id)e.sel=null;eoSave();haptic('medium');eoMount()},
  eoedit(id){const e=eo(),x=e.list.find(y=>y.id==id);if(!x)return;e.f=Object.assign({},x.form);eov().pick=(x.form.pick||[]).slice();eov().q='';setTimeout(eoVaultSearch,0);e.list=e.list.filter(y=>y.id!=id);e.sel=null;eoSave();eoMount()},
  eoadd(){const e=eo();if(e.busy)return;const f=eoRead(),er=eoCheck(f);if(er){haptic('error');return toast('✖ '+er)}
-  const post=eoBuild(f),item={id:Date.now(),post,form:Object.assign({},f,{pick:eoPicks().slice()}),life:f.life,until:f.life=='custom'?new Date(f.until).toISOString():''};
+  const post=eoBuild(f),item={id:Date.now(),post,rules:ugRulesRead($('#eof')),form:Object.assign({},f,{pick:eoPicks().slice()}),life:f.life,until:f.life=='custom'?new Date(f.until).toISOString():''};
   eoPicks().forEach(p=>{if(p.dl&&eoKey())fetch(p.dl,{headers:{Authorization:'Client-ID '+eoKey()}}).catch(()=>{})});const src=$('#eoprev .pcw');e.list.push(item);e.f={life:f.life,ben:[],cat:f.cat};e.v={q:'',items:[],busy:false,err:'',pick:[]};eoSave();haptic('medium');
   const clone=src;eoMount();const tab=document.querySelector('.eotab[data-id="'+item.id+'"]');if(tab)tab.classList.add('fresh');
   eoFly(clone,tab&&tab.querySelector('.eoth'),()=>{if(tab){tab.classList.remove('fresh');tab.classList.add('eopop')}haptic('success')})},
  async eogo(){const e=eo();if(e.busy||!e.list.length)return;e.busy=true;eoMount();let ok=0;
-  for(const x of e.list.slice()){const body={kind:'card',title:x.post.title,tpl:x.post.tpl,meta:x.post.meta};if(x.until)body.until=x.until;else body.hours=+x.life;
+  for(const x of e.list.slice()){const body={kind:'card',title:x.post.title,tpl:x.post.tpl,meta:x.post.meta,rules:x.rules||ugRulesFrom({title:x.post.title})};if(x.until)body.until=x.until;else body.hours=+x.life;
    try{await api('/api/urgent/posts',body);ok++;const t=document.querySelector('.eotab[data-id="'+x.id+'"]');if(t)t.classList.add('sent');haptic('success');await new Promise(r=>setTimeout(r,360));e.list=e.list.filter(y=>y.id!=x.id);eoSave()}
    catch(er){e.busy=false;eoMount();haptic('error');toast('✖ '+x.post.title+': '+er.message+(ok?' ('+ok+' already published)':''));if(ok)LOADERS.urgent();return}}
   e.busy=false;e.sel=null;toast('✔ '+ok+' job'+(ok>1?'s are':' is')+' on elitejobsrwanda.com now');LOADERS.urgent()}});
@@ -1787,6 +1960,7 @@ function ugCard(id){const a=ugFind(id);if(!a)return'';const d=a.data,ch=ui.ug.pi
  <div class=ugph><img class=ugbig alt="Photo of ${esc(d.name)}" data-ugimg="${a.id}:${ui.ug.ph||0}" style="view-transition-name:uga-${a.id}"><div class=ugthumbs>${[0,1,2].map(n=>`<button data-a="ugph|${n}" class="${(ui.ug.ph||0)==n?'on':''}" aria-label="Photo ${n+1}"><img alt="" data-ugimg="${a.id}:${n}"></button>`).join('')}</div></div>
  <div class=ugbody><h2>${esc(d.name)}</h2><p class=ugposl>📌 Position: <b>${esc(ugPosName(a))}</b>${ugPosName(a).toLowerCase()!=String(a.title||'').toLowerCase()?` <small>· from the post “${esc(a.title)}”</small>`:''}</p><p class=sub>Applied ${new Date(a.created||a.got).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'})}</p>
  <dl class=ugdl>${F.map(([k,v])=>`<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>${d.about?`<p class=ugabout>${esc(d.about)}</p>`:''}
+ ${(a.docs||[]).length?`<div class=ugdocs>${a.docs.map(k=>`<button class=b data-a="ugdoc|${a.id}|${k}">📄 Open ${k=='cv'?'CV':'diploma'}</button>`).join('')}<small>Opening is logged.</small></div>`:''}
  <div class=ugcall><a class="b p" href="tel:${esc(tel)}">📞 Call ${esc(d.phone)}</a>${wa?`<a class=b href="https://wa.me/${esc(wa)}" target=_blank rel=noopener>WhatsApp</a>`:''}</div>
  ${a.status=='done'?`<div class=ugdone><span class="ugout o-${a.outcome}">${UGL[a.outcome]}</span><small>Called by ${esc(a.reviewer||'')} · ${agoT(a.reviewedAt)}</small>${a.note?`<p>${esc(a.note)}</p>`:''}<div class=row>${btn('Call again','ugreopen|'+a.id)}</div></div>`
  :`<h4 class=ugh4>What happened on the call?</h4><div class=ugchips role=radiogroup>${Object.entries(UGL).map(([k,l])=>`<button role=radio aria-checked=${ch==k} class="ugchip ${ch==k?'on':''} o-${k}" data-a="ugpick2|${k}">${l}</button>`).join('')}</div>
@@ -1812,9 +1986,14 @@ Object.assign(A,{
  ugreopen(id){api('/api/urgent/reopen',{id}).then(()=>{const a=ugFind(id);a.status='new';ugShow(()=>{ui.ug.open=null});toast(ui.ug.rt=='daily'?'Marked as not reviewed again':'Moved back to New applications')}).catch(e=>toast('✖ '+e.message))},
  ugpublish(){const g=ui.ug,f=$('#ugpub');if(!f||g.busy)return;const d=Object.fromEntries(new FormData(f));
   if(!d.title||d.title.trim().length<3)return toast('✖ Give the job a short title');if(!g.flyer)return toast('✖ Add the flyer or a photo');
-  const body={title:d.title,role:d.role,place:d.place,text:d.text,image:g.flyer.data,w:g.flyer.w,h:g.flyer.h};
+  const body={title:d.title,role:d.role,place:d.place,text:d.text,image:g.flyer.data,w:g.flyer.w,h:g.flyer.h,rules:ugRulesRead(f)};
   if(g.life=='custom'){if(!d.until)return toast('✖ Choose when it ends');body.until=new Date(d.until).toISOString()}else body.hours=+g.life;
   g.busy='pub';g.f=d;refreshMain();api('/api/urgent/posts',body).then(()=>{g.busy=null;g.f={};g.flyer=null;haptic('success');toast('✔ Published — it’s on elitejobsrwanda.com now');LOADERS.urgent()}).catch(e=>{g.busy=null;refreshMain();toast('✖ '+e.message)})},
+ ugdoc(id,k){const w=window.open('','_blank');fetch('/api/urgent/doc?app='+encodeURIComponent(id)+'&k='+k,{headers:hdrs()}).then(async r=>{if(!r.ok)throw new Error(await r.text()||'Not available');const u=URL.createObjectURL(await r.blob());if(w)w.location=u;else location.href=u}).catch(e=>{if(w)w.close();toast('✖ '+e.message)})},
+ ugedit(id){const p=(ui.ug.posts||[]).find(x=>x.id==id);if(!p)return;ui.ug.edit=p;const card=p.kind=='card',m=p.meta||{};
+  FM.ugedit.f=[['title','Job title'],['until','Ends at',null,{type:'datetime-local'}]].concat(card?[['salMin','Pay from (RWF)',null,{opt:1}],['salMax','Pay up to (RWF)',null,{opt:1}],['loc','Where'],['desc','Description',null,{opt:1,area:1}]]:[['place','Where',null,{opt:1}],['text','Short description',null,{opt:1,area:1}]])
+   .concat([['cv','CV',[['1','Required'],['0','Not required']]],['dip','Diploma or certificate',[['0','Not required'],['1','Required']]],['gender','Who can apply',UG_G]]);
+  ui.pre={};ui.nv=true;ui.modal='ugedit';render()},
  ugdown(id){api('/api/urgent/posts/remove',{id}).then(()=>{toast('Taken down from the website');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
  uggrant(key){const g=ui.ug,a=g.acc&&g.acc[key],uid=a&&a.uid;if(!uid)return;const post=key!='rev',review=key!='pub';api('/api/urgent/grants',{uid,post,review}).then(()=>{g.acc[key]={role:a.role,uid:''};toast('✔ Access saved');haptic('success');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
  ugrevoke(uid){api('/api/urgent/grants',{uid,post:false,review:false}).then(()=>{toast('Access removed');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
@@ -1869,7 +2048,7 @@ mvgo(a){const st=ui.mvs=ui.mvs||{};const to=$('#mvto'),code=$('#mvcode');if(to)s
   .catch(e=>{st.busy=false;st.err=e.message;refreshMain()})}});
 // ---------- Website jobs: regular jobs on elitejobsrwanda.com ----------
 ui.wj=ui.wj||{};
-UG_POS.forEach(k=>{const f=R[k]&&R[k].nav.find(g=>g[0]=='Hiring');if(f&&!f[1].some(e=>e.b=='webjobs'))f[1].push({l:'Website jobs',i:'🌐',b:'webjobs'})});
+// Opening jobs are built into the website’s code now; only urgent jobs are published from the Hub. (Website jobs screen retired.)
 LOADERS.webjobs=function(){const w=ui.wj;w.err=null;api('/api/webjobs').then(d=>{w.d=d;refreshMain()}).catch(e=>{w.err=e.message;refreshMain()})};
 const WJ_PH=u=>u?u+(u.includes('?')?'&':'?')+'auto=format&fit=crop&w=480&q=70':'';
 function wjForm(){return ui.wj.f||(ui.wj.f={})}
@@ -2130,6 +2309,165 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 @media(max-width:1000px){.vgrid{grid-template-columns:1fr}.vrow{grid-template-columns:minmax(0,1fr) auto}.vr-steps{grid-column:1/-1;order:3}}
 @media(max-width:560px){.vrow{grid-template-columns:1fr}.vr-n,.vr-d{display:flex;gap:8px;align-items:baseline}.vstep,.vtask{grid-template-columns:32px minmax(0,1fr)}.vstep .bd{grid-column:2;justify-self:start}.vtask .vs-a{grid-column:2}}
 </style>`);
+
+// ================= CV studio =================
+// Search someone who applied → their CV fills itself from everything they sent us → add what is missing → choose one of
+// the seven templates and a finish → Finish saves it with the person and downloads the PDF. A blank CV works the same way.
+const CV_ROLES=['front','rec','hr','admin','ops','cc','int'];
+CV_ROLES.forEach(k=>{const n=R[k]&&R[k].nav;if(!n||n.some(g=>g[0]=='CV studio'))return;const i=n.findIndex(g=>g[0]=='Me');n.splice(i<0?1:i+1,0,['CV studio',[{l:'Make a CV',i:'📄',b:'cvs'}]])});
+if(typeof STATIC!='undefined'&&!STATIC.includes('cvs'))STATIC.push('cvs');
+const CVT=[['horizon','Horizon','A colour band with the photo rising over it'],['sand','Sand','Warm sidebar, calm reading column'],['bento','Bento','Every section in its own tile'],['halo','Halo','Centred, the photo inside our orbit'],['stone','Stone','Light header band, two columns'],['dune','Dune','Dark sidebar, white page'],['ink','Ink','Dark header like a product page']];
+const CVF=[['starlight','Starlight','#5B489D','#EAE3D6'],['midnight','Midnight','#2D5B9A','#18202C'],['titanium','Titanium','#77694F','#232325'],['sage','Sage','#3D6A55','#DFE7DD']];
+const CV_LV=['Native','Fluent','Good','Basic'];
+const cvBlank=()=>({name:'',title:'',phone:'',email:'',location:'',summary:'',photo:'',experience:[{role:'',org:'',place:'',from:'',to:'',about:'',points:[],nw:1}],education:[{title:'',school:'',from:'',to:''}],skills:[],languages:[{name:'Kinyarwanda',level:'Native'},{name:'English',level:'Good'}],certificates:[],references:[]});
+if(!ui.cv)ui.cv={mode:'home',q:'',res:null,step:0,tpl:'horizon',fin:'starlight'};
+let cvEng=null;const cvEngine=()=>cvEng||(cvEng=new Promise((ok,no)=>{if(window.EJCV)return ok(window.EJCV);const s=document.createElement('script');s.src='/cv-engine.js?v=1';s.onload=()=>ok(window.EJCV);s.onerror=()=>{cvEng=null;no(new Error('The CV templates could not load. Check the connection and try again.'))};document.head.append(s)}));
+const cvAll=s=>[...document.querySelectorAll(s)];
+const cvGet=(o,p)=>p.split('.').reduce((a,k)=>a==null?a:a[k],o);
+const cvSet=(o,p,v)=>{const ks=p.split('.');let a=o;ks.slice(0,-1).forEach(k=>a=a[k]);a[ks[ks.length-1]]=v};
+const cvIni=n=>String(n||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
+const cvClean=d=>JSON.parse(JSON.stringify(d,(k,v)=>k=='nw'?undefined:v));
+const cvNew=()=>(ui.cv.d.experience||[]).filter(e=>e.nw).length;
+const cvIc={search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+ doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19V5a1.5 1.5 0 0 1 1-1.5z"/><path d="M14 3.5V8h4M9 12.5h6M9 15.5h4"/></svg>',
+ plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+ x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+ back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+ cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5c0-1.1.9-2 2-2h1.6l1.4-2h6l1.4 2H18c1.1 0 2 .9 2 2V17c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2z"/><circle cx="12" cy="12.6" r="3.4"/></svg>',
+ tick:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'};
+
+V.cvs=function(){setTimeout(cvMount,0);return`<div class=cvs id=cvs>${cvHTML()}</div>`};
+function cvHTML(){const c=ui.cv;return c.mode=='home'?cvHome():cvEditor()}
+function cvPaint(){const r=$('#cvs');if(!r)return;const f=document.activeElement,id=f&&f.id,st=$('#main').scrollTop;r.innerHTML=cvHTML();$('#main').scrollTop=st;if(id){const n=document.getElementById(id);n&&n.focus()}cvMount()}
+
+// ---------- home: search ----------
+function cvHome(){const c=ui.cv;return`<header class=cvhd><span class=cvbadge>${cvIc.doc}</span><div><h1>CV studio</h1><p>Search someone who applied and their CV fills itself from what they sent us. Or start one from nothing.</p></div></header>
+ <label class=cvsearch>${cvIc.search}<input id=cvq type=search autocomplete=off placeholder="Search a name, email or phone" value="${esc(c.q||'')}" aria-label="Search applicants"></label>
+ <div class=cvres id=cvres>${cvResults()}</div>
+ <button class=cvblank data-a=cvblank><span>${cvIc.plus}</span><b>Start a blank CV</b><small>For someone who never applied — you type everything.</small></button>`}
+function cvResults(){const c=ui.cv;if(c.busy=='q')return`<div class=cvskel>${'<i></i>'.repeat(3)}</div>`;if(c.qErr)return`<p class=cverr>${esc(c.qErr)}</p>`;if(!c.res)return'';
+ if(!c.res.length)return`<div class=cvnone><b>No one found for “${esc(c.q)}”</b><small>Check the spelling, try the phone number, or start a blank CV.</small></div>`;
+ return c.res.map((p,i)=>`<button class=cvp data-a="cvopen|${esc(p.key)}" style="--i:${i}"><span class=cvav>${esc(cvIni(p.name))}</span><span class=cvpt><b>${esc(p.name)}</b><small>${esc([p.phone,p.email].filter(Boolean).join(' · '))}</small>${p.positions.length?`<span class=cvchips>${p.positions.map(x=>`<i>${esc(x)}</i>`).join('')}</span>`:''}</span>
+  <span class=cvpm><b>${p.applied}</b> application${p.applied==1?'':'s'}${p.cvs?`<br><b>${p.cvs}</b> CV${p.cvs>1?'s':''} made`:''}${p.docs?`<br>${p.docs} document${p.docs>1?'s':''}`:''}</span></button>`).join('')}
+let cvQT=0;function cvSearch(q){const c=ui.cv;c.q=q;clearTimeout(cvQT);if(q.trim().length<2){c.res=null;c.qErr='';const r=$('#cvres');if(r)r.innerHTML='';return}
+ cvQT=setTimeout(()=>{c.busy='q';const r=$('#cvres');if(r)r.innerHTML=cvResults();api('/api/cv/search?q='+encodeURIComponent(q.trim())).then(j=>{if(c.q!==q)return;c.busy=null;c.qErr='';c.res=j.people;const r=$('#cvres');if(r)r.innerHTML=cvResults()}).catch(e=>{c.busy=null;c.qErr=e.message;const r=$('#cvres');if(r)r.innerHTML=cvResults()})},220)}
+
+// ---------- editor ----------
+const CV_STEPS=['Details','Template','Finish'];
+function cvEditor(){const c=ui.cv,d=c.d,P=c.person;
+ return`<div class=cvtop><button class=cvbk data-a=cvhome>${cvIc.back}<span>CV studio</span></button>
+  <div class=cvseg role=tablist aria-label="Steps">${CV_STEPS.map((s,i)=>`<button role=tab aria-selected=${c.step==i} class="${c.step==i?'on':''}${i<c.step?' done':''}" data-a="cvstep|${i}"><i>${i<c.step?cvIc.tick:i+1}</i>${s}</button>`).join('')}</div>
+  <span class=cvwho>${P?'From '+esc(P.card.name.split(' ')[0])+'’s applications':'Blank CV'}</span></div>
+ <div class="cvgrid s${c.step}"><div class=cvl>${c.step==0?cvDetails():c.step==1?cvTemplates():cvFinish()}</div>
+ <div class=cvr><div class=cvpaper data-fit><iframe id=cvprev title="CV preview" tabindex=-1></iframe></div><small class=cvcap>${esc((CVT.find(t=>t[0]==c.tpl)||[])[1]||'')} · ${esc((CVF.find(f=>f[0]==c.fin)||[])[1]||'')} · A4</small></div></div>`}
+const cvIn=(p,l,o={})=>`<label class="cvf${o.w?' w':''}"><span>${l}</span>${o.area?`<textarea data-cvf="${p}" rows=${o.rows||3} maxlength=${o.max||300} placeholder="${esc(o.ph||'')}">${esc(o.lines?(cvGet(ui.cv.d,p)||[]).join('\n'):cvGet(ui.cv.d,p)||'')}</textarea>`:`<input data-cvf="${p}" ${o.type?'type='+o.type:''} maxlength=${o.max||80} placeholder="${esc(o.ph||'')}" value="${esc(cvGet(ui.cv.d,p)||'')}">`}</label>`;
+function cvDetails(){const c=ui.cv,d=c.d,P=c.person,canNew=!P||cvNew()<2;
+ return`${P&&P.cvs.length?`<section class=cvsec><h3>CVs already made for ${esc(P.card.name.split(' ')[0])}</h3>${P.cvs.map(x=>`<div class=cvsaved><span class=cvsw style="--a:${(CVF.find(f=>f[0]==x.finish)||CVF[0])[2]}"></span><span><b>${esc((CVT.find(t=>t[0]==x.tpl)||CVT[0])[1])} · ${esc((CVF.find(f=>f[0]==x.finish)||CVF[0])[1])}</b><small>${esc(x.data.title||'')} — by ${esc(x.by)}, ${agoT(x.updated)}</small></span><span class=cvsa>${c.id==x.id?'<em>Editing</em>':`<button class=cvlk data-a="cvload|${x.id}">Edit</button>`}<button class=cvlk data-a="cvdl|${x.id}">Download</button></span></div>`).join('')}${c.id?`<button class=cvlk data-a=cvfresh>Start a new CV from the applications instead</button>`:''}</section>`:''}
+ ${P&&P.docs.length?`<section class="cvsec cvfrom"><h3>From what ${esc(P.card.name.split(' ')[0])} sent us</h3><p class=cvhint>Read a CV to pick skills, languages and references from it. Opening and reading are logged.</p>${P.docs.map(x=>{const R=c.read[x.ref];return`<div class=cvdoc><span class=cvdi>${cvIc.doc}</span><span><b>${esc(x.label)}</b><small>${esc((x.ext||'').toUpperCase())} · ${agoT(x.t)}</small></span><span class=cvsa><button class=cvlk data-a="cvread|${esc(x.ref)}">${R=='busy'?'Reading…':R?'Read again':'Read'}</button><button class=cvlk data-a="cvfile|${esc(x.ref)}">Open</button></span></div>${R&&R!='busy'?cvPicks(x.ref,R):''}`}).join('')}</section>`:''}
+ <section class=cvsec><h3>Photo</h3><div class=cvph>${d.photo?`<img src="${d.photo}" alt="">`:`<span class=cvav lg>${esc(cvIni(d.name))}</span>`}
+  <div class=cvphb>${P&&P.photos.length?P.photos.map(x=>`<button class=cvpht data-a="cvphoto|${esc(x.ref)}" aria-label="Use this photo"><img alt="" data-cvimg="${esc(x.ref)}"></button>`).join(''):''}
+  <label class="cvlk cvup">${cvIc.cam}<input type=file accept="image/*" data-cvup>Take or choose</label>${d.photo?`<button class=cvlk data-a=cvphoto|>Remove</button>`:''}</div></div><p class=cvhint>Without a photo the CV shows the initials, in the template’s colours.</p></section>
+ <section class=cvsec><h3>The person</h3><div class=cv2>${cvIn('name','Full name *',{max:60})}${cvIn('title','Job title on the CV',{max:70,ph:'Restaurant Supervisor'})}${cvIn('phone','Phone *',{type:'tel',max:30})}${cvIn('email','Email',{type:'email',max:100})}${cvIn('location','Where they live',{w:1,max:70,ph:'Kicukiro, Kigali'})}</div></section>
+ <section class=cvsec><h3>About me</h3>${cvIn('summary','A short bio in their own words',{area:1,rows:4,max:900,ph:'Who they are, what they are good at, and the work they want next.'})}</section>
+ <section class=cvsec><h3>Experience <small>${P?`${(d.experience||[]).filter(e=>!e.nw).length} from applications · up to 2 new`:'up to 6'}</small></h3>${(d.experience||[]).map((e,i)=>`<div class="cvitem${e.nw?' nw':''}"><div class=cvih><b>${esc(e.role||e.org||'New experience')}</b>${e.from_src?`<small>${esc(e.from_src)}</small>`:e.nw&&P?'<small>Added here</small>':''}<button class=cvx data-a="cvdel|experience|${i}" aria-label="Remove this experience">${cvIc.x}</button></div>
+  <div class=cv2>${cvIn(`experience.${i}.role`,'Role',{max:70})}${cvIn(`experience.${i}.org`,'Workplace',{max:80})}${cvIn(`experience.${i}.from`,'From',{max:20,ph:'Jan 2022'})}${cvIn(`experience.${i}.to`,'Until',{max:20,ph:'Now'})}</div>
+  ${cvIn(`experience.${i}.about`,'What the job was, in one line',{max:220})}${cvIn(`experience.${i}.points`,'Achievements — one per line',{area:1,rows:3,max:800,lines:1,ph:'Led a team of 8\nTrained new staff'})}</div>`).join('')}
+  ${(d.experience||[]).length<6&&canNew?`<button class=cvadd data-a="cvadd|experience">${cvIc.plus}Add experience</button>`:P&&!canNew?'<p class=cvhint>Two new experiences added — that’s the most for a CV made from applications.</p>':''}</section>
+ <section class=cvsec><h3>Education</h3>${(d.education||[]).map((e,i)=>`<div class=cvitem><div class=cvih><b>${esc(e.title||'New education')}</b><button class=cvx data-a="cvdel|education|${i}" aria-label="Remove">${cvIc.x}</button></div><div class=cv2>${cvIn(`education.${i}.title`,'Diploma or level',{max:90})}${cvIn(`education.${i}.school`,'School',{max:90})}${cvIn(`education.${i}.from`,'From',{max:20})}${cvIn(`education.${i}.to`,'Until',{max:20})}</div></div>`).join('')}
+  ${(d.education||[]).length<5?`<button class=cvadd data-a="cvadd|education">${cvIc.plus}Add education</button>`:''}</section>
+ <section class=cvsec><h3>Skills <small>${(d.skills||[]).length}/14</small></h3><div class=cvtags>${(d.skills||[]).map((s,i)=>`<span class=cvtag>${esc(s)}<button data-a="cvdel|skills|${i}" aria-label="Remove ${esc(s)}">${cvIc.x}</button></span>`).join('')}${(d.skills||[]).length<14?`<input id=cvsk class=cvtagin maxlength=40 placeholder="Type a skill, press Enter">`:''}</div></section>
+ <section class=cvsec><h3>Languages</h3>${(d.languages||[]).map((l,i)=>`<div class=cvlang>${cvIn(`languages.${i}.name`,'Language',{max:30})}<div class=cvlv role=radiogroup aria-label="Level">${CV_LV.map(v=>`<button class="${l.level==v?'on':''}" role=radio aria-checked=${l.level==v} data-a="cvlv|${i}|${v}">${v}</button>`).join('')}</div><button class=cvx data-a="cvdel|languages|${i}" aria-label="Remove">${cvIc.x}</button></div>`).join('')}
+  ${(d.languages||[]).length<6?`<button class=cvadd data-a="cvadd|languages">${cvIc.plus}Add language</button>`:''}</section>
+ <section class=cvsec><h3>Certificates</h3>${(d.certificates||[]).map((x,i)=>`<div class=cvrow>${cvIn(`certificates.${i}`,'Certificate',{max:100,ph:'Food Hygiene Certificate, 2022'})}<button class=cvx data-a="cvdel|certificates|${i}" aria-label="Remove">${cvIc.x}</button></div>`).join('')}
+  ${(d.certificates||[]).length<6?`<button class=cvadd data-a="cvadd|certificates">${cvIc.plus}Add certificate</button>`:''}</section>
+ <section class=cvsec><h3>References <small>${(d.references||[]).length}/2</small></h3>${(d.references||[]).map((r,i)=>`<div class=cvitem><div class=cvih><b>${esc(r.name||'New reference')}</b><button class=cvx data-a="cvdel|references|${i}" aria-label="Remove">${cvIc.x}</button></div><div class=cv2>${cvIn(`references.${i}.name`,'Name',{max:60})}${cvIn(`references.${i}.phone`,'Phone',{type:'tel',max:30})}${cvIn(`references.${i}.role`,'Their job and workplace',{w:1,max:80})}</div></div>`).join('')}
+  ${(d.references||[]).length<2?`<button class=cvadd data-a="cvadd|references">${cvIc.plus}Add reference</button>`:''}</section>
+ <div class=cvnext><button class="cvbtn p" data-a="cvstep|1">Choose a template</button></div>`}
+function cvPicks(ref,R){const c=ui.cv,d=c.d;if(R.err)return`<p class=cverr>${esc(R.err)}</p>`;if(R.image)return`<p class=cvhint>${esc(R.why)}</p>`;const S=R.sections||{};
+ const chip=(k,v,i)=>{const on=k=='skills'?(d.skills||[]).some(x=>x.toLowerCase()==v.toLowerCase()):k=='languages'?(d.languages||[]).some(x=>x.name.toLowerCase()==v.toLowerCase()):false;return`<button class="cvchip${on?' on':''}" data-a="cvpick|${esc(ref)}|${k}|${i}" ${on?'disabled':''}>${on?cvIc.tick:cvIc.plus}${esc(v)}</button>`};
+ return`<div class=cvpicks>${(S.skills||[]).length?`<div><small>Skills in this CV</small><div class=cvchips2>${S.skills.map((v,i)=>chip('skills',v,i)).join('')}</div></div>`:''}
+ ${(S.languages||[]).length?`<div><small>Languages</small><div class=cvchips2>${S.languages.map((v,i)=>chip('languages',v,i)).join('')}</div></div>`:''}
+ ${S.summary?`<div><small>Their profile</small><p class=cvquote>${esc(S.summary)}</p><button class=cvlk data-a="cvpick|${esc(ref)}|summary|0">Use as About me</button></div>`:''}
+ <details class=cvlines><summary>All the words in this CV (${(R.lines||[]).length} lines) — tap one to copy</summary><div>${(R.lines||[]).slice(0,160).map(l=>`<button data-a="cvcopy|${esc(encodeURIComponent(l))}">${esc(l)}</button>`).join('')}</div></details></div>`}
+function cvTemplates(){const c=ui.cv;
+ return`<section class=cvsec><h3>Template</h3><div class=cvtpls>${CVT.map(([k,n,s],i)=>`<button class="cvtpl${c.tpl==k?' on':''}" data-a="cvtpl|${k}" aria-pressed=${c.tpl==k} style="--i:${i}"><span class=cvthumb data-fit><iframe data-tpl="${k}" tabindex=-1 title="${n}"></iframe></span><b>${n}</b><small>${s}</small></button>`).join('')}</div></section>
+ <section class=cvsec><h3>Finish</h3><div class=cvfins role=radiogroup aria-label="Colour finish">${CVF.map(([k,n,a,b])=>`<button class="cvfin${c.fin==k?' on':''}" role=radio aria-checked=${c.fin==k} data-a="cvfin|${k}"><span style="--a:${a};--b:${b}"></span>${n}</button>`).join('')}</div><p class=cvhint>Every template can wear every finish. Our logo always stays purple.</p></section>
+ <div class=cvnext><button class=cvbtn data-a="cvstep|0">Back to details</button><button class="cvbtn p" data-a="cvstep|2">Continue</button></div>`}
+function cvFinish(){const c=ui.cv,d=c.d,miss=[!d.summary&&'About me',!(d.experience||[]).some(e=>e.role||e.org)&&'experience',!(d.skills||[]).length&&'skills'].filter(Boolean);
+ return`<section class="cvsec cvdone"><span class=cvbig>${cvIc.doc}</span><h2>${esc(d.name||'This CV')} — ready</h2><p>${esc((CVT.find(t=>t[0]==c.tpl)||[])[1])} in ${esc((CVF.find(f=>f[0]==c.fin)||[])[1])}, one A4 page.${c.person?` It is saved with ${esc(c.person.card.name.split(' ')[0])}’s records, so you can open it again to edit.`:' It is saved in the CV studio, found by the phone or email on it.'}</p>
+ ${miss.length?`<p class=cvwarn>Still empty: ${miss.join(', ')}. You can finish anyway.</p>`:''}<p class=cvwarn id=cvover ${c.over?'':'hidden'}>This CV is longer than one page — shorten the bio or the achievements so nothing is cut.</p>
+ <div class=cvnext><button class="cvbtn p lg" data-a=cvsave ${c.busy=='save'?'disabled':''}>${c.busy=='save'?'Saving…':'Finish and download PDF'}</button><button class=cvbtn data-a=cvprint>Print</button></div>
+ ${c.saved?`<p class=cvok>${cvIc.tick} Saved ${agoT(c.saved)}. The PDF is in your Downloads.</p>`:''}</section>
+ <div class=cvnext><button class=cvbtn data-a="cvstep|1">Back to templates</button><button class=cvbtn data-a=cvhome>Make another CV</button></div>`}
+
+// ---------- preview: the real template, live ----------
+function cvHtml(d,tpl,fin){return window.EJCV.renderCV(cvClean(d),tpl||ui.cv.tpl,fin||ui.cv.fin,'/cv-font.woff2')}
+function cvFit(root){(root||document).querySelectorAll('[data-fit]').forEach(b=>{const f=b.querySelector('iframe');if(!f)return;const k=b.clientWidth/794;f.style.transform=`scale(${k})`;b.style.height=Math.round(1123*k)+'px'})}
+let cvPT=0;function cvPreviewSoon(){clearTimeout(cvPT);cvPT=setTimeout(cvPreview,180)}
+function cvPreview(){const f=$('#cvprev');if(!f||!window.EJCV||!ui.cv.d)return;f.srcdoc=cvHtml(ui.cv.d);f.onload=async()=>{try{const doc=f.contentDocument;await doc.fonts.ready;const pg=doc.querySelector('.pg'),ft=doc.querySelector('.foot');const over=[...pg.querySelectorAll('h3,li,p,.rf,.lg,.sk')].some(e=>ft&&e.getBoundingClientRect().bottom>ft.getBoundingClientRect().top+1);if(over!==!!ui.cv.over){ui.cv.over=over;const w=$('#cvover');if(w)w.hidden=!over}}catch(e){}}}
+function cvMount(){const r=$('#cvs');if(!r)return;cvFit(r);
+ r.querySelectorAll('img[data-cvimg]').forEach(im=>cvImg(im.dataset.cvimg).then(u=>{if(u)im.src=u}));
+ if(ui.cv.mode=='home'){const q=$('#cvq');if(q&&!q.dataset.f){q.dataset.f=1;if(!ui.cv.res)q.focus()}return}
+ cvEngine().then(()=>{cvPreview();r.querySelectorAll('iframe[data-tpl]').forEach(f=>{f.srcdoc=cvHtml(ui.cv.d,f.dataset.tpl,ui.cv.fin)})}).catch(e=>toast('✖ '+e.message))}
+addEventListener('resize',()=>cvFit($('#cvs')));
+const cvImgs={};function cvImg(ref){return cvImgs[ref]||(cvImgs[ref]=fetch('/api/cv/file?ref='+encodeURIComponent(ref),{headers:hdrs()}).then(r=>r.ok?r.blob():null).then(b=>b?URL.createObjectURL(b):null).catch(()=>null))}
+// a photo becomes a small square JPEG kept inside the CV (so it still shows after the application photos are cleaned away)
+function cvSquare(src){return new Promise((ok,no)=>{const im=new Image();im.onload=()=>{const s=Math.min(im.width,im.height),c=document.createElement('canvas');c.width=c.height=360;c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)*.35,s,s,0,0,360,360);ok(c.toDataURL('image/jpeg',.84))};im.onerror=()=>no(new Error('That picture could not be opened.'));im.src=src})}
+
+// ---------- the PDF: the template drawn by this browser at print sharpness, saved straight to Downloads ----------
+let cvFontURL=null;async function cvFontData(){if(cvFontURL)return cvFontURL;const b=await (await fetch('/cv-font.woff2')).blob();return cvFontURL=await new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result);r.readAsDataURL(b)})}
+async function cvCanvas(d,tpl,fin){const font=await cvFontData(),html=window.EJCV.renderCV(cvClean(d),tpl,fin,font);
+ const doc=new DOMParser().parseFromString(html,'text/html'),css=[...doc.querySelectorAll('style')].map(s=>s.textContent).join('\n'),body=new XMLSerializer().serializeToString(doc.body).replace(/^<body[^>]*>|<\/body>$/g,'');
+ const W=794,H=1123,S=3,ff=(css.match(/@font-face\{[^}]*\}/)||[''])[0];
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W*S}" height="${H*S}" viewBox="0 0 ${W} ${H}"><defs><style>${ff}</style></defs><foreignObject width="${W}" height="${H}"><div xmlns="http://www.w3.org/1999/xhtml" class="cvr"><style>${css}</style>${body}</div></foreignObject></svg>`;
+ const src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);let im=new Image();im.src=src;await im.decode();await new Promise(r=>setTimeout(r,450));im=new Image();im.src=src;await im.decode();
+ const c=document.createElement('canvas');c.width=W*S;c.height=H*S;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);return c}
+function cvPdfBlob(jpg,w,h){const enc=new TextEncoder(),parts=[],offs=[];let len=0;const put=p=>{const b=typeof p=='string'?enc.encode(p):p;parts.push(b);len+=b.length};
+ const obj=(n,s)=>{offs[n]=len;put(`${n} 0 obj\n`);s.forEach(put);put('\nendobj\n')};const PW=595.28,PH=841.89,cs=`q ${PW} 0 0 ${PH} 0 0 cm /Im0 Do Q`;
+ put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');obj(1,['<< /Type /Catalog /Pages 2 0 R >>']);obj(2,['<< /Type /Pages /Kids [3 0 R] /Count 1 >>']);
+ obj(3,[`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`]);
+ obj(4,[`<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`,jpg,'\nendstream']);
+ obj(5,[`<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`]);const xr=len;put(`xref\n0 6\n0000000000 65535 f \n${[1,2,3,4,5].map(n=>String(offs[n]).padStart(10,'0')+' 00000 n \n').join('')}trailer\n<< /Size 6 /Root 1 0 R /Info << /Producer (Elite Jobs Rwanda CV studio) >> >>\nstartxref\n${xr}\n%%EOF`);
+ return new Blob(parts,{type:'application/pdf'})}
+async function cvDownload(d,tpl,fin){await cvEngine();const c=await cvCanvas(d,tpl,fin),b=await new Promise(ok=>c.toBlob(ok,'image/jpeg',.92)),jpg=new Uint8Array(await b.arrayBuffer());
+ const u=URL.createObjectURL(cvPdfBlob(jpg,c.width,c.height)),a=document.createElement('a');a.href=u;a.download=(String(d.name||'CV').replace(/[\\/:*?"<>|]/g,'').trim()||'CV')+' CV.pdf';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),6e4)}
+
+// ---------- actions ----------
+function cvOpenData(fill){const d=Object.assign(cvBlank(),JSON.parse(JSON.stringify(fill||{})));['experience','education','skills','languages','certificates','references'].forEach(k=>{if(!Array.isArray(d[k]))d[k]=[]});d.experience.forEach(e=>{e.points=Array.isArray(e.points)?e.points:[]});return d}
+Object.assign(A,{
+ cvhome(){const c=ui.cv;haptic('soft');Object.assign(c,{mode:'home',d:null,person:null,id:null,step:0,saved:0,over:false});cvPaint()},
+ cvblank(){const c=ui.cv;haptic('soft');Object.assign(c,{mode:'edit',person:null,key:null,id:null,d:cvBlank(),step:0,read:{},saved:0,tpl:'horizon',fin:'starlight'});cvPaint()},
+ cvopen(key){const c=ui.cv;haptic('soft');c.busy='p';api('/api/cv/person?key='+encodeURIComponent(key)).then(P=>{c.busy=null;Object.assign(c,{mode:'edit',person:P,key,step:0,read:{},saved:0});
+  const last=P.cvs[0];if(last){c.id=last.id;c.d=cvOpenData(last.data);c.tpl=last.tpl;c.fin=last.finish;toast('Opened the CV made '+agoT(last.updated)+' — edit it, or make it again')}else{c.id=null;c.d=cvOpenData(P.fill);c.tpl='horizon';c.fin='starlight'}cvPaint()}).catch(e=>{c.busy=null;haptic('error');toast('✖ '+e.message)})},
+ cvload(id){const c=ui.cv,x=c.person&&c.person.cvs.find(y=>y.id==id);if(!x)return;c.id=x.id;c.d=cvOpenData(x.data);c.tpl=x.tpl;c.fin=x.finish;c.saved=0;haptic('soft');cvPaint()},
+ cvfresh(){const c=ui.cv;if(!c.person)return;c.id=null;c.d=cvOpenData(c.person.fill);c.saved=0;cvPaint()},
+ cvstep(n){const c=ui.cv,d=c.d;n=+n;if(n>0&&String(d.name||'').trim().length<3){haptic('error');return toast('✖ Write the person’s full name first')}
+  if(n>0&&!/\d{9}/.test(String(d.phone||'').replace(/\D/g,''))&&!/@/.test(d.email||'')){haptic('error');return toast('✖ Add a phone number or an email')}
+  haptic('tick');const go=()=>{c.step=n;cvPaint();$('#main').scrollTop=0};if(document.startViewTransition&&!matchMedia('(prefers-reduced-motion:reduce)').matches){const v=document.startViewTransition(go);[v.ready,v.finished,v.updateCallbackDone].forEach(p=>p.catch(()=>{}))}else go()},
+ cvtpl(k){ui.cv.tpl=k;haptic('tick');cvAll('#cvs .cvtpl').forEach(b=>{const on=b.dataset.a=='cvtpl|'+k;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});const cap=$('#cvs .cvcap');if(cap)cap.textContent=`${CVT.find(t=>t[0]==k)[1]} · ${CVF.find(f=>f[0]==ui.cv.fin)[1]} · A4`;cvPreview()},
+ cvfin(k){ui.cv.fin=k;haptic('tick');cvPaint()},
+ cvadd(k){const d=ui.cv.d;const add={experience:{role:'',org:'',place:'',from:'',to:'',about:'',points:[],nw:1},education:{title:'',school:'',from:'',to:''},languages:{name:'',level:'Good'},certificates:'',references:{name:'',role:'',phone:''}}[k];
+  if(k=='experience'&&ui.cv.person&&cvNew()>=2)return toast('Two new experiences is the most for a CV made from applications');d[k].push(typeof add=='object'?Object.assign({},add):add);haptic('soft');cvPaint();setTimeout(()=>{const all=cvAll(`#cvs [data-cvf^="${k}.${d[k].length-1}"]`);all[0]&&all[0].focus()},30)},
+ cvdel(k,i){ui.cv.d[k].splice(+i,1);haptic('soft');cvPaint();cvPreviewSoon()},
+ cvlv(i,v){ui.cv.d.languages[+i].level=v;haptic('tick');cvPaint()},
+ cvread(ref){const c=ui.cv;ref=decodeURIComponent(ref);c.read[ref]='busy';cvPaint();api('/api/cv/read?ref='+encodeURIComponent(ref)).then(r=>{c.read[ref]=r;cvPaint()}).catch(e=>{c.read[ref]={err:e.message};cvPaint()})},
+ cvfile(ref){const w=window.open('','_blank');fetch('/api/cv/file?ref='+encodeURIComponent(decodeURIComponent(ref)),{headers:hdrs()}).then(async r=>{if(!r.ok)throw new Error(await r.text()||'Not available');const u=URL.createObjectURL(await r.blob());if(w)w.location=u;else location.href=u}).catch(e=>{if(w)w.close();toast('✖ '+e.message)})},
+ cvpick(ref,k,i){const c=ui.cv,d=c.d,S=(c.read[decodeURIComponent(ref)]||{}).sections||{};const v=k=='summary'?S.summary:(S[k]||[])[+i];if(!v)return;
+  if(k=='skills'){if(d.skills.length>=14)return toast('14 skills is the most a CV can hold');d.skills.push(v)}else if(k=='languages')d.languages.push({name:v,level:'Good'});else if(k=='summary')d.summary=v.slice(0,900);haptic('soft');cvPaint();cvPreviewSoon()},
+ cvcopy(l){const t=decodeURIComponent(l);(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Copied — paste it where it belongs')).catch(()=>toast(t))},
+ cvphoto(ref){const c=ui.cv;if(!ref){c.d.photo='';cvPaint();return}cvImg(decodeURIComponent(ref)).then(u=>u?cvSquare(u):Promise.reject(new Error('That photo isn’t available any more.'))).then(p=>{c.d.photo=p;haptic('success');cvPaint()}).catch(e=>toast('✖ '+e.message))},
+ async cvsave(){const c=ui.cv;if(c.busy)return;c.busy='save';cvPaint();
+  try{const r=await api('/api/cv/save',{id:c.id||'',key:c.key||'',data:cvClean(c.d),tpl:c.tpl,finish:c.fin});c.id=r.cv.id;if(c.person){const L=c.person.cvs,i=L.findIndex(x=>x.id==r.cv.id);if(i>=0)L[i]=r.cv;else L.unshift(r.cv)}
+   await cvDownload(c.d,c.tpl,c.fin);c.saved=Date.now();haptic('success');toast('✔ Saved and downloaded')}catch(e){haptic('error');toast('✖ '+e.message)}c.busy=null;cvPaint()},
+ cvdl(id){const c=ui.cv,x=c.person&&c.person.cvs.find(y=>y.id==id);if(!x)return;toast('Preparing the PDF…');cvDownload(x.data,x.tpl,x.finish).then(()=>haptic('success')).catch(e=>toast('✖ '+e.message))},
+ cvprint(){cvEngine().then(()=>{const f=document.createElement('iframe');f.style.cssText='position:fixed;width:0;height:0;border:0;opacity:0';f.srcdoc=cvHtml(ui.cv.d);f.onload=()=>{setTimeout(()=>{f.contentWindow.focus();f.contentWindow.print();setTimeout(()=>f.remove(),6e4)},350)};document.body.append(f)})}});
+document.addEventListener('input',e=>{const t=e.target;if(!t||!t.closest||!t.closest('#cvs'))return;
+ if(t.id=='cvq')return cvSearch(t.value);
+ const p=t.dataset.cvf;if(!p||!ui.cv.d)return;cvSet(ui.cv.d,p,/\.points$/.test(p)?t.value.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,5):t.value);cvPreviewSoon();
+ if(/^(experience|education|references)\.\d+\.(role|org|title|name)$/.test(p)){const h=t.closest('.cvitem');const b=h&&h.querySelector('.cvih b');if(b){const [k,i]=p.split('.'),o=ui.cv.d[k][i];b.textContent=o.role||o.org||o.title||o.name||'New'}}});
+document.addEventListener('keydown',e=>{if(e.target&&e.target.id=='cvsk'&&e.key=='Enter'){e.preventDefault();const v=e.target.value.trim();if(!v)return;const d=ui.cv.d;if(!d.skills.some(x=>x.toLowerCase()==v.toLowerCase()))d.skills.push(v.slice(0,40));haptic('soft');cvPaint();cvPreviewSoon();setTimeout(()=>{const n=$('#cvsk');n&&n.focus()},20)}
+ if(e.target&&e.target.id=='cvq'&&e.key=='Enter'){const b=$('#cvres .cvp');b&&b.click()}});
+document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches||!t.matches('#cvs [data-cvup]')||!t.files[0])return;const u=URL.createObjectURL(t.files[0]);cvSquare(u).then(p=>{ui.cv.d.photo=p;URL.revokeObjectURL(u);haptic('success');cvPaint()}).catch(er=>toast('✖ '+er.message))});
 
 _render();boot();if(PREVIEW)previewStart();else if(!softResume())showGate();
 </script></body></html>

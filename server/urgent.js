@@ -93,7 +93,16 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
                 const name = `${a.id}-${n}.${ext}`; fs.writeFileSync(path.join(PH, name), Buffer.from(await r.arrayBuffer())); photos.push(name);
               } catch (e) { /* a missing photo is skipped, the person is still kept */ }
             }
-            const rec = { id: a.id, post: a.post, title: a.title || (a.data && a.data.job) || 'Urgent job', created: a.created, got: Date.now(), data: a.data || {}, photos, status: 'new' };
+            const docs = {};                                     // the CV (n=3) and diploma (n=4) the post asked for
+            for (const [k, n] of [['cv', 3], ['dip', 4]]) {
+              if (!((a.data && a.data.files) || []).includes(k)) continue;
+              try {
+                const r = await remote(`/api/hub/apps/${encodeURIComponent(a.id)}/photo/${n}`), ct = r.headers.get('content-type') || '';
+                const ext = ct.includes('pdf') ? 'pdf' : ct.includes('openxml') ? 'docx' : ct.includes('msword') ? 'doc' : ct.includes('png') ? 'png' : ct.includes('webp') ? 'webp' : 'jpg';
+                const name = `${a.id}-${k}.${ext}`; fs.writeFileSync(path.join(PH, name), Buffer.from(await r.arrayBuffer())); docs[k] = name;
+              } catch (e) { /* kept without it; staff can ask for it on the call */ }
+            }
+            const rec = { id: a.id, post: a.post, title: a.title || (a.data && a.data.job) || 'Urgent job', created: a.created, got: Date.now(), data: a.data || {}, photos, docs, status: 'new' };
             have.push(rec); fresh.push(rec); wj(APPS, have);
           }
           await remote(`/api/hub/apps/${encodeURIComponent(a.id)}/ack`, { method: 'POST' }); // the website deletes its copy
@@ -126,7 +135,7 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
     let list = rj(APPS, []), ch = false; const now = Date.now(), cut = cutoff(now), p60 = now - 60 * 864e5, p180 = now - 180 * 864e5;
     for (const a of list) {
       if (a.status === 'done' && !a.archivedAt && applied(a) < cut) { a.archivedAt = now; ch = true; }          // 17:00 passed: saved to Daily review and Job data automatically
-      if (a.status === 'done' && a.reviewedAt < p60 && a.photos.length) { a.photos.forEach(n => { try { fs.unlinkSync(path.join(PH, n)); } catch (e) {} }); a.photos = []; ch = true; }
+      if (a.status === 'done' && a.reviewedAt < p60 && (a.photos.length || Object.keys(a.docs || {}).length)) { a.photos.concat(Object.values(a.docs || {})).forEach(n => { try { fs.unlinkSync(path.join(PH, n)); } catch (e) {} }); a.photos = []; a.docs = {}; ch = true; }
     }
     const keep = list.filter(a => !(a.status === 'done' && a.reviewedAt < p180));
     if (keep.length !== list.length) { list = keep; ch = true; }
@@ -163,18 +172,44 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
       const m = b.meta || {};
       if (!String(m.loc || '').trim()) throw err('Add where the job is.');
       if (Number(m.salMin) && Number(m.salMax) && Number(m.salMin) > Number(m.salMax)) throw err('The lowest pay can’t be higher than the highest pay.');
-      body = { kind: 'card', title, tpl: String(b.tpl || 'gen'), meta: m, expires, by: p.name };
+      body = { kind: 'card', title, tpl: String(b.tpl || 'gen'), meta: m, expires, by: p.name, rules: rulesOf(b.rules) };
     } else {                                                   // classic: a flyer photo
       const m = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(String(b.image || ''));
       if (!m) throw err('Add the flyer or photo of the job.');
       const positions = (Array.isArray(b.positions) ? b.positions : String(b.positions || '').split('\n')).map(x => String(x).trim().slice(0, 60)).filter(Boolean).slice(0, 12);
-      body = { title, role: b.role, text: b.text, place: b.place, positions, expires, by: p.name, image: { mime: m[1], b64: m[2], w: b.w, h: b.h } };
+      body = { title, role: b.role, text: b.text, place: b.place, positions, expires, by: p.name, rules: rulesOf(b.rules), image: { mime: m[1], b64: m[2], w: b.w, h: b.h } };
     }
     const r = await remote('/api/hub/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json();
     appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `published the urgent job “${title}” on the website${b.kind === 'card' ? ' (job card)' : ''} (ends ${new Date(expires).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })})` });
     broadcast({ type: 'urgent', kind: 'posts' });
     return j;
+  }
+  const rulesOf = r => { r = r || {}; return { cv: !!r.cv, dip: !!r.dip, gender: ['f', 'm'].includes(r.gender) ? r.gender : 'any' }; };
+  // change a live post: end time, title, pay, place, text, and what applicants must send
+  async function editPost(p, b) {
+    need(p, 'post');
+    const id = String(b.id || ''); if (!id) throw err('Choose the post to change.');
+    const body = {};
+    if (b.title !== undefined) { body.title = String(b.title).trim().slice(0, 80); if (body.title.length < 3) throw err('Give the job a short title.'); }
+    if (b.until) { body.expires = Date.parse(b.until); if (!(body.expires > Date.now() + 6e4)) throw err('Choose an end time in the future.'); }
+    if (b.meta) { const m = b.meta; if (Number(m.salMin) && Number(m.salMax) && Number(m.salMin) > Number(m.salMax)) throw err('The lowest pay can’t be higher than the highest pay.'); body.meta = { salMin: Number(m.salMin) || 0, salMax: Number(m.salMax) || 0, loc: String(m.loc || ''), desc: String(m.desc || '') }; }
+    if (b.place !== undefined) body.place = String(b.place); if (b.text !== undefined) body.text = String(b.text);
+    if (b.rules) body.rules = rulesOf(b.rules);
+    const r = await remote(`/api/hub/posts/${encodeURIComponent(id)}/edit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw err(j.error || 'The website didn’t accept the change.');
+    appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `edited the urgent job “${body.title || id}” on the website${body.expires ? ' (now ends ' + new Date(body.expires).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) + ')' : ''}` });
+    broadcast({ type: 'urgent', kind: 'posts' });
+    return j;
+  }
+  // an applicant's CV or diploma: only people who review applicants, and every opening is logged
+  function doc(p, id, k) {
+    need(p, 'review');
+    const a = rj(APPS, []).find(x => x.id === id), name = a && (a.docs || {})[k];
+    if (!name) throw err('That document isn’t available any more.', 404);
+    appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `opened the ${k === 'cv' ? 'CV' : 'diploma'} of ${String(a.data.name || 'an applicant').slice(0, 60)} (urgent job)` });
+    const ext = name.split('.').pop();
+    return { file: path.join(PH, name), name: `${String(a.data.name || 'applicant').replace(/[^\w .-]/g, '').trim() || 'applicant'} ${k === 'cv' ? 'CV' : 'diploma'}.${ext}`, type: { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', png: 'image/png', webp: 'image/webp' }[ext] || 'image/jpeg' };
   }
   async function removePost(p, id) {
     need(p, 'post');
@@ -187,7 +222,7 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
   // ---------------- applicants ----------------
   // only what the screen needs, never the whole archive at once:
   //   live — since the last 17:00 (New applicants + Called); day — one date in Daily review; data — saved results (Job data)
-  const light = a => ({ ...a, photos: a.photos.length, day: kDay(applied(a)) });
+  const light = a => ({ ...a, photos: a.photos.length, docs: Object.keys(a.docs || {}), day: kDay(applied(a)) });
   function apps(p, q = {}) {
     need(p, 'review'); tidy();
     const all = rj(APPS, []), cut = cutoff(), scope = q.scope || 'live';
@@ -236,5 +271,6 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
       outcomes: sum(list), byPost: Object.values(byPost).sort((a, b) => b.applied - a.applied), byReviewer: byRev, labels: OUTCOMES
     };
   }
-  return { rights, me, grantsView, setGrant, cfgView, setCfg, sync, posts, publish, removePost, apps, photo, outcome, reopen, finish, report, need, remote };
+  return { rights, me, grantsView, setGrant, cfgView, setCfg, sync, posts, publish, removePost, editPost, doc, apps, photo, outcome, reopen, finish, report, need, remote,
+    allApps: () => rj(APPS, []), filePath: n => path.join(PH, path.basename(String(n))) };
 };

@@ -201,6 +201,7 @@ function appendActivity(a) { fs.appendFileSync(ACTIVITY, JSON.stringify(a) + '\n
 const office = require('./office.js')({ DATA_DIR, loadState, commit: s => commit(s), broadcast: o => broadcast(o), activity, appendActivity, ai, PORT, ipOf: realIp });
 const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => broadcast(o), appendActivity, secEvent: (t, w) => office.secEvent(t, w) });
 const inquiries = require('./inquiries.js')({ DATA_DIR, broadcast: o => broadcast(o), appendActivity: a => appendActivity(a), urgent });
+const cvs = require('./cvs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a) });
 const webjobs = require('./webjobs.js')({ DATA_DIR, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), need: (p, w) => urgent.need(p, w) });
 
 // ---- sign-in anomaly alerts ----
@@ -293,7 +294,7 @@ function snapshot(s) {
 }
 
 // ---- HTTP ---------------------------------------------------------------------
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/json', '.yml': 'text/yaml', '.exe': 'application/octet-stream', '.blockmap': 'application/octet-stream', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/json', '.yml': 'text/yaml', '.exe': 'application/octet-stream', '.blockmap': 'application/octet-stream', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -376,8 +377,8 @@ const server = http.createServer((req, res) => {
     const me = whoFrom(req);
     const run = fn => Promise.resolve().then(fn).then(r => json(res, 200, r)).catch(e => json(res, e.code >= 400 && e.code < 600 ? e.code : 400, { error: e.message || String(e) }));
     if (p === '/api/webjobs' && !post) return run(() => webjobs.list(me));
-    if (p === '/api/webjobs/save' && post) return readBody(req, 5e4, buf => run(() => webjobs.save(me, JSON.parse(buf.toString() || '{}'))));
-    if (p === '/api/webjobs/close' && post) return readBody(req, 1e4, buf => run(() => webjobs.close(me, String(JSON.parse(buf.toString() || '{}').id || ''))));
+    // opening jobs are built into the website's code; the Hub only publishes urgent jobs
+    if ((p === '/api/webjobs/save' || p === '/api/webjobs/close') && post) return json(res, 410, { error: 'Opening jobs are built into the website now. Publish urgent jobs from Urgent hiring.' });
     return send(res, 404, '');
   }
 
@@ -403,6 +404,19 @@ const server = http.createServer((req, res) => {
     return send(res, 404, '');
   }
 
+  // ---- CV studio: search a person, fill a CV from what they sent us, keep the CVs we make ----
+  if (p.startsWith('/api/cv/')) {
+    const me = whoFrom(req), q = url.searchParams;
+    const run = fn => Promise.resolve().then(fn).then(r => json(res, 200, r)).catch(e => json(res, e.code >= 400 && e.code < 600 ? e.code : 400, { error: e.message || String(e) }));
+    if (p === '/api/cv/search') return run(() => cvs.search(me, q.get('q') || ''));
+    if (p === '/api/cv/person') return run(() => cvs.person(me, q.get('key') || ''));
+    if (p === '/api/cv/read') return run(() => cvs.read(me, q.get('ref') || ''));
+    if (p === '/api/cv/file') { try { const f = cvs.raw(me, q.get('ref') || ''); return fs.readFile(f.file, (e, d) => e ? send(res, 404, '') : send(res, 200, d, f.type)); } catch (e) { return send(res, e.code || 400, e.message); } }
+    if (p === '/api/cv/save' && post) return readBody(req, 4e5, buf => run(() => cvs.save(me, JSON.parse(buf.toString() || '{}'))));
+    if (p === '/api/cv/remove' && post) return readBody(req, 1e4, buf => run(() => cvs.remove(me, String(JSON.parse(buf.toString() || '{}').id || ''))));
+    return send(res, 404, '');
+  }
+
   // ---- Urgent hiring (identity = trusted device; permission = Admin's grant) ----
   if (p.startsWith('/api/urgent/') || p.startsWith('/api/devices')) {
     const me = whoFrom(req), q = url.searchParams;
@@ -417,6 +431,8 @@ const server = http.createServer((req, res) => {
     if (p === '/api/urgent/sync' && post) return run(async () => { urgent.need(me, urgent.rights(me).review ? 'review' : 'admin'); await urgent.sync(); return urgent.cfgView(); });
     if (p === '/api/urgent/posts' && !post) return run(() => urgent.posts(me));
     if (p === '/api/urgent/posts' && post) return readBody(req, 12e6, buf => run(() => urgent.publish(me, JSON.parse(buf.toString() || '{}'))));
+    if (p === '/api/urgent/posts/edit' && post) return readBody(req, 2e4, buf => run(() => urgent.editPost(me, JSON.parse(buf.toString() || '{}'))));
+    if (p === '/api/urgent/doc') { try { const f = urgent.doc(me, q.get('app'), q.get('k')); return fs.readFile(f.file, (e, d) => e ? send(res, 404, '') : (res.setHeader('Content-Disposition', `inline; filename="${f.name}"`), send(res, 200, d, f.type))); } catch (e) { return send(res, e.code || 400, e.message); } }
     if (p === '/api/urgent/posts/remove' && post) return readBody(req, 1e4, buf => run(() => urgent.removePost(me, JSON.parse(buf.toString() || '{}').id)));
     if (p === '/api/urgent/apps') return run(() => urgent.apps(me, { scope: q.get('scope') || '', d: q.get('d') || '' }));
     if (p === '/api/urgent/photo') { try { const f = urgent.photo(me, q.get('app'), q.get('n')); return fs.readFile(f.file, (e, d) => e ? send(res, 404, '') : send(res, 200, d, f.type)); } catch (e) { return send(res, e.code || 400, e.message); } }
