@@ -249,6 +249,6 @@ function renderCV(d, tpl, finish, fontUrl) {
   const [css, html] = mk(dark === 'all' ? fAll(f) : fv(f, dark, head))(d);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(d.name)} CV</title><style>@font-face{font-family:G;src:url(${fontUrl || 'Geist-Variable.woff2'}) format("woff2");font-weight:100 900}${BASE}${css}</style></head><body>${html}</body></html>`;
 }
-window.EJCV = { renderCV, NAMES, FINISHES: F };
+window.EJCV = { renderCV, NAMES, FINISHES: F, MARK };
 
 })();

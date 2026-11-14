@@ -2457,6 +2457,151 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .vfcall>span:nth-child(2){display:grid}.vfcall small{color:var(--mu);font-size:12px}
 @media(max-width:700px){.vfdl{grid-template-columns:1fr 1fr}.vfrr{grid-template-columns:auto 1fr}.vfdec{grid-column:1/-1;justify-content:flex-start}.vfcall{grid-template-columns:auto 1fr}.vfcall .cvlk,.vfcall .vfgo{grid-column:span 1}.vfrq{grid-template-columns:1fr}.vffh{flex-wrap:wrap}}
 </style>`);
+// ================= Vacancy flow · stage 3: daily tasks · interview report · dashboard · database rooms =================
+Object.assign(VF,{dash:null,irp:null,irl:null,irq:{day:''},ir:{tpl:'aurora',to:[],sent:null},dbq:{room:'vacs',day:'',q:''},dbo:{}});
+const IR_TPL=[['aurora','Aurora','Violet sky'],['paper','Paper','Clean white'],['graphite','Graphite','Dark titanium']];
+const IR_TO=[['rm','Recruitment manager'],['admin','Admin'],['hr','HR manager']],IR_TOL=Object.fromEntries(IR_TO);
+const irMark=()=>window.EJCV&&EJCV.MARK?EJCV.MARK:'<svg viewBox="-150 -150 300 300"><circle r="142" fill="#5b489d"/></svg>';
+const irCls=m=>m==null?'':m>=17?'t':m<15?'l':'m';
+const IR_CSS=`.irdoc{--ink:#15131f;--mut:#6c6981;--line:#e8e6f0;--card:#fff;--pg:#f6f5fb;--t:#1fb57a;--m:#e8960c;--l:#ef4b4f;font-family:-apple-system,"SF Pro Text","Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--pg);border-radius:26px;overflow:hidden;max-width:900px;margin:0 auto 16px;border:1px solid var(--line);text-align:left}
+.irdoc *{box-sizing:border-box}.irh{display:flex;gap:18px;align-items:center;padding:30px 32px 28px;position:relative;overflow:hidden}
+.irlogo{width:56px;height:56px;flex:none;border-radius:50%;box-shadow:0 0 0 5px #ffffff26}.irlogo svg{width:100%;height:100%;display:block}
+.irh small{display:block;font-size:12.5px;font-weight:600;color:var(--mut);letter-spacing:.01em}.irh h2{margin:3px 0 4px;font-size:27px;line-height:1.15;letter-spacing:-.022em;font-weight:700}.irh p{margin:0;font-size:13px;color:var(--mut)}
+.ir-aurora .irh{background:radial-gradient(130% 160% at 0% 0%,#8a6bff 0%,#5b489d 42%,#20184a 100%);color:#fff}.ir-aurora .irh small,.ir-aurora .irh p{color:#ffffffc4}
+.ir-paper{--pg:#fff}.ir-paper .irh{border-bottom:1px solid var(--line);color:#5b489d}.ir-paper .irh h2{color:var(--ink)}
+.ir-graphite{--ink:#ededf2;--mut:#9b9ba8;--line:#2d2d35;--card:#1c1c21;--pg:#131316;--t:#3ddc97;--m:#ffb340;--l:#ff6b6b}.ir-graphite .irh{background:linear-gradient(135deg,#2b2b31,#141417);color:#d9d9df}.ir-graphite .irh small,.ir-graphite .irh p{color:#a9a9b4}
+.irk{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.irk div{background:var(--card);padding:14px 18px}.irk b{display:block;font-size:25px;font-weight:700;letter-spacing:-.025em;font-variant-numeric:tabular-nums}.irk span{font-size:12px;color:var(--mut)}
+.irsum{margin:0;padding:20px 32px 18px;font-size:15px;line-height:1.62}
+.irv{margin:0 18px 14px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px 20px}
+.irv>header{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.irv h3{margin:0;font-size:18px;letter-spacing:-.01em}.irv>header small{color:var(--mut);font-size:13px}
+.irvs{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0 12px;font-size:13px;color:var(--mut)}.irvs b{color:var(--ink);font-variant-numeric:tabular-nums}
+.irbar{display:flex;height:8px;border-radius:99px;overflow:hidden;gap:2px;margin-bottom:12px;background:var(--line)}.irbar i{display:block;min-width:0}.irbar .t{background:var(--t)}.irbar .m{background:var(--m)}.irbar .l{background:var(--l)}
+.irtw{overflow-x:auto}.irt{width:100%;border-collapse:collapse;font-size:13.5px}.irt th{text-align:left;font-size:11.5px;color:var(--mut);font-weight:600;padding:6px 10px 6px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+.irt td{padding:9px 10px 9px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;vertical-align:top}.irt tr:last-child td{border-bottom:0}.irt small{display:block;color:var(--mut);font-size:11.5px}
+.irf{font-weight:800}.irf.t{color:var(--t)}.irf.m{color:var(--m)}.irf.l{color:var(--l)}
+.irteam{margin:6px 18px 18px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 20px}.irteam h3{margin:0 0 6px;font-size:16px}
+.irfoot{padding:4px 32px 24px;font-size:12px;color:var(--mut)}
+@media print{.irdoc{border:0;border-radius:0;max-width:none}.irv,.irteam{break-inside:avoid}}`;
+function irDoc(r){const S=r.stats||r,T=S.tot,f=n=>n==null?'—':vfR1(n);
+ const team=(S.team||[]).length?`<section class=irteam><h3>Who did what</h3><div class=irtw><table class=irt><thead><tr><th>Interviewer</th><th>People marked</th><th>Questions asked</th><th>Average mark given</th><th>Finished</th><th>Not there</th></tr></thead><tbody>${S.team.map(o=>`<tr><td><b>${esc(o.name)}</b></td><td>${o.marked}</td><td>${o.questions}</td><td>${o.avgGiven==null?'—':vfR1(o.avgGiven)+'/20'}</td><td>${o.finished}</td><td>${o.absent}</td></tr>`).join('')}</tbody></table></div></section>`:'';
+ return`<article class="irdoc ir-${esc(r.tpl||'aurora')}"><header class=irh><span class=irlogo aria-hidden=true>${irMark()}</span><div><small>Elitejobs Rwanda · Interview report</small><h2>${esc(vfDate(r.day))}</h2><p>${r.by?'By '+esc(r.by.name):''}${r.to&&r.to.length?' · to '+r.to.map(x=>esc(IR_TOL[x]||x)).join(', '):''}${r.t?' · sent '+vfWhen(r.t):''}</p></div></header>
+ <div class=irk>${[['Positions',T.vacancies],['Said coming',T.expected],['Interviewed',T.interviewed],['17 or above',T.top],['Under 15',T.low],['Best mark',f(T.best)],['Average',f(T.avg)]].map(([l,v])=>`<div><b>${v}</b><span>${l}</span></div>`).join('')}</div>
+ <p class=irsum>${esc(r.summary||'')}</p>
+ ${S.vacs.map(v=>{const off=[...new Set(v.cands.flatMap(c=>c.rows.map(x=>x.name)))];return`<section class=irv><header><h3>${esc(v.title)}</h3>${v.employer?`<small>${esc(v.employer)}</small>`:''}</header>
+  <div class=irvs><span><b>${v.expected}</b> said coming</span><span><b>${v.interviewed}</b> interviewed</span><span><b>${v.top}</b> at 17 or above</span><span><b>${v.mid}</b> 15 to 17</span><span><b>${v.low}</b> under 15</span><span>best <b>${f(v.best)}</b></span><span>average <b>${f(v.avg)}</b></span>${v.open?`<span><b>${v.open}</b> still in interview</span>`:''}${v.qualified||v.notq?`<span><b>${v.qualified}</b> qualified · <b>${v.notq}</b> not</span>`:''}</div>
+  ${v.interviewed?`<div class=irbar role=img aria-label="${v.top} at 17 or above, ${v.mid} from 15 to 17, ${v.low} under 15"><i class=t style="flex:${v.top}"></i><i class=m style="flex:${v.mid}"></i><i class=l style="flex:${v.low}"></i></div>`:''}
+  ${v.cands.length?`<div class=irtw><table class=irt><thead><tr><th>Candidate</th><th>Final</th>${off.map(n=>`<th>${esc(n.split(' ')[0])}</th>`).join('')}<th>Decision</th></tr></thead><tbody>${v.cands.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td><span class="irf ${irCls(c.final)}">${vfR1(c.final)}</span>/20</td>${off.map(n=>{const x=c.rows.find(y=>y.name==n);return`<td>${!x?'—':x.absent?'<small>Not there</small>':x.s20==null?'—':vfR1(x.s20)+`<small>${x.q} q · ${esc(x.topic)}</small>`}</td>`}).join('')}<td>${c.push=='qualified'?'Qualified':c.push?'Not qualified':'Waiting'}</td></tr>`).join('')}</tbody></table></div>`:''}</section>`}).join('')}
+ ${team}<footer class=irfoot>Every figure comes from the marks the interview staff entered in Elitejobs Hub. Marks are out of 20: each question is marked 0–5 and the final mark is the average of the interviewers.</footer></article>`}
+function irFile(r){return`<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Interview report — ${esc(r.day)}</title><style>body{margin:0;padding:24px;background:#eceaf3}@media print{body{padding:0;background:#fff}}${IR_CSS}</style></head><body>${irDoc(r)}</body></html>`}
+document.head.insertAdjacentHTML('beforeend',`<style>${IR_CSS}
+.irpick{display:grid;gap:10px}.irpickh{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.irpickh h3{margin:0}.irpickh small{color:var(--mu)}.irtot{font-size:12.5px;font-weight:700;color:var(--ac);white-space:nowrap}
+.irlbl{font-size:12.5px;font-weight:700;color:var(--mu);margin-top:4px}
+.irtpls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.irtpl{display:grid;gap:2px;text-align:left;border:1.5px solid var(--bd);background:var(--s1);border-radius:16px;padding:10px;cursor:pointer;font:inherit;color:var(--tx);transition:border-color .2s,transform .2s}
+.irtpl i{display:block;height:46px;border-radius:10px;margin-bottom:6px}.irtpl small{color:var(--mu);font-size:11.5px}.irtpl.on{border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 22%,transparent)}.irtpl:active{transform:scale(.98)}
+.tp-aurora i{background:radial-gradient(130% 160% at 0% 0%,#8a6bff,#5b489d 45%,#20184a)}.tp-paper i{background:#fff;border:1px solid #e3e1ea;box-shadow:inset 0 -14px 0 #f6f5fb}.tp-graphite i{background:linear-gradient(135deg,#2b2b31,#141417)}
+.irtos{display:flex;flex-wrap:wrap;gap:6px}.irprev summary{cursor:pointer;font-weight:700;color:var(--ac);margin:4px 0 10px}
+.irsent{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px}.irsent h3{margin:0}
+.vfdk{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:0 0 18px}.vfdk div{background:var(--s1);border:1px solid var(--bd);border-radius:18px;padding:14px 16px}.vfdk b{display:block;font-size:28px;letter-spacing:-.03em;font-variant-numeric:tabular-nums}.vfdk span{font-size:12.5px;color:var(--mu)}
+.vfdk .hi{background:linear-gradient(135deg,color-mix(in srgb,var(--ac) 16%,var(--s1)),var(--s1))}
+.vfdh{font-size:13px;font-weight:700;color:var(--mu);margin:18px 0 8px}
+.vfdr{background:var(--s1);border:1px solid var(--bd);border-radius:20px;padding:16px 18px;margin-bottom:10px}.vfdr header{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}.vfdr h3{margin:0;font-size:17px}.vfdr header small{color:var(--mu)}
+.vfprog{height:8px;border-radius:99px;background:var(--s2);overflow:hidden;margin:10px 0}.vfprog i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--ac),#2ecc8f);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.vfdn{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--mu)}.vfdn b{color:var(--tx)}
+.vfppl{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.vfppl div{background:var(--s1);border:1px solid var(--bd);border-radius:16px;padding:12px 14px}.vfppl small{display:block;color:var(--mu);font-size:12px;margin-top:2px}
+.edbbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 6px}.edbbar form{display:flex;gap:8px;flex:1;min-width:240px}.edbbar .ugsearch{flex:1;margin:0}
+.vfhist{margin:0;padding-left:18px;font-size:13px;line-height:1.7}.vfhist small{color:var(--mu)}
+.edbcount{font-size:12.5px;color:var(--mu);margin:2px 0 10px}
+.edbrep{background:var(--s1);border:1px solid var(--bd);border-radius:18px;padding:14px 16px;margin-bottom:10px}.edbrep header{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.edbrep p{margin:6px 0 0;font-size:14px;line-height:1.55}
+@media(max-width:600px){.irtpls{grid-template-columns:1fr 1fr 1fr}.irtpl small{display:none}.irh{padding:22px 20px}.irsum{padding:16px 20px}.irv,.irteam{margin-inline:10px}}
+</style>`);
+
+// ---- loaders ----
+function irPrevLoad(){if(ui.me.r!='int')return;api('/api/vf/ireport').then(r=>{VF.irp=r;vfRefresh();const e=flat(ui.r)[ui.v];if(e&&e.b=='myreport')refreshMain()}).catch(()=>{})}
+function irListLoad(){return api('/api/vf/ireports?day='+encodeURIComponent(VF.irq.day||'')).then(r=>{VF.irl=r;if(!VF.irq.day)VF.irq.day=r.day;vfRefresh()}).catch(e=>{VF.irl={err:e.message};vfRefresh()})}
+function vfDashLoad(){return api('/api/vf/dash').then(r=>{VF.dash=r;vfRefresh()}).catch(e=>{VF.dash={err:e.message};vfRefresh()})}
+function dbLoad(){const q=VF.dbq;return api('/api/vf/db/room?room='+q.room+'&day='+encodeURIComponent(q.day||'')+'&q='+encodeURIComponent(q.q||'')).then(r=>{VF.db=r;if(!q.day)q.day=r.day;vfRefresh()}).catch(e=>{VF.db={err:e.message};vfRefresh()})}
+['vfdash','vfirep'].forEach(b=>{if(!STATIC.includes(b))STATIC.push(b);if(!VF_VIEWS.includes(b))VF_VIEWS.push(b)});
+LOADERS.vfdash=()=>{vfLoad0();vfDashLoad()};LOADERS.vfirep=()=>{vfLoad0();irListLoad();cvEngine().then(vfRefresh).catch(()=>{})};
+LOADERS.edb=g=>{vfLoad0();g=g||(flat(ui.r)[ui.v]||{}).g;const r=['vacs','apps','ints','reports'].includes(g)?g:'vacs';if(VF.dbq.room!=r){VF.dbq={room:r,day:'',q:''};VF.db=null}dbLoad();if(r=='reports')cvEngine().then(vfRefresh).catch(()=>{})};
+const vfMrL0=LOADERS.myreport;LOADERS.myreport=g=>{vfMrL0(g);if(ui.me.r=='int'){vfLoad0();irPrevLoad();cvEngine().catch(()=>{})}};
+const vfLoad1=vfLoad;vfLoad=function(){vfLoad1();const e=flat(ui.r)[ui.v];if(!e)return;if(e.b=='vfdash')vfDashLoad();if(e.b=='vfirep')irListLoad();if(e.b=='myreport')irPrevLoad()};LOADERS.tasks=vfLoad;
+// the rooms
+const vfNav1=vfNav;vfNav=function(){vfNav1();const Rt=vfRights(),r=R[ui.r];if(!r)return;let ch=false;const g=r.nav.find(x=>x[0]=='Recruitment');
+ if(g&&Rt.view&&!g[1].some(e=>e.b=='vfdash')){const i=g[1].findIndex(e=>e.g=='vfnew');g[1].splice(i+1,0,{l:'Vacancy dashboard',i:'📊',b:'vfdash'});ch=true}
+ if(g&&(Rt.admin||Rt.rm||ui.me.r=='hr'||ui.me.r=='int')&&!g[1].some(e=>e.b=='vfirep')){g[1].push({l:'Interview reports',i:'🗂️',b:'vfirep'});ch=true}
+ const d=r.nav.find(x=>x[0]=='Elitejobs database');if(d&&!d[1].some(e=>e.g=='apps')){d[1]=[{l:'Vacancies',i:'🗄️',b:'edb',g:'vacs'},{l:'Applicants',i:'🧾',b:'edb',g:'apps'},{l:'Interviews',i:'🎤',b:'edb',g:'ints'},{l:'Reports',i:'📚',b:'edb',g:'reports'}];ch=true}
+ if(ch)render(true)};
+
+// ---- My report: the interview report goes out with Let's get it ----
+const vfMr0=V.myreport;V.myreport=function(){const h=vfMr0();if(ui.me.r!='int'||!vfRights().view)return h;const I=VF.ir,P=VF.irp;
+ const panel=`<div class="card irpick"><div class=irpickh><div><h3>Interview report</h3><small>Goes out with <b>Let’s get it</b>: today’s marks for every position, and who did what.</small></div><span class=irtot>${P?P.tot.interviewed+' interviewed today':''}</span></div>
+ <div class=irlbl>Template</div><div class=irtpls role=radiogroup aria-label="Template">${IR_TPL.map(([k,l,d])=>`<button role=radio aria-checked=${I.tpl==k} class="irtpl tp-${k} ${I.tpl==k?'on':''}" data-a="irtpl|${k}"><i></i><b>${l}</b><small>${d}</small></button>`).join('')}</div>
+ <div class=irlbl>Send it to</div><div class=irtos role=group aria-label="Send it to">${IR_TO.map(([k,l])=>`<button role=checkbox aria-checked=${I.to.includes(k)} class="ugoc ${I.to.includes(k)?'on':''}" data-a="irto|${k}">${I.to.includes(k)?'✓ ':''}${l}</button>`).join('')}</div>
+ ${!P?'<small class=sub>Counting today’s interviews…</small>':!P.vacs.length?'<small class=sub>No interviews finished today yet — only your own report will go.</small>':I.to.length?`<details class=irprev><summary>Preview the interview report</summary>${irDoc({...P,by:{name:ui.me.u},to:I.to,tpl:I.tpl})}</details>`:'<small class=sub>Choose at least one person — otherwise only your own report goes to Admin.</small>'}</div>`;
+ let out=h.replace('<div class="card letsgo">',panel+'<div class="card letsgo">');
+ if(I.sent)out+=`<div class=card><div class=irsent><div><h3>Interview report sent ✓</h3><small class=sub>to ${I.sent.to.map(x=>esc(IR_TOL[x])).join(', ')}</small></div>${btn('⬇ Download','irdl|sent')}</div>${irDoc(I.sent)}</div>`;
+ return out};
+const vfLg0=A.letsgo;A.letsgo=async function(){const I=VF.ir,send=ui.me.r=='int'&&I.to.length&&VF.irp&&VF.irp.vacs.length&&!(ui.mr&&ui.mr.busy);
+ await vfLg0.call(A);if(!send)return;
+ try{const r=await api('/api/vf/ireport/send',{tpl:I.tpl,to:I.to});I.sent=r.report;haptic('success');toast('✔ Interview report sent to '+I.to.map(x=>IR_TOL[x]).join(', '))}catch(e){haptic('error');toast('✖ '+e.message)}
+ refreshMain()};
+
+// ---- Interview reports (the people it was sent to, Admin, and the interview staff) ----
+V.vfirep=function(){const D=VF.irl;if(!D)return'<h1>Interview reports</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Interview reports</h1><p class=bad>${esc(D.err)}</p>`;
+ return`<h1>Interview reports</h1><div class=sub>Sent by the interview staff at the end of the day — every position’s marks and who did what.</div>${vfDayChips(D.days,VF.irq.day,'irday')}
+ ${D.list.length?D.list.map(r=>`<div class=irsent><small class=sub>${esc(r.by.name)} · ${vfWhen(r.t)}</small>${btn('⬇ Download','irdl|'+r.id)}</div>${irDoc(r)}`).join(''):'<div class=vfempty><b>No interview report on this date</b><small>Reports arrive here when the interview staff press Let’s get it.</small></div>'}`};
+
+// ---- Vacancy dashboard ----
+const VF_SL={post:'Posting',call:'Calling',hr:'With HR',notice:'In Notices',upcoming:'Interviews',done:'Filed'};
+V.vfdash=function(){const D=VF.dash;if(!D)return'<h1>Vacancy dashboard</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Vacancy dashboard</h1><p class=bad>${esc(D.err)}</p>`;const T=D.tiles,k=(n,l,hi)=>`<div class="${hi?'hi':''}"><b>${n==null?'—':n}</b><span>${l}</span></div>`;
+ return`<h1>Vacancy dashboard</h1><div class=sub>${esc(vfDate(D.day))} · every live vacancy and how far it has moved. A vacancy leaves this page when it is filed at midnight after its interviews.</div>
+ <div class=vfdh>Vacancies moving now</div><div class=vfdk>${k(T.live,'Live vacancies',1)}${k(T.posting,'Being posted')}${k(T.calling,'Being called')}${k(T.hr,'With HR')}${k(T.notices,'In Notices')}${k(T.interviews,'In interviews')}</div>
+ <div class=vfdh>People</div><div class=vfdk>${k(T.applied,'Applied',1)}${k(T.toCall,'Still to call')}${k(T.coming,'Coming on site')}${k(T.interviewed,'Interviewed today')}${k(T.top,'17 or above today')}${k(T.avg==null?null:vfR1(T.avg),'Average mark today')}</div>
+ <div class=vfdh>After the interviews · today</div><div class=vfdk>${k(T.qualified,'Qualified',1)}${k(T.calledBack,'Called to meet the employer')}${k(T.served,'Served')}${k(T.filed,'Vacancies filed, all time')}</div>
+ <div class=vfdh>Each vacancy</div>${D.rows.length?D.rows.map(v=>`<article class=vfdr><header><div><h3>${esc(v.title)}</h3><small>${esc(v.employer||'')}${v.employer?' · ':''}stated ${agoT(v.created)}</small></div><b>${esc(VF_SL[v.stage]||v.stage)} · ${v.pct}%</b></header>
+  <div class=vfprog role=progressbar aria-valuenow=${v.pct} aria-valuemin=0 aria-valuemax=100><i style="width:${v.pct}%"></i></div>
+  <div class=vfdn><span>Stated by <b>${esc(v.starter)}</b></span>${v.poster?`<span>Posted by <b>${esc(v.poster)}</b></span>`:''}${v.caller?`<span>Called by <b>${esc(v.caller)}</b></span>`:''}${v.hr?`<span>Completed by <b>${esc(v.hr)}</b></span>`:''}</div>
+  <div class=vfdn style="margin-top:6px"><span><b>${v.applied}</b> applied</span>${v.stage=='call'?`<span><b>${v.toCall}</b> to call</span>`:''}<span><b>${v.coming}</b> coming on site</span>${v.stage=='upcoming'?`<span><b>${v.interviewed}</b> interviewed</span><span><b>${v.inRoom}</b> in the room</span>${v.best!=null?`<span>best <b>${vfR1(v.best)}</b>/20</span>`:''}`:''}</div></article>`).join(''):'<div class=vfempty><b>No live vacancies</b><small>Stated vacancies appear here until they are filed.</small></div>'}
+ <div class=vfdh>Who moved vacancies today</div>${D.people.length?`<div class=vfppl>${D.people.map(p=>`<div><b>${esc(p.name)}</b><small>${p.n} step${p.n==1?'':'s'} · ${p.vacs.map(esc).join(', ')}</small></div>`).join('')}</div>`:'<div class=sub>Nobody has moved a vacancy yet today.</div>'}`};
+
+// ---- Elitejobs database rooms ----
+const EDB={vacs:['Vacancies','Every vacancy by the day it was stated, with who did each step.'],apps:['Applicants','Everyone who applied for an urgent job, by the day they applied, with what the Call Center heard.'],ints:['Interviews','Every finished interview with each interviewer’s mark, the decision and the call-back.'],reports:['Reports','Interview reports and every Let’s get it report, by the day they were sent.']};
+const vfEdb0=V.edb;V.edb=function(g){const D=VF.db;
+ if(!D||D.err&&/locked/i.test(D.err)||!D.room)return vfEdb0(g);
+ if(D.err)return`<h1>Elitejobs database</h1><p class=bad>${esc(D.err)}</p>`;const q=VF.dbq,[t,sub]=EDB[D.room];
+ const L=D.list;let body='';
+ if(D.room=='vacs')body=L.map(v=>`<article class="vfdr"><header><div><h3>${esc(v.title)}</h3><small>${esc(v.employer||'')}${v.employer?' · ':''}${v.need} needed · ${vfWhen(v.t)}</small></div><b>${esc(VF_SL[v.stage]||v.stage)}${v.closed?' · '+esc(v.closed):''}</b></header>
+  <div class=vfdn style="margin-top:8px"><span>Stated by <b>${esc(v.starter)}</b></span>${v.poster?`<span>Posted by <b>${esc(v.poster)}</b></span>`:''}${v.caller?`<span>Called by <b>${esc(v.caller)}</b></span>`:''}${v.hr?`<span>Completed by <b>${esc(v.hr)}</b></span>`:''}</div>
+  <div class=vfdn style="margin-top:6px"><span><b>${v.applied}</b> called</span><span><b>${v.coming}</b> coming on site</span><span><b>${v.interviewed}</b> interviewed</span></div>
+  ${v.hist.length?`<details class=irprev><summary>History · ${v.hist.length} steps</summary><ul class=vfhist>${v.hist.map(h=>`<li><small>${vfWhen(h.t)}</small> <b>${esc(h.by)}</b> ${esc(h.text)}</li>`).join('')}</ul></details>`:''}</article>`).join('');
+ if(D.room=='apps')body=L.length?`<div class=vftw><table class=vft><thead><tr><th>Name</th><th>Contact</th><th>Applied for</th><th>Call</th><th>When</th></tr></thead><tbody>${L.map(a=>`<tr><td><b>${esc(a.name)}</b><small>${esc(a.lives)}${a.gender?' · '+(a.gender=='f'?'Woman':a.gender=='m'?'Man':esc(a.gender)):''}</small></td><td>${esc(a.phone)}${a.wa&&a.wa!=a.phone?`<small>WhatsApp ${esc(a.wa)}</small>`:''}${a.email?`<small>${esc(a.email)}</small>`:''}</td><td>${esc(a.job)}${a.vac&&a.vac!=a.job?`<small>Vacancy: ${esc(a.vac)}</small>`:''}</td><td>${a.outcome?esc(UGL_VF[a.outcome]||a.outcome):'<small>Not called</small>'}${a.calledBy?`<small>by ${esc(a.calledBy)}</small>`:''}${a.note?`<small>${esc(a.note)}</small>`:''}</td><td>${vfWhen(a.t)}</td></tr>`).join('')}</tbody></table></div>`:'';
+ if(D.room=='ints')body=L.length?`<div class=vftw><table class=vft><thead><tr><th>Name</th><th>Position</th><th>Final</th><th>Interviewers</th><th>Decision</th></tr></thead><tbody>${L.map(c=>`<tr><td><b>${esc(c.name)}</b><small>${esc(c.phone)}</small></td><td>${esc(c.position)}<small>${esc(c.employer||'')}</small></td><td><b class="irf ${irCls(c.final)}">${vfR1(c.final)}</b>/20</td><td>${c.rows.map(r=>`${esc(r.name)}: ${r.absent?'not there':r.s20==null?'—':vfR1(r.s20)}${r.topic?` <small>${r.q} q · ${esc(r.topic)}</small>`:''}`).join('<br>')}</td><td>${c.push?(c.push.q?'Qualified':'Not qualified')+`<small>by ${esc(c.push.by)}</small>`:'<small>Waiting</small>'}${c.called?`<small>Called by ${esc(c.called)}</small>`:''}${c.served!=null?`<small>${c.served?'Served':'Not served'}</small>`:''}</td></tr>`).join('')}</tbody></table></div>`:'';
+ if(D.room=='reports')body=L.map(r=>r.kind=='interview'?`<div class=edbrep><header><div><b>🎤 Interview report</b> <small class=sub>by ${esc(r.by)} · to ${r.to.map(esc).join(', ')} · ${vfWhen(r.t)}</small></div><span>${VF.dbo[r.id]?btn('⬇ Download','irdl|'+r.id):''}${btn(VF.dbo[r.id]?'Close':'Open','edbir|'+r.id)}</span></header><p>${esc(r.summary)}</p>${VF.dbo[r.id]&&VF.dbo[r.id].day?irDoc(VF.dbo[r.id]):''}</div>`
+  :`<div class=edbrep><header><div><b>📝 ${esc(r.label)}</b> <small class=sub>${esc(r.by)} · ${esc(r.dept)} · ${vfWhen(r.t)}${r.ai?' · written by Hub AI':''}</small></div></header><details class=irprev><summary>Read the report</summary><div class=aiout>${md(r.text)}</div></details></div>`).join('');
+ return`<h1>${t}</h1><div class=sub>${sub} Opening data here is your own responsibility; downloads are logged.</div>
+ <div class=edbbar><form id=edbq autocomplete=off><label class=ugsearch><input name=q type=search placeholder="Search every day — name, phone, position" value="${esc(q.q||'')}"></label><button class="b p">Search</button>${q.q?'<button type=button class=b data-a=edbclear>Clear</button>':''}</form>${L.length?btn('⬇ Download','edbdl','p'):''}</div>
+ ${q.q?'':vfDayChips(D.days,q.day,'edbday')}
+ <div class=edbcount>${q.q?`${L.length} found for “${esc(q.q)}” across every day`:`${L.length} on ${esc(vfDate(D.day))}`} · ${D.total} kept in total</div>
+ ${body||`<div class=vfempty><b>${q.q?'Nothing matches':'Nothing on this date'}</b><small>${q.q?'Try part of a name or a phone number.':'Choose another day, or search.'}</small></div>`}`};
+document.addEventListener('submit',e=>{if(e.target.id=='edbq'){e.preventDefault();e.stopImmediatePropagation();VF.dbq.q=e.target.q.value.trim();dbLoad()}},true);
+const csvCell=x=>{const s=String(x==null?'':x);return/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+function edbCsv(D){const L=D.list,rows=D.room=='vacs'?[['Stated','Position','Employer','Needed','Step','Stated by','Posted by','Called by','Completed by','Called','Coming','Interviewed'],...L.map(v=>[vfWhen(v.t),v.title,v.employer,v.need,VF_SL[v.stage]||v.stage,v.starter,v.poster,v.caller,v.hr,v.applied,v.coming,v.interviewed])]
+ :D.room=='apps'?[['Applied','Name','Phone','WhatsApp','Email','Lives in','Gender','Job','Call result','Called by','Note'],...L.map(a=>[vfWhen(a.t),a.name,a.phone,a.wa,a.email,a.lives,a.gender,a.job,UGL_VF[a.outcome]||a.outcome,a.calledBy,a.note])]
+ :D.room=='ints'?[['Finished','Name','Phone','Email','Position','Employer','Final /20','Interviewers','Decision','Called by','Served'],...L.map(c=>[vfWhen(c.t),c.name,c.phone,c.email,c.position,c.employer,c.final,c.rows.map(r=>r.name+' '+(r.absent?'not there':r.s20)).join('; '),c.push?(c.push.q?'Qualified':'Not qualified')+' by '+c.push.by:'',c.called,c.served==null?'':c.served?'Served':'Not served'])]
+ :[['Sent','Kind','By','Title / to','Summary'],...L.map(r=>[vfWhen(r.t),r.kind=='interview'?'Interview report':'Staff report',r.by,r.kind=='interview'?r.to.join(', '):r.label,r.kind=='interview'?r.summary:r.text])];
+ return'﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n')}
+Object.assign(A,{
+ irtpl(k){VF.ir.tpl=k;haptic('tick');refreshMain()},
+ irto(k){const t=VF.ir.to,i=t.indexOf(k);i<0?t.push(k):t.splice(i,1);haptic('tick');refreshMain()},
+ irday(d){VF.irq.day=d;irListLoad()},
+ async irdl(id){let r=id=='sent'?VF.ir.sent:(VF.irl&&VF.irl.list||[]).find(x=>x.id==id)||(VF.dbo[id]&&VF.dbo[id].day?VF.dbo[id]:null);
+  try{if(!r)r=await api('/api/vf/ireport/get?id='+encodeURIComponent(id));await cvEngine().catch(()=>{});saveFile('Elitejobs interview report - '+r.day+'.html',irFile(r));toast('⬇ Downloaded — open it and print to PDF if you need one')}catch(e){toast('✖ '+e.message)}},
+ edbday(d){VF.dbq.day=d;dbLoad()},
+ edbclear(){VF.dbq.q='';dbLoad()},
+ async edbir(id){if(VF.dbo[id]){delete VF.dbo[id];refreshMain();return}VF.dbo[id]={};try{VF.dbo[id]=await api('/api/vf/ireport/get?id='+encodeURIComponent(id))}catch(e){delete VF.dbo[id];toast('✖ '+e.message)}refreshMain()},
+ async edbdl(){const q=VF.dbq;try{const D=await api('/api/vf/db/export',{room:q.room,day:q.day,q:q.q});const b=new Blob([edbCsv(D)],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`Elitejobs database - ${EDB[D.room][0]} - ${D.q?'search':D.day}.csv`;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);toast('⬇ Downloaded — this download is logged')}catch(e){toast('✖ '+e.message)}}});
+
 
 // ================= CV studio =================
 // Search someone who applied → their CV fills itself from everything they sent us → add what is missing → choose one of
@@ -2469,7 +2614,7 @@ const CVF=[['starlight','Starlight','#5B489D','#EAE3D6'],['midnight','Midnight',
 const CV_LV=['Native','Fluent','Good','Basic'];
 const cvBlank=()=>({name:'',title:'',phone:'',email:'',location:'',summary:'',photo:'',experience:[{role:'',org:'',place:'',from:'',to:'',about:'',points:[],nw:1}],education:[{title:'',school:'',from:'',to:''}],skills:[],languages:[{name:'Kinyarwanda',level:'Native'},{name:'English',level:'Good'}],certificates:[],references:[]});
 if(!ui.cv)ui.cv={mode:'home',q:'',res:null,step:0,tpl:'horizon',fin:'starlight'};
-let cvEng=null;const cvEngine=()=>cvEng||(cvEng=new Promise((ok,no)=>{if(window.EJCV)return ok(window.EJCV);const s=document.createElement('script');s.src='/cv-engine.js?v=1';s.onload=()=>ok(window.EJCV);s.onerror=()=>{cvEng=null;no(new Error('The CV templates could not load. Check the connection and try again.'))};document.head.append(s)}));
+let cvEng=null;const cvEngine=()=>cvEng||(cvEng=new Promise((ok,no)=>{if(window.EJCV)return ok(window.EJCV);const s=document.createElement('script');s.src='/cv-engine.js?v=2';s.onload=()=>ok(window.EJCV);s.onerror=()=>{cvEng=null;no(new Error('The CV templates could not load. Check the connection and try again.'))};document.head.append(s)}));
 const cvAll=s=>[...document.querySelectorAll(s)];
 const cvGet=(o,p)=>p.split('.').reduce((a,k)=>a==null?a:a[k],o);
 const cvSet=(o,p,v)=>{const ks=p.split('.');let a=o;ks.slice(0,-1).forEach(k=>a=a[k]);a[ks[ks.length-1]]=v};

@@ -198,11 +198,11 @@ function activity() {
   catch (e) { return []; }
 }
 function appendActivity(a) { fs.appendFileSync(ACTIVITY, JSON.stringify(a) + '\n'); }
-const office = require('./office.js')({ DATA_DIR, loadState, commit: s => commit(s), broadcast: o => broadcast(o), activity, appendActivity, ai, PORT, ipOf: realIp });
+const office = require('./office.js')({ DATA_DIR, loadState, commit: s => commit(s), broadcast: o => broadcast(o), activity, appendActivity, ai, PORT, ipOf: realIp, extraFor: (p, w) => vflow.dailyTasks(p.id, p.name, w.from, w.to), dailyText: l => vflow.dailyText(l) });
 const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => broadcast(o), appendActivity, secEvent: (t, w) => office.secEvent(t, w) });
 const inquiries = require('./inquiries.js')({ DATA_DIR, broadcast: o => broadcast(o), appendActivity: a => appendActivity(a), urgent });
 const cvs = require('./cvs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a) });
-const vflow = require('./vflow.js')({ DATA_DIR, urgent, staffOf: () => (loadState().staff || []).filter(x => !x.left), stateOf: () => loadState() || {}, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
+const vflow = require('./vflow.js')({ DATA_DIR, urgent, staffOf: () => (loadState().staff || []).filter(x => !x.left), stateOf: () => loadState() || {}, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), note: (r, t) => office.hubNote(r, t) });
 const webjobs = require('./webjobs.js')({ DATA_DIR, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), need: (p, w) => urgent.need(p, w) });
 
 // ---- sign-in anomaly alerts ----
@@ -437,6 +437,13 @@ const server = http.createServer((req, res) => {
     if (p === '/api/vf/keys/revoke' && post) return body(1e4, b => vflow.revoke(me, String(b.id || '')));
     if (p === '/api/vf/db/unlock' && post) return body(1e4, b => vflow.unlock(me, b.key));
     if (p === '/api/vf/db') return run(() => vflow.dbList(me));
+    if (p === '/api/vf/db/room') return run(() => vflow.dbRoom(me, { room: q.get('room'), day: q.get('day'), q: q.get('q') }));
+    if (p === '/api/vf/db/export' && post) return body(1e4, b => vflow.dbExport(me, b));
+    if (p === '/api/vf/dash') return run(() => vflow.dashboard(me));
+    if (p === '/api/vf/ireport') return run(() => vflow.intPreview(me, q.get('day')));
+    if (p === '/api/vf/ireport/send' && post) return body(1e4, b => vflow.intSend(me, b));
+    if (p === '/api/vf/ireports') return run(() => vflow.intReports(me, { day: q.get('day') }));
+    if (p === '/api/vf/ireport/get') return run(() => vflow.irGet(me, q.get('id') || ''));
     return send(res, 404, '');
   }
 

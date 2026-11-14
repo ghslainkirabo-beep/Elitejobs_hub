@@ -6,7 +6,7 @@ const os = require('os');
 let QR = null; try { QR = require('qrcode'); } catch (e) {}
 
 module.exports = function makeOffice(ctx) {
-  const { DATA_DIR, loadState, commit, broadcast, activity, appendActivity, ai, PORT } = ctx;
+  const { DATA_DIR, loadState, commit, broadcast, activity, appendActivity, ai, PORT, extraFor, dailyText } = ctx;
   const ATT = path.join(DATA_DIR, 'attendance.json');
   const DEV = path.join(DATA_DIR, 'devices.json');
   const ACFG = path.join(DATA_DIR, 'attendance-settings.json');
@@ -218,7 +218,9 @@ module.exports = function makeOffice(ctx) {
       catch (e) { aiNote = e.message; }
     }
     if (!text) text = plainReport(p, w, st);
-    const rec = { id: 'RPT-' + tok(5), uid, name: p.name, role: p.role, dept: p.dept, period: w.period, from: w.from, to: w.to, label: w.label, t: Date.now(), stats: st.s, text, ai: byAI, aiNote };
+    let daily = []; try { daily = extraFor ? extraFor(p, w) : []; } catch (e) { daily = []; }
+    if (daily.length && dailyText) text += '\n' + dailyText(daily);
+    const rec = { id: 'RPT-' + tok(5), uid, name: p.name, role: p.role, dept: p.dept, period: w.period, from: w.from, to: w.to, label: w.label, t: Date.now(), stats: st.s, text, ai: byAI, aiNote, daily };
     fs.appendFileSync(REP, JSON.stringify(rec) + '\n');
     appendActivity({ t: rec.t, by: p.name, uid: p.id, role: p.role, text: 'sent a ' + w.period + ' report to Admin' });
     hubNote(['admin'], '📊 ' + p.name + ' (' + p.dept + ') sent their ' + w.period + ' report');
@@ -280,5 +282,5 @@ module.exports = function makeOffice(ctx) {
       <footer>Figures come from what each person did in Elitejobs Hub and their QR check-ins. Reports marked “written by Hub AI” were drafted by AI from those figures only.</footer></div></body></html>` };
   }
 
-  return { cfg: publicCfg, setCfg, rotate, makeLink, link, whoami, unlink, scan, dayView, mine, svg, poster, wallUrl, setTitle, secEvent, makeReport, myReports, getReport, overview, docFor, isOffice, ipOf };
+  return { cfg: publicCfg, setCfg, rotate, makeLink, link, whoami, unlink, scan, dayView, mine, svg, poster, wallUrl, setTitle, secEvent, makeReport, myReports, getReport, overview, hubNote, docFor, isOffice, ipOf };
 };

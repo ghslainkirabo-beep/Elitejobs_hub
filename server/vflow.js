@@ -6,7 +6,7 @@
 // never leave the server for them. Everything is kept for good: this file is the vacancy part of Elitejobs database.
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 
-module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity, broadcast }) {
+module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity, broadcast, note }) {
   const F = n => path.join(DATA_DIR, n);
   const VF = F('vflow.json'), GR = F('vflow-grants.json'), KEYS = F('db-passkeys.json');
   const rj = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return d; } };
@@ -35,10 +35,10 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
   const needAdmin = p => { if (!isAdmin(p)) throw err('Only Admin can change who takes part in vacancies.', 403); };
 
   // ---------- the vacancies ----------
-  const load = () => rj(VF, { vacs: [] });
+  const load = () => { const db = rj(VF, { vacs: [] }); if (fileAway(db)) save(db); return db; };
   const save = db => wj(VF, db);
   const find = (db, id) => { const v = db.vacs.find(x => x.id === id); if (!v) throw err('This vacancy no longer exists.', 404); return v; };
-  const hist = (v, p, text) => { v.hist = (v.hist || []).concat({ t: Date.now(), by: p.name, text }).slice(-80); };
+  const hist = (v, p, text) => { v.hist = (v.hist || []).concat({ t: Date.now(), by: p.name, uid: p.id, text }).slice(-200); };
   const applicantsOf = v => v.post && v.post.id ? urgent.allApps().filter(a => a.post === v.post.id) : [];
   const STAGES = ['post', 'call', 'hr', 'notice', 'upcoming', 'done'];
 
@@ -253,7 +253,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     const db = load(), v = find(db, String(b.id || '')), c = v.int && v.int.cands && v.int.cands[b.app];
     if (!c || c.status !== 'open') throw err('This interview is closed.', 409);
     const row = c.rows[b.uid]; if (!row || row.scores) throw err('That row is already marked.', 409);
-    row.absent = { by: p.name, t: Date.now() }; save(db); log(p, `noted that ${row.name} isn’t here for ${c.name}’s interview`); ping();
+    row.absent = { by: p.name, t: Date.now() }; hist(v, p, `noted that ${row.name} wasn’t there for ${c.name}’s interview`); save(db); log(p, `noted that ${row.name} isn’t here for ${c.name}’s interview`); ping();
     return { ok: true };
   }
   function finish(p, b) {
@@ -314,5 +314,147 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     return { ok: true };
   }
 
-  return { upcoming, startInt, addCand, score, absent, finish, results, push, callList, called, waiting, served, rights, mine, list, create, claimPost, posted, callApprove, complete, intApprove, grantsView, setGrant, keysView, forge, revoke, unlock, dbList, kDay };
+  // ================= Stage 3 · daily tasks, interview reports, dashboard, filing by date, database rooms =================
+  // At midnight (Kigali) a vacancy whose interviews are over is filed under the day they ended. Nothing is deleted.
+  function fileAway(db) {
+    const today = kDay(); let ch = false;
+    (db.vacs || []).forEach(v => {
+      if (v.stage !== 'upcoming' || !v.int) return;
+      const C = Object.values(v.int.cands || {}); if (C.some(c => c.status === 'open')) return;
+      const last = C.map(c => c.day).filter(Boolean).sort().pop() || (v.int.started ? kDay(v.int.started.t) : '');
+      if (last && last < today) { v.stage = 'done'; v.closed = { t: Date.now(), day: last }; v.hist = (v.hist || []).concat({ t: Date.now(), by: 'Hub', text: 'filed under ' + last + ' at midnight' }); ch = true; }
+    });
+    return ch;
+  }
+  // everything one person did on vacancies in a window — for “Daily tasks” in My report
+  function dailyTasks(uid, name, from, to) {
+    const out = [];
+    load().vacs.forEach(v => {
+      const items = (v.hist || []).filter(h => h.t >= from && h.t < to && (h.uid ? h.uid === uid : h.by === name)).map(h => ({ t: h.t, text: h.text }));
+      if (items.length) out.push({ id: v.id, title: v.title, employer: v.employer || '', stage: v.stage, items });
+    });
+    return out.sort((a, b) => a.items[0].t - b.items[0].t);
+  }
+  const hm = t => new Date(t + 72e5).toISOString().slice(11, 16);
+  function dailyText(list) {
+    if (!list.length) return '';
+    return '## Daily tasks\n' + list.map(v => `**${v.title}${v.employer ? ' — ' + v.employer : ''}**\n` + v.items.map(i => `- ${hm(i.t)} ${i.text}`).join('\n')).join('\n');
+  }
+
+  // one day of interviews, vacancy by vacancy, with who did what
+  const r1 = n => Math.round(n * 10) / 10;
+  function dayStats(day) {
+    const vacs = [], people = {};
+    load().vacs.forEach(v => {
+      const C = Object.values((v.int && v.int.cands) || {}).filter(c => c.day === day || (c.status === 'open' && kDay(c.added.t) === day));
+      if (!C.length) return;
+      const done = C.filter(c => c.status === 'done' && c.day === day), m = done.map(c => c.final).sort((a, b) => b - a);
+      done.forEach(c => Object.values(c.rows).forEach(r => {
+        const o = people[r.uid] = people[r.uid] || { uid: r.uid, name: r.name, marked: 0, sum: 0, absent: 0, finished: 0, q: 0 };
+        if (r.scores) { o.marked++; o.sum += r.s20; o.q += r.scores.length; } else if (r.absent) o.absent++;
+      }));
+      done.forEach(c => { const f = c.finished; const o = people[f.id] = people[f.id] || { uid: f.id, name: f.name, marked: 0, sum: 0, absent: 0, finished: 0, q: 0 }; o.finished++; });
+      vacs.push({ id: v.id, title: v.title, employer: v.employer || '', expected: ((v.hr && v.hr.keep) || []).length, interviewed: done.length, open: C.length - done.length,
+        top: m.filter(x => x >= 17).length, mid: m.filter(x => x >= 15 && x < 17).length, low: m.filter(x => x < 15).length,
+        best: m.length ? m[0] : null, worst: m.length ? m[m.length - 1] : null, avg: m.length ? r1(m.reduce((a, b) => a + b, 0) / m.length) : null,
+        qualified: done.filter(c => c.push && c.push.qualified).length, notq: done.filter(c => c.push && !c.push.qualified).length,
+        cands: done.sort((a, b) => b.final - a.final).map(c => ({ name: c.name, final: c.final, rows: Object.values(c.rows).map(r => ({ name: r.name, s20: r.s20 == null ? null : r.s20, q: r.scores ? r.scores.length : 0, topic: r.topic || '', absent: !!r.absent })), push: c.push ? (c.push.qualified ? 'qualified' : 'not qualified') : '' })) });
+    });
+    const all = vacs.flatMap(v => v.cands.map(c => c.final));
+    const tot = { vacancies: vacs.length, expected: vacs.reduce((a, v) => a + v.expected, 0), interviewed: all.length, top: all.filter(x => x >= 17).length, low: all.filter(x => x < 15).length, best: all.length ? Math.max(...all) : null, avg: all.length ? r1(all.reduce((a, b) => a + b, 0) / all.length) : null };
+    const team = Object.values(people).map(o => ({ name: o.name, marked: o.marked, finished: o.finished, absent: o.absent, questions: o.q, avgGiven: o.marked ? r1(o.sum / o.marked) : null })).sort((a, b) => b.marked - a.marked);
+    return { day, vacs, tot, team };
+  }
+  function summaryOf(st) {
+    if (!st.vacs.length) return 'No interviews were finished on this day.';
+    return st.vacs.map(v => `${v.title}: ${v.expected} said they were coming, ${v.interviewed} interviewed` + (v.interviewed ? ` — ${v.top} at 17 or above, ${v.mid} between 15 and 17, ${v.low} under 15, best ${v.best}/20, average ${v.avg}/20` : '') + (v.open ? `; ${v.open} still in interview` : '') + '.').join(' ');
+  }
+  const IR = F('int-reports.jsonl');
+  const readIR = () => { try { return fs.readFileSync(IR, 'utf8').split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean); } catch (e) { return []; } };
+  const TPL = ['aurora', 'paper', 'graphite'], TO = { rm: 'Recruitment manager', admin: 'Admin', hr: 'HR manager' };
+  function intPreview(p, day) {
+    const R = rights(p); if (!((p.role === 'int' && R.view) || R.admin)) throw err('Interview reports are written by the interview staff.', 403);
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(day || '') ? day : kDay(), st = dayStats(d);
+    return { ...st, summary: summaryOf(st) };
+  }
+  function intSend(p, b) {
+    const st = intPreview(p, b.day), tpl = TPL.includes(b.tpl) ? b.tpl : 'aurora';
+    const to = [...new Set((Array.isArray(b.to) ? b.to : []).filter(x => TO[x]))];
+    if (!to.length) throw err('Choose who receives the interview report.');
+    if (!st.vacs.length) throw err('No interviews were finished today, so there is nothing to report yet.', 409);
+    const rec = { id: 'IR-' + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString('hex').toUpperCase(), day: st.day, t: Date.now(), by: who(p), tpl, to, stats: { vacs: st.vacs, tot: st.tot, team: st.team }, summary: st.summary };
+    fs.appendFileSync(IR, JSON.stringify(rec) + '\n');
+    log(p, `sent the interview report for ${st.day} to ${to.map(x => TO[x]).join(', ')} (${st.tot.interviewed} interviewed on ${st.vacs.length} position${st.vacs.length === 1 ? '' : 's'})`);
+    if (note) {
+      const roles = new Set(to.filter(x => x !== 'rm'));
+      if (to.includes('rm')) { const g = rj(GR, { users: {} }); staffOf().filter(x => g.users[x.id] && g.users[x.id].rm).forEach(x => roles.add(x.role)); }
+      note([...roles], `📊 ${p.name} sent the interview report for ${st.day}: ${st.tot.interviewed} interviewed, ${st.tot.top} at 17 or above`);
+    }
+    broadcast({ type: 'vflow', kind: 'report' });
+    return { ok: true, report: rec };
+  }
+  // who may read a report: Admin, the sender, and whoever it was sent to
+  function canRead(p, R, r) { return R.admin || r.by.id === p.id || (r.to.includes('hr') && p.role === 'hr') || (r.to.includes('rm') && R.rm); }
+  function intReports(p, q) {
+    const R = rights(p), mine = readIR().filter(r => canRead(p, R, r));
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(q.day || '') ? q.day : kDay();
+    return { day, days: [...new Set(mine.map(r => r.day))].sort().reverse().slice(0, 60).map(d => ({ d, n: mine.filter(r => r.day === d).length })), list: mine.filter(r => r.day === day).reverse() };
+  }
+
+  // the Vacancy dashboard: how every live vacancy is moving, and who moved it today
+  function dashboard(p) {
+    const R = rights(p); if (!R.view) throw err('Admin hasn’t given you access to vacancies.', 403);
+    const today = kDay(), V = load().vacs, live = V.filter(v => v.stage !== 'done');
+    const stage = k => live.filter(v => v.stage === k).length;
+    const fin = finished(), td = fin.filter(c => c.day === today), marks = td.map(c => c.final);
+    const acts = {}; V.forEach(v => (v.hist || []).forEach(h => { if (h.by !== 'Hub' && kDay(h.t) === today) { const o = acts[h.uid || h.by] = acts[h.uid || h.by] || { name: h.by, n: 0, vacs: new Set() }; o.n++; o.vacs.add(v.title); } }));
+    const tiles = { live: live.length, posting: stage('post'), calling: stage('call'), hr: stage('hr'), notices: stage('notice'), interviews: stage('upcoming'),
+      applied: live.reduce((a, v) => a + applicantsOf(v).length, 0), toCall: live.filter(v => v.stage === 'call').reduce((a, v) => a + applicantsOf(v).filter(x => x.status !== 'done').length, 0),
+      coming: live.filter(v => v.hr).reduce((a, v) => a + v.hr.keep.length, 0), interviewed: td.length, avg: marks.length ? r1(marks.reduce((a, b) => a + b, 0) / marks.length) : null,
+      top: marks.filter(x => x >= 17).length, qualified: fin.filter(c => c.push && c.push.qualified && kDay(c.push.t) === today).length,
+      calledBack: fin.filter(c => c.called && c.called.day === today).length, served: fin.filter(c => c.served && c.served.v && kDay(c.served.t) === today).length,
+      filed: V.filter(v => v.stage === 'done').length };
+    const rows = live.sort((a, b) => b.created - a.created).map(v => {
+      const apps = applicantsOf(v), C = Object.values((v.int && v.int.cands) || {}), done = C.filter(c => c.status === 'done');
+      const step = STAGES.indexOf(v.stage), pct = Math.round(((step + (v.stage === 'upcoming' && v.hr.keep.length ? done.length / v.hr.keep.length : 0)) / 5) * 100);
+      return { id: v.id, title: v.title, employer: v.employer || '', stage: v.stage, pct: Math.min(100, pct), created: v.created, starter: v.starter.name,
+        poster: v.post && (v.post.by || v.post.claimed || {}).name || '', caller: v.call ? v.call.by.name : '', hr: v.hr ? v.hr.by.name : '',
+        applied: v.call ? v.call.list.length : apps.length, toCall: v.stage === 'call' ? apps.filter(x => x.status !== 'done').length : 0,
+        coming: v.hr ? v.hr.keep.length : v.call ? v.call.list.filter(x => x.outcome === 'coming').length : 0,
+        interviewed: done.length, inRoom: C.length - done.length, best: done.length ? Math.max(...done.map(c => c.final)) : null };
+    });
+    return { day: today, tiles, rows, people: Object.values(acts).map(o => ({ name: o.name, n: o.n, vacs: [...o.vacs] })).sort((a, b) => b.n - a.n) };
+  }
+
+  // Elitejobs database rooms — kept by date, searchable, never trimmed
+  const ROOMS = ['vacs', 'apps', 'ints', 'reports'];
+  function dbRoom(p, q) {
+    const R = rights(p); if (!R.db) throw err('Elitejobs database is locked. Ask Admin for a passkey.', 403);
+    const room = ROOMS.includes(q.room) ? q.room : 'vacs', t = norm(q.q), V = load().vacs;
+    let items = [];
+    if (room === 'vacs') items = V.map(v => ({ day: kDay(v.created), t: v.created, k: norm(v.title + ' ' + v.employer + ' ' + v.starter.name), v: { id: v.id, title: v.title, employer: v.employer, need: v.need, stage: v.stage, starter: v.starter.name, poster: v.post && (v.post.by || {}).name || '', caller: v.call ? v.call.by.name : '', hr: v.hr ? v.hr.by.name : '', applied: v.call ? v.call.list.length : 0, coming: v.hr ? v.hr.keep.length : 0, interviewed: Object.values((v.int && v.int.cands) || {}).filter(c => c.status === 'done').length, closed: v.closed ? v.closed.day : '', hist: v.hist || [] } }));
+    if (room === 'apps') {
+      const outcome = {}; V.forEach(v => v.call && v.call.list.forEach(x => { outcome[x.app] = { vac: v.title, outcome: x.outcome, calledBy: x.calledBy }; }));
+      items = urgent.allApps().map(a => ({ day: kDay(a.created || a.got), t: a.created || a.got, k: norm([a.data.name, a.data.phone, a.data.email, a.title, a.data.lives].join(' ')),
+        v: { id: a.id, name: a.data.name || '', phone: a.data.phone || '', wa: a.data.whatsapp || '', email: a.data.email || '', lives: a.data.lives || '', gender: a.data.gender || '', job: a.title, outcome: (outcome[a.id] || {}).outcome || a.outcome || '', vac: (outcome[a.id] || {}).vac || '', calledBy: (outcome[a.id] || {}).calledBy || a.reviewer || '', note: a.note || '' } }));
+    }
+    if (room === 'ints') items = finished().map(c => ({ day: c.day, t: c.finished.t, k: norm(c.name + ' ' + c.vacTitle + ' ' + c.phone), v: { name: c.name, phone: c.phone, email: c.email, position: c.vacTitle, employer: c.employer, final: c.final, rows: Object.values(c.rows).map(r => ({ name: r.name, s20: r.s20 == null ? null : r.s20, topic: r.topic || '', q: r.scores ? r.scores.length : 0, absent: !!r.absent })), push: c.push ? { q: c.push.qualified, by: c.push.by.name } : null, called: c.called ? c.called.by.name : '', served: c.served ? c.served.v : null } }));
+    if (room === 'reports') {
+      const staff = (() => { try { return fs.readFileSync(F('reports.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean); } catch (e) { return []; } })();
+      items = readIR().map(r => ({ day: r.day, t: r.t, k: norm('interview ' + r.by.name), v: { kind: 'interview', id: r.id, by: r.by.name, to: r.to.map(x => TO[x]), summary: r.summary, tot: r.stats.tot, tpl: r.tpl } }))
+        .concat(staff.map(r => ({ day: kDay(r.t), t: r.t, k: norm(r.name + ' ' + r.dept + ' ' + r.period), v: { kind: 'staff', id: r.id, by: r.name, dept: r.dept, label: r.label, period: r.period, text: r.text, ai: r.ai } })));
+    }
+    const days = {}; items.forEach(i => { days[i.day] = (days[i.day] || 0) + 1; });
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(q.day || '') ? q.day : kDay();
+    const pick = t ? items.filter(i => i.k.includes(t)) : items.filter(i => i.day === day);
+    return { room, day, q: q.q || '', days: Object.keys(days).sort().reverse().slice(0, 90).map(d => ({ d, n: days[d] })), total: items.length,
+      list: pick.sort((a, b) => b.t - a.t).slice(0, 300).map(i => ({ day: i.day, t: i.t, ...i.v })) };
+  }
+  function irGet(p, id) { const R = rights(p), r = readIR().find(x => x.id === id); if (!r || !(canRead(p, R, r) || R.db)) throw err('Report not found.', 404); return r; }
+  function dbExport(p, b) {
+    const d = dbRoom(p, b); log(p, `downloaded ${d.list.length} record${d.list.length === 1 ? '' : 's'} from Elitejobs database (${{ vacs: 'Vacancies', apps: 'Applicants', ints: 'Interviews', reports: 'Reports' }[d.room]}, ${d.q ? 'search “' + s(d.q, 40) + '”' : d.day})`);
+    return d;
+  }
+
+  return { upcoming, startInt, addCand, score, absent, finish, results, push, callList, called, waiting, served, rights, mine, dailyTasks, dailyText, intPreview, intSend, intReports, irGet, dashboard, dbRoom, dbExport, list, create, claimPost, posted, callApprove, complete, intApprove, grantsView, setGrant, keysView, forge, revoke, unlock, dbList, kDay };
 };
