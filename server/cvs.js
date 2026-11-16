@@ -12,8 +12,8 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
   const rj = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return d; } };
   const wj = (f, v) => { const t = f + '.tmp'; fs.writeFileSync(t, JSON.stringify(v)); fs.renameSync(t, f); };
   const err = (m, code = 400) => Object.assign(new Error(m), { code });
-  // HQ people who serve applicants. Social media and IT don't open applicants' CVs.
-  const ROLES = new Set(['front', 'rec', 'hr', 'admin', 'ops', 'cc', 'int']);
+  // HQ people who serve applicants, and IT (asked for by the office). Social media doesn't open applicants' CVs. Every open is logged.
+  const ROLES = new Set(['front', 'rec', 'hr', 'admin', 'ops', 'cc', 'int', 'it']);
   const need = p => { if (!p) throw err('Sign in first.', 401); if (!ROLES.has(p.role)) throw err('The CV studio is for the people who serve applicants.', 403); };
   const log = (p, text) => appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text });
 
@@ -221,6 +221,9 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
     else { c = { id: 'CV-' + now.toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase(), key, data, tpl, finish, by: p.name, byId: p.id, created: now, updated: now, history: [{ by: p.name, t: now }] }; db.cvs.push(c); }
     wj(CVS, db);
     log(p, `${c.created === now ? 'made' : 'updated'} a CV for ${data.name} (${tpl}, ${finish})`);
+    // the person's website account (if they have one with this phone) gets the CV too: "Made for you at our office"
+    if (ph9(data.phone)) urgent.remote('/api/hub/account-cv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: ph9(data.phone), d: { ...data, photo: '' }, tpl, fin: finish, by: 'Elite Jobs Rwanda' }) })
+      .then(r => r.json()).then(j => { if (j && j.ok && j.sent) log(p, `sent the CV of ${data.name} to their website account`); }).catch(() => {});
     return { ok: true, cv: c };
   }
   function remove(p, id) {

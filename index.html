@@ -2610,7 +2610,7 @@ Object.assign(A,{
 // ================= CV studio =================
 // Search someone who applied → their CV fills itself from everything they sent us → add what is missing → choose one of
 // the seven templates and a finish → Finish saves it with the person and downloads the PDF. A blank CV works the same way.
-const CV_ROLES=['front','rec','hr','admin','ops','cc','int'];
+const CV_ROLES=['front','rec','hr','admin','ops','cc','int','it'];
 CV_ROLES.forEach(k=>{const n=R[k]&&R[k].nav;if(!n||n.some(g=>g[0]=='CV studio'))return;const i=n.findIndex(g=>g[0]=='Me');n.splice(i<0?1:i+1,0,['CV studio',[{l:'Make a CV',i:'📄',b:'cvs'}]])});
 if(typeof STATIC!='undefined'&&!STATIC.includes('cvs'))STATIC.push('cvs');
 const CVT=[['horizon','Horizon','A colour band with the photo rising over it'],['sand','Sand','Warm sidebar, calm reading column'],['bento','Bento','Every section in its own tile'],['halo','Halo','Centred, the photo inside our orbit'],['stone','Stone','Light header band, two columns'],['dune','Dune','Dark sidebar, white page'],['ink','Ink','Dark header like a product page']];
