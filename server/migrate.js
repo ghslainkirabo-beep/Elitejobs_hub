@@ -42,6 +42,21 @@ module.exports = function makeMigrate({ DATA_DIR, loadState, appendActivity, CLO
     if (!okTarget(target)) throw Object.assign(new Error('Use the cloud address, like https://hub.elitejobsrwanda.com'), { status: 400 });
     if (!/^[A-Z0-9]{8,40}$/.test(String(code || ''))) throw Object.assign(new Error('Type the move code shown when the cloud server was set up.'), { status: 400 });
     if (movedTo()) throw Object.assign(new Error('This Hub has already moved to ' + movedTo()), { status: 409 });
+    // Ask first, send nothing yet: only an Elitejobs cloud Hub that is waiting for this move may receive the data
+    return probe(target).then(info => {
+      if (!info || info.hub !== 'elitejobs') throw Object.assign(new Error(target + ' is not an Elitejobs cloud Hub (for example, it may be the jobs website). Nothing was sent. Use the Hub address you set in Cloudflare Tunnel, like https://hub.elitejobsrwanda.com'), { status: 400 });
+      if (!info.waiting) throw Object.assign(new Error('The cloud Hub at ' + target + ' is not waiting for a move' + (info.why ? ' (' + info.why + ')' : '') + '. Nothing was sent.'), { status: 409 });
+      return push(target, code, who);
+    });
+  }
+  function probe(target) {
+    return new Promise(resolve => {
+      const u = new URL(target + '/api/restore'), lib = u.protocol === 'https:' ? https : http;
+      const r = lib.get(u, { timeout: 15000 }, res => { let body = ''; res.on('data', d => { if (body.length < 4000) body += d; }); res.on('end', () => { try { resolve(res.statusCode === 200 ? JSON.parse(body) : null); } catch (e) { resolve(null); } }); });
+      r.on('timeout', () => r.destroy()); r.on('error', () => resolve(null));
+    });
+  }
+  function push(target, code, who) {
     const files = list();
     return new Promise((resolve, reject) => {
       const u = new URL(target + '/api/restore');
@@ -66,6 +81,13 @@ module.exports = function makeMigrate({ DATA_DIR, loadState, appendActivity, CLO
         gz.write(JSON.stringify({ end: files.length }) + '\n'); gz.end();
       })().catch(e => req.destroy(e));
     });
+  }
+
+  // ---------- cloud server: say whether a move is expected (no secrets, no data) ----------
+  function ready() {
+    const want = !!process.env.HUB_RESTORE_CODE, s = loadState();
+    const why = !want ? 'not set up to receive a move' : fs.existsSync(DONE) ? 'it already received the office data' : (s && s.staff && s.staff.length) ? 'it already has people in it' : '';
+    return { hub: 'elitejobs', waiting: !why, why };
   }
 
   // ---------- cloud server: receive once ----------
@@ -117,5 +139,5 @@ module.exports = function makeMigrate({ DATA_DIR, loadState, appendActivity, CLO
     });
   }
 
-  return { movedTo, send, receive, list };
+  return { movedTo, send, receive, list, ready };
 };

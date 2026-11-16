@@ -321,6 +321,7 @@ const server = http.createServer((req, res) => {
   if (p === '/api/check-it-key') return send(res, hasIT(req) ? 204 : 401, '');
   // ---- one-time move from the office PC into this (empty) cloud Hub ----
   if (p === '/api/restore' && post) return migrate.receive(req, res, realIp(req));
+  if (p === '/api/restore' && !post) return json(res, 200, migrate.ready());
   // The Hub PC itself never has to type keys: requests from this same machine get them.
   if (p === '/api/local-keys') return isLocal(req) ? json(res, 200, { office: OFFICE_KEY, it: IT_KEY }) : send(res, 403, '');
   if (p === '/api/ui-version') return json(res, 200, uiInfo());
