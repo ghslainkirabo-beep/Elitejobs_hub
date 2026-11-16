@@ -441,8 +441,8 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     if (room === 'ints') items = finished().map(c => ({ day: c.day, t: c.finished.t, k: norm(c.name + ' ' + c.vacTitle + ' ' + c.phone), v: { name: c.name, phone: c.phone, email: c.email, position: c.vacTitle, employer: c.employer, final: c.final, rows: Object.values(c.rows).map(r => ({ name: r.name, s20: r.s20 == null ? null : r.s20, topic: r.topic || '', q: r.scores ? r.scores.length : 0, absent: !!r.absent })), push: c.push ? { q: c.push.qualified, by: c.push.by.name } : null, called: c.called ? c.called.by.name : '', served: c.served ? c.served.v : null } }));
     if (room === 'reports') {
       const staff = (() => { try { return fs.readFileSync(F('reports.jsonl'), 'utf8').split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean); } catch (e) { return []; } })();
-      items = readIR().map(r => ({ day: r.day, t: r.t, k: norm('interview ' + r.by.name), v: { kind: 'interview', id: r.id, by: r.by.name, to: r.to.map(x => TO[x]), summary: r.summary, tot: r.stats.tot, tpl: r.tpl } }))
-        .concat(staff.map(r => ({ day: kDay(r.t), t: r.t, k: norm(r.name + ' ' + r.dept + ' ' + r.period), v: { kind: 'staff', id: r.id, by: r.name, dept: r.dept, label: r.label, period: r.period, text: r.text, ai: r.ai } })));
+      items = readIR().map(r => ({ day: r.day, t: r.t, k: norm('interview ' + r.by.name + ' ' + (r.summary || '') + ' ' + JSON.stringify(r.stats || {}).replace(/[{}\[\]"]/g, ' ')), v: { kind: 'interview', id: r.id, by: r.by.name, to: r.to.map(x => TO[x]), summary: r.summary, tot: r.stats.tot, tpl: r.tpl } }))
+        .concat(staff.map(r => ({ day: kDay(r.t), t: r.t, k: norm(r.name + ' ' + r.dept + ' ' + r.period + ' ' + (r.text || '')), v: { kind: 'staff', id: r.id, by: r.name, dept: r.dept, label: r.label, period: r.period, text: r.text, ai: r.ai } })));
     }
     const days = {}; items.forEach(i => { days[i.day] = (days[i.day] || 0) + 1; });
     const day = /^\d{4}-\d{2}-\d{2}$/.test(q.day || '') ? q.day : kDay();
