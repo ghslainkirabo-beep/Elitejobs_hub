@@ -5,13 +5,14 @@
 // the name or any detail. A person checking sees the position, the date and the step. Nothing else.
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 
-module.exports = function ({ DATA_DIR, urgent }) {
+module.exports = function ({ DATA_DIR, urgent, sendSms, smsReady, appendActivity }) {
   const F = n => path.join(DATA_DIR, n), SENT = F('status-sent.json');
   const rj = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return d; } };
   const wj = (f, v) => { const t = f + '.tmp'; fs.writeFileSync(t, JSON.stringify(v)); fs.renameSync(t, f); };
   const nine = ph => { const d = String(ph || '').replace(/\D/g, ''); return d.length >= 9 ? d.slice(-9) : ''; };
   const keyOf = (k, secret) => crypto.createHash('sha256').update('ejs:' + k + '|' + secret).digest('hex').slice(0, 32); // the website computes the same
-  const secrets = (idno, born) => { const out = []; const id = String(idno || '').replace(/\D/g, ''); if (id.length >= 8) out.push(id.slice(-4));
+  const secrets = (idno, born) => { const out = ['acct'];   // 'acct': for the person's own website account (their phone was proven by SMS)
+    const id = String(idno || '').replace(/\D/g, ''); if (id.length >= 8) out.push(id.slice(-4));
     const y = String(born || '').match(/\b(19[4-9]\d|20[0-2]\d)\b/); if (y) out.push(y[1]); return out; };
   const KEEP = 150 * 864e5;
 
@@ -63,6 +64,24 @@ module.exports = function ({ DATA_DIR, urgent }) {
       last = { t: Date.now(), ok: true, err: '' };
     } catch (e) { last = { t: Date.now(), ok: false, err: e.message }; } finally { busy = false; }
   }
+  // SMS codes for website accounts: collect, send from the office SMS account, then tell the website (it forgets the code)
+  let smsBusy = false, smsLast = { t: 0, ok: true, err: '', n: 0 };
+  async function sms() {
+    if (smsBusy || fs.existsSync(F('moved.json'))) return; smsBusy = true;
+    try {
+      let r; try { r = await urgent.remote('/api/hub/sms-out'); } catch (e) { return; }
+      const { sms: list = [] } = await r.json(); if (!list.length) return;
+      if (!smsReady()) { smsLast = { t: Date.now(), ok: false, err: 'SMS isn’t set up (Access & SMS), so ' + list.length + ' account code' + (list.length > 1 ? 's are' : ' is') + ' waiting.', n: list.length }; return; }
+      const done = [];
+      for (const x of list) {
+        const text = x.why === 'reset' ? `Elite Jobs Rwanda: your code to set a new password is ${x.code}. It works for 30 minutes. Never share it.` : `Elite Jobs Rwanda: your account code is ${x.code}. It works for 30 minutes. Never share it.`;
+        try { await sendSms(x.phone, text); done.push(x.phone); } catch (e) { smsLast = { t: Date.now(), ok: false, err: e.message, n: list.length }; }
+      }
+      if (done.length) { await urgent.remote('/api/hub/sms-out/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phones: done }) }); smsLast = { t: Date.now(), ok: true, err: '', n: done.length };
+        appendActivity({ t: Date.now(), by: 'Website', uid: '', role: 'web', text: `sent ${done.length} account code${done.length > 1 ? 's' : ''} by SMS` }); }
+    } catch (e) { smsLast = { t: Date.now(), ok: false, err: e.message, n: 0 }; } finally { smsBusy = false; }
+  }
+  setInterval(sms, 20000).unref(); setTimeout(sms, 8000);
   setInterval(push, 60000).unref(); setTimeout(push, 30000);
-  return { push, build, last: () => last };
+  return { push, build, last: () => last, smsLast: () => smsLast };
 };

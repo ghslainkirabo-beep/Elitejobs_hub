@@ -8,7 +8,7 @@
 //   never the number itself). The website refuses one more application when someone has none left, and says why.
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 
-module.exports = function ({ DATA_DIR, urgent, appendActivity, broadcast }) {
+module.exports = function ({ DATA_DIR, urgent, appendActivity, broadcast, smsLast }) {
   const F = n => path.join(DATA_DIR, n), SB = F('subscriptions.json');
   const rj = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return d; } };
   const wj = (f, v) => { const t = f + '.tmp'; fs.writeFileSync(t, JSON.stringify(v)); fs.renameSync(t, f); };
@@ -48,14 +48,15 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity, broadcast }) {
   async function push() {
     if (pushing || fs.existsSync(F('moved.json'))) return; pushing = true;
     try {
-      const D = load(), all = apps(), by = {}, people = {}, now = Date.now();
+      const D = load(), all = apps(), by = {}, people = {}, plans = {}, now = Date.now();
       for (const a of all) (by[a.k] = by[a.k] || []).push(a);
       for (const k of new Set(Object.keys(by).concat(Object.keys(D.people)))) {
         const st = standing(D, k, by[k] || [], now);
         if (st.unlimited) people[hashOf(k)] = 100000; else if (st.left != null) people[hashOf(k)] = st.left;
+        if (st.sub) plans[hashOf(k)] = { n: st.sub.name, e: st.sub.end, a: st.sub.apps };
       }
       const seen = all.filter(a => now - a.t < 30 * 6e4).map(a => a.id);
-      await urgent.remote('/api/hub/quota', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ on: D.on, free: D.free, people, seen }) });
+      await urgent.remote('/api/hub/quota', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ on: D.on, free: D.free, people, plans, seen }) });
       lastPush = { t: now, ok: true, err: '' };
     } catch (e) { lastPush = { t: Date.now(), ok: false, err: e.message }; } finally { pushing = false; }
   }
@@ -80,7 +81,7 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity, broadcast }) {
       month: Object.values(D.people).flatMap(P => P.subs || []).filter(x => kDay(x.start).slice(0, 7) === kDay().slice(0, 7)).length };
     const list = t ? cards.sort((a, b) => b.total - a.total).slice(0, 40)
       : cards.filter(c => c.sub || c.left === 0).sort((a, b) => (a.left === 0 ? 0 : 1) - (b.left === 0 ? 0 : 1) || b.total - a.total).slice(0, 40);
-    return { on: D.on, onSince: D.onSince, free: D.free, plans: D.plans.map(x => planOut(p, x)), list, tiles, admin: realAdmin(p), push: lastPush, q: t };
+    return { on: D.on, onSince: D.onSince, free: D.free, plans: D.plans.map(x => planOut(p, x)), list, tiles, admin: realAdmin(p), push: lastPush, sms: smsLast ? smsLast() : null, q: t };
   }
   function settings(p, b) {
     needAdmin(p); const D = load();

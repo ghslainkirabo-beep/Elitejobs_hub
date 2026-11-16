@@ -2961,7 +2961,7 @@ V.subs=function(){const D=SB.v;if(!D)return'<h1>Plans & limit</h1><div class=sub
   <div class=sbplh><h3>Plans</h3>${btn('+ New plan','sbplan|')}</div>
   ${D.plans.length?`<div class=sbplans>${D.plans.map(p=>`<button class="sbplan ${p.off?'off':''}" data-a="sbplan|${p.id}"><b>${esc(p.name)}</b><span>${p.apps?p.apps+' applications':'Unlimited'} · ${p.days} days</span><em>${crmRWF(p.price)}</em>${p.off?'<small>Hidden</small>':''}</button>`).join('')}</div>`:'<p class=sub>No plan yet. Make one so the desk can start plans after payment.</p>'}
   ${SB.edit?sbPlanForm(SB.edit):''}
-  <small class=sub>Website: ${D.push.ok?'up to date '+esc(vfWhen(D.push.t)):D.push.t?'not updated — '+esc(D.push.err):'waiting for the first update'}</small></section>`:''}
+  ${D.sms&&!D.sms.ok?`<p class=bad>⚠ Website accounts: ${esc(D.sms.err)}</p>`:''}<small class=sub>Website: ${D.push.ok?'up to date '+esc(vfWhen(D.push.t)):D.push.t?'not updated — '+esc(D.push.err):'waiting for the first update'}</small></section>`:''}
  <div class=crmtiles><div><small>People who applied</small><b>${T.people}</b><em>by phone number</em></div><div><small>On a plan now</small><b>${T.active}</b><em>${T.month} started this month</em></div><div class=crmwarn><small>No applications left</small><b>${T.atLimit}</b><em>${D.on?'stopped on the website':'limit is off'}</em></div></div>
  <div class=crmtools><input id=sbq type=search placeholder="Search a job seeker by name or phone" value="${esc(SB.q)}" aria-label="Search job seekers"></div>
  ${!D.q&&D.list.length?'<h2 class=vfh>On a plan, or out of applications</h2>':''}

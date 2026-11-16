@@ -212,5 +212,5 @@ module.exports = function makeInquiries({ DATA_DIR, broadcast, appendActivity, u
     return { ok: true };
   }
 
-  return { file, exported, me, room, done, reply, called, grantsView, setGrants, smsView, setSms, testSms, sync, isAdmin };
+  return { file, exported, me, room, done, reply, called, grantsView, setGrants, smsView, setSms, testSms, sync, isAdmin, sendSms };
 };
