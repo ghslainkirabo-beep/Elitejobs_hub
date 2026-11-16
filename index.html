@@ -732,6 +732,8 @@ staff:[],tickets:[],calls:[],cands:[],ints:[],leaves:[],visitors:[],
 rooms:[],svc:[],msgs:[],notifs:[],log:[]});
 let S=seed();let NET_READY=false;
 const ui={hap:true,me:{u:'',r:'admin',id:''},r:'admin',v:0,pop:null,pre:{},anim:true,seen:{}};
+// In-app “are you sure”: the first tap explains, a second tap within 6 seconds goes ahead (no browser pop-ups in the desktop app)
+const SURE={};function sure(k,msg){const n=Date.now();if(SURE[k]&&n-SURE[k]<6000){delete SURE[k];return true}SURE[k]=n;toast('⚠ '+msg+' — tap again to confirm');return false}
 // ---------- keys (no browser prompt(): Electron doesn't support it) ----------
 const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
 const officeKey=()=>LS.get('office-key')||'';
@@ -2235,7 +2237,7 @@ Object.assign(A,{
    ui.ug=ui.ug||{};ui.ug.mode='endover';vfGo('urgent');haptic('success');toast('The vacancy is filled in — add photos, then publish');vfLoad()}).catch(er=>{haptic('error');toast('✖ '+er.message)})},
  // call center: straight to this vacancy's applicants
  vfcall(id){const v=vfMine().find(x=>x.id==id);if(!v)return;ui.ug=ui.ug||{};ui.ug.rt='new';ui.ug.vVac=id;ui.ug.vNew=null;vfGo('urgent');haptic('soft');setTimeout(()=>{const l=$('#ugrevlist');l&&l.scrollIntoView({behavior:'smooth',block:'start'})},450)},
- vfcallok(id){const v=vfMine().find(x=>x.id==id);if(!v)return;if(!confirm(`Approve the calls for “${v.title}”?\n\nThe job comes down from the website, so no one else can apply, and the call list goes to HR.`))return;
+ vfcallok(id){const v=vfMine().find(x=>x.id==id);if(!v)return;if(!sure('callok'+id,`Approve the calls for “${v.title}”? The job comes down from the website and the list goes to HR`))return;
   api('/api/vf/call',{id}).then(()=>{haptic('success');toast('✔ Approved — the list is with HR now');ui.ug.vVac=null;vfLoad();LOADERS.urgent()}).catch(e=>{haptic('error');toast('✖ '+e.message)})},
  vfcomplete(id){const v=vfMine().find(x=>x.id==id);if(!v)return;
   api('/api/vf/complete',{id}).then(()=>{haptic('success');toast('✔ Completed — it’s in Notices for the interview staff');vfLoad()}).catch(e=>{haptic('error');toast('✖ '+e.message)})},
@@ -2393,7 +2395,7 @@ Object.assign(A,{
  vfscore(id,app){const k=id+'|'+app,d=VF.draft[k]||{},sc=(d.sc||[]).slice(0,d.n);
   if(!String(d.topic||'').trim())return toast('✖ Write the topic you asked about');if(sc.length<d.n||sc.some(x=>x===''||x==null))return toast('✖ Mark every question (0 to 5)');
   vfAct('/api/vf/score',{id,app,topic:d.topic,scores:sc},'✔ Done — the form goes to the next interviewer').then(()=>{delete VF.draft[k];ui.vfc=null;vfUpLoad()}).catch(()=>{})},
- vfabsent(id,app,uid){if(!confirm('Note that this interviewer isn’t here for this interview? Their row will be skipped.'))return;vfAct('/api/vf/absent',{id,app,uid}).then(vfUpLoad).catch(()=>{})},
+ vfabsent(id,app,uid){if(!sure('absent'+id+app+uid,'Mark this interviewer as not here? Their row will be skipped'))return;vfAct('/api/vf/absent',{id,app,uid}).then(vfUpLoad).catch(()=>{})},
  vffinish(id,app){vfAct('/api/vf/finish',{id,app}).then(r=>{toast('✔ Finished — '+vfR1(r.final)+'/20. It’s in Interview results');ui.vfc=null;vfUpLoad()}).catch(()=>{})},
  vfrday(d){VF.rq.day=d;vfResLoad()},vfwday(d){VF.wq.day=d;vfWaitLoad()},
  vfq(app,v){VF.draft['q|'+app]=v=='1';haptic('tick');refreshMain()},
