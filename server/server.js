@@ -203,6 +203,7 @@ const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => bro
 const inquiries = require('./inquiries.js')({ DATA_DIR, broadcast: o => broadcast(o), appendActivity: a => appendActivity(a), urgent });
 const cvs = require('./cvs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a) });
 const vflow = require('./vflow.js')({ DATA_DIR, urgent, staffOf: () => (loadState().staff || []).filter(x => !x.left), stateOf: () => loadState() || {}, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), note: (r, t) => office.hubNote(r, t) });
+const appStatus = require('./status.js')({ DATA_DIR, urgent });
 const smart = require('./match.js')({ DATA_DIR, rightsOf: p => vflow.rights(p) });
 const subs = require('./subs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
 const clients = require('./clients.js')({ DATA_DIR, subsMoney: m => subs.monthMoney(m), rightsOf: p => vflow.rights(p), appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
