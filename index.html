@@ -783,6 +783,7 @@ function connectHub(){
     if(m.type=='state'){if(PENDING)return;adopt(m.state);render(true)} // offline work is sent first, then the merged copy comes back
     if(m.type=='urgent'){ugLive(m);if(typeof vfMine=='function'&&vfMine().some(v=>v.stage=='call'))vfLoad()}
     if(m.type=='vflow'&&typeof vfLoad=='function'){vfLoad();const e=flat(ui.r)[ui.v];if(e&&e.b=='vacs')vfList(e.g||'active');if(e&&e.b=='urgent')ugRevRefresh()}
+    if(m.type=='crm'&&typeof crmPing=='function')crmPing();
     if(m.type=='inq'){if(m.kind=='done'&&ui.iq)iqGone(m.id);else{const e=flat(ui.r)[ui.v];if(e&&(e.b=='inq'||e.b=='inqadmin')&&!ui.iq.sel)LOADERS[e.b]();iqMe()}}
     if(m.type=='webjobs'){const e=flat(ui.r)[ui.v];if(e&&e.b=='webjobs')LOADERS.webjobs()}
     if(m.type=='presence'){ONLINE=new Set(m.online||[]);render(true)}
@@ -2763,6 +2764,181 @@ document.addEventListener('input',e=>{const t=e.target;if(!t||!t.closest||!t.clo
 document.addEventListener('keydown',e=>{if(e.target&&e.target.id=='cvsk'&&e.key=='Enter'){e.preventDefault();const v=e.target.value.trim();if(!v)return;const d=ui.cv.d;if(!d.skills.some(x=>x.toLowerCase()==v.toLowerCase()))d.skills.push(v.slice(0,40));haptic('soft');cvPaint();cvPreviewSoon();setTimeout(()=>{const n=$('#cvsk');n&&n.focus()},20)}
  if(e.target&&e.target.id=='cvq'&&e.key=='Enter'){const b=$('#cvres .cvp');b&&b.click()}});
 document.addEventListener('change',e=>{const t=e.target;if(!t||!t.matches||!t.matches('#cvs [data-cvup]')||!t.files[0])return;const u=URL.createObjectURL(t.files[0]);cvSquare(u).then(p=>{ui.cv.d.photo=p;URL.revokeObjectURL(u);haptic('success');cvPaint()}).catch(er=>toast('✖ '+er.message))});
+
+// ================= Employers (CRM) + the private ledger (Admin only) =================
+// Employers: Admin, the recruitment manager and HR. The ledger: only the real Admin — amounts stay hidden until Admin taps "Show amounts".
+const CRM={me:null,list:null,one:null,id:null,edit:null,q:'',f:'all',money:null,month:'',show:false,chg:null,names:[]};
+const crmRWF=n=>(Number(n)||0).toLocaleString('en-US')+' RWF';
+const crmAmt=n=>`<span class="crmamt ${CRM.show?'':'hid'}">${crmRWF(n)}</span>`;
+const crmAgo=t=>{if(!t)return'—';const d=Math.floor((Date.now()-t)/864e5);return d<1?'today':d<2?'yesterday':d<30?d+' days ago':d<365?Math.round(d/30)+' mo ago':Math.round(d/365)+' yr ago'};
+const crmDay=d=>d?new Date(d+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):'';
+const crmToday=()=>new Date(Date.now()+72e5).toISOString().slice(0,10);
+const CRM_KIND={call:['📞','Call'],visit:['🤝','Visit'],mail:['✉️','Email'],note:['📝','Note']};
+const CRM_SECT=['Hotels & restaurants','Cleaning & facilities','Security','Transport & logistics','Construction','Retail & shops','Health','Schools','Offices & corporate','NGO & public','Factories','Households','Events','Other'];
+const crmErr=e=>{haptic('error');toast('✖ '+e.message)};
+const crmRefresh=()=>{const e=flat(ui.r)[ui.v];if(e&&(e.b=='crm'||e.b=='ledger'))refreshMain()};
+function crmMe(){return api('/api/crm/me').then(r=>{CRM.me=r;crmNav()}).catch(()=>{})}
+function crmListLoad(){return api('/api/crm/list').then(r=>{CRM.list=r;crmRefresh()}).catch(e=>{CRM.list={err:e.message};crmRefresh()})}
+function crmOneLoad(id){CRM.id=id;return api('/api/crm/one?id='+encodeURIComponent(id)).then(r=>{CRM.one=r;crmRefresh()}).catch(e=>{CRM.one={err:e.message};crmRefresh()})}
+function crmMoneyLoad(){return api('/api/crm/money?month='+encodeURIComponent(CRM.month||'')).then(r=>{CRM.money=r;if(!CRM.month)CRM.month=r.month;crmRefresh()}).catch(e=>{CRM.money={err:e.message};crmRefresh()})}
+function crmNamesLoad(){api('/api/crm/names').then(r=>{CRM.names=r.names||[];const d=$('#crmEmp');if(d)d.innerHTML=CRM.names.map(n=>`<option value="${esc(n)}">`).join('')}).catch(()=>{})}
+function crmNav(){const M=CRM.me,r=R[ui.r];if(!M||!r)return;let ch=false;
+ if(M.crm){let g=r.nav.find(x=>x[0]=='Recruitment');if(!g){g=['Recruitment',[]];const i=r.nav.findIndex(x=>x[0]=='Me');r.nav.splice(i<0?1:i+1,0,g);ch=true}
+  if(!g[1].some(e=>e.b=='crm')){g[1].push({l:'Employers',i:'🏢',b:'crm'});ch=true}
+  if(M.money&&!g[1].some(e=>e.b=='ledger')){g[1].push({l:'Private ledger',i:'🔒',b:'ledger'});ch=true}}
+ if(ch)render(true)}
+['crm','ledger'].forEach(b=>{if(!STATIC.includes(b))STATIC.push(b)});
+LOADERS.crm=()=>{crmListLoad();if(CRM.id)crmOneLoad(CRM.id)};LOADERS.ledger=()=>crmMoneyLoad();
+const crmVfNav=vfNav;vfNav=function(){crmVfNav();if(CRM.me)crmNav();else crmMe()};
+function crmPing(){const e=flat(ui.r)[ui.v];if(!e||e.b!='crm')return;crmListLoad();if(CRM.id&&!CRM.edit)crmOneLoad(CRM.id)}
+
+// ---------- the list ----------
+const crmHealth=h=>`<span class="crmh h-${h.k}"><i></i>${esc(h.l)}</span>`;
+V.crm=function(){
+ if(CRM.edit)return crmForm(CRM.edit);
+ if(CRM.id)return crmDetail();
+ const D=CRM.list;if(!D)return'<h1>Employers</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Employers</h1><p class=bad>${esc(D.err)}</p>`;
+ const q=CRM.q.toLowerCase(),F=CRM.f,L=D.list.filter(c=>(!q||(c.name+' '+c.sector+' '+c.area+' '+c.contact).toLowerCase().includes(q))&&(F=='all'||(F=='due'?c.due:c.health.k==F)));
+ const n=k=>D.list.filter(c=>k=='due'?c.due:c.health.k==k).length,due=n('due');
+ const chips=[['all','All',D.list.length],['due','Follow-up due',due],['active','Active',n('active')],['quiet','Quiet',n('quiet')],['asleep','Asleep',n('asleep')],['new','No vacancy yet',n('new')]].filter(x=>x[0]=='all'||x[2]);
+ return`<div class=vfhead><div><h1>Employers</h1><div class=sub>Every company we staff — who to call, what they asked for, who we placed, and when to follow up.</div></div>${btn('+ Add employer','crmnew','p')}</div>
+ ${due?`<button class=crmdue data-a="crmf|due"><b>${due}</b><span>follow-up${due>1?'s':''} due today or earlier</span><em>See them</em></button>`:''}
+ <div class=crmtools><input id=crmq type=search placeholder="Search by name, sector, area or contact" value="${esc(CRM.q)}" aria-label="Search employers"><div class=ugfl>${chips.map(([k,l,c])=>`<button class="ugoc ${F==k?'on':''}" data-a="crmf|${k}">${l} · ${c}</button>`).join('')}</div></div>
+ ${L.length?`<div class=crmgrid>${L.map(c=>`<button class="crmcard ${c.due?'is-due':''}" data-a="crmopen|${c.id}">
+  <header><span class=crmav aria-hidden=true>${esc((c.name.match(/\b\w/g)||['?']).slice(0,2).join('').toUpperCase())}</span><span><b>${esc(c.name)}</b><small>${esc([c.sector,c.area].filter(Boolean).join(' · ')||'—')}</small></span></header>
+  <div class=crmstat><span><b>${c.vacs}</b>vacancies</span><span><b>${c.placed}</b>placed</span><span><b>${c.lastPlaced?crmAgo(c.lastPlaced):'—'}</b>last placed</span></div>
+  <footer>${crmHealth(c.health)}${c.follow?`<span class="crmfu ${c.due?'due':''}">⏰ ${esc(crmDay(c.follow.date))}</span>`:''}${D.money&&c.owed?`<span class=crmowe>🔒 owes ${crmAmt(c.owed)}</span>`:''}</footer></button>`).join('')}</div>`
+  :`<div class=vfempty><b>${D.list.length?'No employer matches':'No employers yet'}</b><small>${D.list.length?'Try another word or filter.':'Add the companies you work with. Their vacancies and the people you place will appear on their page by themselves.'}</small></div>`}
+ ${D.loose.length?`<h2 class=vfh>Typed on vacancies, not saved yet</h2><div class=sub style="margin-top:-4px">Make each one an employer and its vacancies join it straight away.</div><div class=crmloose>${D.loose.map(x=>`<div><span><b>${esc(x.name)}</b><small>${x.vacs} vacanc${x.vacs==1?'y':'ies'} · ${x.placed} placed</small></span>${btn('Save as employer','crmadd|'+encodeURIComponent(x.name))}</div>`).join('')}</div>`:''}
+ ${D.archived?`<p class=sub style="margin-top:18px">${D.archived} archived employer${D.archived>1?'s':''} kept for the record.</p>`:''}`};
+
+// ---------- one employer ----------
+function crmDetail(){const c=CRM.one;if(!c||c.id!=CRM.id)return`<button class=crmback data-a=crmback>‹ Employers</button><div class=sub>Opening…</div>`;if(c.err)return`<button class=crmback data-a=crmback>‹ Employers</button><p class=bad>${esc(c.err)}</p>`;
+ const f=c.facts,ppl=c.contacts||[],today=crmToday(),Lg=c.ledger;
+ const stage={post:'Being posted',call:'Calling applicants',hr:'With HR',notice:'Notices',upcoming:'Interviews',done:'Finished'};
+ return`<button class=crmback data-a=crmback>‹ Employers</button>
+ <div class=crmhero><span class="crmav big" aria-hidden=true>${esc((c.name.match(/\b\w/g)||['?']).slice(0,2).join('').toUpperCase())}</span><div><h1>${esc(c.name)}</h1><div class=sub>${esc([c.sector,c.area,c.address].filter(Boolean).join(' · ')||'No details yet')}</div><div class=crmmeta>${crmHealth(c.health)}${c.aka&&c.aka.length?`<span class=crmaka>Also written as ${c.aka.map(esc).join(', ')}</span>`:''}</div></div>
+  <div class=crmhact>${btn('Edit','crmedit')}${btn(c.archived?'Bring back':'Archive','crmarch|'+(c.archived?0:1))}</div></div>
+ <div class=crmkpi><div><b>${f.vacs.length}</b><small>vacancies</small></div><div><b>${f.vacs.filter(v=>v.stage!='done').length}</b><small>still open</small></div><div><b>${f.placed.length}</b><small>people placed</small></div><div><b>${f.placed[0]?crmAgo(f.placed[0].t):'—'}</b><small>last placed</small></div></div>
+ <div class=crmcols><div>
+  <section class=card><h3>People to call</h3>${ppl.length||c.phone||c.email?`<div class=crmppl>${ppl.map(x=>`<div><span><b>${esc(x.name||'—')}</b><small>${esc(x.role||'')}</small></span><span class=crmlinks>${x.phone?`<a class=cvlk href="tel:${esc(x.phone.replace(/[^\d+]/g,''))}">📞 ${esc(x.phone)}</a>`:''}${x.email?`<a class=cvlk href="mailto:${esc(x.email)}">✉️ Email</a>`:''}</span></div>`).join('')}
+   ${c.phone||c.email||c.web?`<div><span><b>Office</b><small>${esc(c.tin?'TIN '+c.tin:'')}</small></span><span class=crmlinks>${c.phone?`<a class=cvlk href="tel:${esc(c.phone.replace(/[^\d+]/g,''))}">📞 ${esc(c.phone)}</a>`:''}${c.email?`<a class=cvlk href="mailto:${esc(c.email)}">✉️ Email</a>`:''}${c.web?`<a class=cvlk href="${esc(/^https?:/.test(c.web)?c.web:'https://'+c.web)}" target=_blank rel=noopener>🌐 Website</a>`:''}</span></div>`:''}</div>`:`<p class=sub>No contact yet. ${btn('Add one','crmedit')}</p>`}
+   ${c.about?`<p class=crmabout>${esc(c.about)}</p>`:''}</section>
+  <section class=card><h3>Next follow-up</h3>${c.follow?`<div class="crmnext ${c.follow.date<=today?'due':''}"><span><b>${esc(crmDay(c.follow.date))}${c.follow.date<today?' · overdue':c.follow.date==today?' · today':''}</b><small>${esc(c.follow.what)} — set by ${esc(c.follow.by.name)}</small></span>${btn('✓ Done','crmfudone','p')}</div>`:''}
+   <form id=crmfuf class=crmrowf><input type=date name=date value="${esc(c.follow?c.follow.date:'')}" min="${today}" required aria-label="Follow-up date"><input name=what placeholder="What for, e.g. ask about December staff" value="${esc(c.follow?c.follow.what:'')}" maxlength=140><button class="b p">${c.follow?'Change':'Set'}</button></form></section>
+  <section class=card><h3>Notes</h3><form id=crmnf class=crmnote><div class=ugfl role=radiogroup aria-label="Kind">${Object.entries(CRM_KIND).map(([k,[i,l]])=>`<label class="ugoc crmk"><input type=radio name=kind value=${k} ${k=='call'?'checked':''}>${i} ${l}</label>`).join('')}</div><textarea name=text rows=2 maxlength=800 placeholder="What was said or agreed" required></textarea><button class="b p">Save note</button></form>
+   ${(c.notes||[]).length?`<ol class=crmtl>${c.notes.map(n=>`<li><i>${CRM_KIND[n.kind||'note'][0]}</i><div><p>${esc(n.text)}</p><small>${esc(n.by.name)} · ${esc(vfWhen(n.t))}</small></div></li>`).join('')}</ol>`:'<p class=sub>No notes yet.</p>'}</section>
+ </div><div>
+  <section class=card><h3>Vacancies</h3>${f.vacs.length?`<div class=crmlist>${f.vacs.map(v=>`<div><span><b>${esc(v.title)}</b><small>${v.need} needed${v.loc?' · '+esc(v.loc):''} · ${esc(vfWhen(v.created))}</small></span><span class="crmst ${v.stage=='done'?'done':''}">${esc(stage[v.stage]||v.stage)}${v.served?' · '+v.served+' placed':''}</span></div>`).join('')}</div>`:'<p class=sub>No vacancy for this employer yet. When HR states one with this employer’s name, it appears here.</p>'}</section>
+  <section class=card><h3>People placed</h3>${f.placed.length?`<div class=crmlist>${f.placed.map(x=>`<div><span><b>${esc(x.name)}</b><small>${esc(x.title)} · ${esc(vfWhen(x.t))}</small></span>${c.money?(x.charged?'<span class="crmst done">🔒 Charged</span>':btn('🔒 Charge','crmchg|'+encodeURIComponent(JSON.stringify({vac:x.vac,app:x.app,name:x.name,title:x.title})))):''}</div>`).join('')}</div>`:'<p class=sub>Nobody placed yet. People appear here when the recruitment manager ticks them served on the Waiting list.</p>'}</section>
+  ${c.money&&Lg?`<section class="card crmpriv"><div class=crmprivh><h3>🔒 Private ledger</h3><button class=ugoc data-a=crmshow>${CRM.show?'Hide amounts':'Show amounts'}</button></div><small class=sub>Only you see this part.</small>
+   <div class=crmkpi sm><div><b>${crmAmt(Lg.owed)}</b><small>unpaid</small></div><div><b>${crmAmt(Lg.paid)}</b><small>paid so far</small></div><div><b>${Lg.unbilled}</b><small>placed, not charged</small></div></div>
+   ${crmChargeForm(c.id)}
+   ${Lg.list.length?`<div class=crmlist>${Lg.list.map(e=>crmEntry(e)).join('')}</div>`:'<p class=sub>No charge recorded yet.</p>'}</section>`:''}
+ </div></div>`}
+function crmEntry(e,withName){return`<div class="crme ${e.paid?'paid':''}"><span><b>${esc(e.what)}</b><small>${withName?esc(e.clientName)+' · ':''}${esc(crmDay(e.date))}${e.paid?' · paid '+esc(crmDay(e.paidOn))+' by '+esc(e.method||''):e.days!=null?' · waiting '+e.days+' day'+(e.days==1?'':'s'):''}${e.note?' · '+esc(e.note):''}</small></span><b class=crmv>${crmAmt(e.amount)}</b>
+ <span class=crmeact>${e.paid?btn('Undo paid','crmpaid|'+e.id+'|0'):`<select data-crmpm="${e.id}" aria-label="Paid by"><option value=momo>MoMo</option><option value=bank>Bank</option><option value=cash>Cash</option><option value=cheque>Cheque</option></select>${btn('✓ Paid','crmpaid|'+e.id+'|1','p')}`}${btn('✕','crmdel|'+e.id)}</span></div>`}
+function crmChargeForm(client,clients){const g=CRM.chg&&(!client||CRM.chg.client==client)?CRM.chg:null;
+ return`<form id=crmchf class=crmch><input type=hidden name=link value="${esc(g&&g.link?JSON.stringify(g.link):'')}">
+ ${clients?`<select name=client required aria-label=Employer><option value="">Employer…</option>${clients.map(c=>`<option value="${esc(c.id)}" ${g&&g.client==c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select>`:`<input type=hidden name=client value="${esc(client)}">`}
+ <input name=what required maxlength=140 placeholder="Service done on site, e.g. Placed 3 waiters" value="${esc(g?g.what:'')}"><input name=amount required inputmode=numeric placeholder="Amount (RWF)" autocomplete=off><input type=date name=date value="${crmToday()}" aria-label="Date"><input name=note maxlength=300 placeholder="Note (optional)"><button class="b p">Record charge</button>${g?btn('Cancel','crmchgx'):''}</form>`}
+
+// ---------- add / edit ----------
+function crmForm(c){const P=(c.contacts||[]).concat([{},{},{}]).slice(0,3);
+ return`<button class=crmback data-a=crmcancel>‹ ${c.id?esc(c.name):'Employers'}</button><form id=crmf class="card crmform"><h3>${c.id?'Edit employer':'Add employer'}</h3>
+ <div class=row2><div><label>Company name</label><input name=name required maxlength=80 value="${esc(c.name||'')}"></div><div><label>Also written as <small>(optional, commas)</small></label><input name=aka maxlength=200 value="${esc((c.aka||[]).join(', '))}" placeholder="Marriott, Kigali Marriott"></div></div>
+ <div class=row2><div><label>Sector</label><input name=sector list=crmSect maxlength=50 value="${esc(c.sector||'')}"><datalist id=crmSect>${CRM_SECT.map(x=>`<option value="${x}">`).join('')}</datalist></div><div><label>Area</label><input name=area maxlength=60 value="${esc(c.area||'')}" placeholder="Kimihurura, Gasabo"></div></div>
+ <label>Address <small>(optional)</small></label><input name=address maxlength=120 value="${esc(c.address||'')}">
+ <div class=row2><div><label>Office phone <small>(optional)</small></label><input name=phone type=tel maxlength=30 value="${esc(c.phone||'')}"></div><div><label>Office email <small>(optional)</small></label><input name=email type=email maxlength=80 value="${esc(c.email||'')}"></div></div>
+ <div class=row2><div><label>Website <small>(optional)</small></label><input name=web maxlength=100 value="${esc(c.web||'')}"></div><div><label>TIN <small>(optional)</small></label><input name=tin maxlength=30 value="${esc(c.tin||'')}"></div></div>
+ <label>People to call</label><div class=crmcts>${P.map((x,i)=>`<div><input name=c${i}name placeholder="Name" maxlength=60 value="${esc(x.name||'')}"><input name=c${i}role placeholder="Role, e.g. HR manager" maxlength=50 value="${esc(x.role||'')}"><input name=c${i}phone type=tel placeholder="Phone" maxlength=30 value="${esc(x.phone||'')}"><input name=c${i}email type=email placeholder="Email" maxlength=80 value="${esc(x.email||'')}"></div>`).join('')}</div>
+ <label>About them <small>(optional)</small></label><textarea name=about rows=3 maxlength=600 placeholder="What they usually need, how they like to work">${esc(c.about||'')}</textarea>
+ <button class="b p">${c.id?'Save changes':'Add employer'}</button></form>`}
+
+// ---------- the private ledger room ----------
+V.ledger=function(){const D=CRM.money;if(!D)return'<h1>Private ledger</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Private ledger</h1><p class=bad>${esc(D.err)}</p>`;
+ const mName=m=>new Date(m+'-15T12:00:00Z').toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}),diff=D.got-D.gotPrev,mx=Math.max(1,...D.top.map(t=>t.v));
+ if(!CRM.list)crmListLoad();const cl=(CRM.list&&CRM.list.list)||[];
+ return`<div class=vfhead><div><h1>🔒 Private ledger</h1><div class=sub>What employers were charged for the service done on site. Only you see this room — staff, the website and the AI never do.</div></div><button class="ugoc ${CRM.show?'on':''}" data-a=crmshow>${CRM.show?'Hide amounts':'Show amounts'}</button></div>
+ <div class=vfdates>${D.months.map(m=>`<button class="ugoc ${m==D.month?'on':''}" data-a="crmmonth|${m}">${esc(mName(m))}</button>`).join('')}</div>
+ <div class=crmtiles><div><small>Received in ${esc(mName(D.month).split(' ')[0])}</small><b>${crmAmt(D.got)}</b><em class="${diff>=0?'up':'down'}">${CRM.show?(diff>=0?'▲ ':'▼ ')+crmRWF(Math.abs(diff))+' vs the month before':'&nbsp;'}</em></div><div><small>Charged in ${esc(mName(D.month).split(' ')[0])}</small><b>${crmAmt(D.billed)}</b><em>${D.count} charge${D.count==1?'':'s'}</em></div><div class=crmwarn><small>Unpaid, all months</small><b>${crmAmt(D.owed)}</b><em>${D.unpaid.length} waiting</em></div></div>
+ ${D.unbilled.length?`<section class=card><h3>Placed, not charged yet</h3><div class=sub style="margin:-6px 0 10px">People served in the last 4 months with no charge linked to them.</div><div class=crmlist>${D.unbilled.map(x=>`<div><span><b>${esc(x.name)}</b><small>${esc(x.title)} · ${esc(x.clientName)} · ${esc(vfWhen(x.t))}</small></span>${btn('Charge','crmchg|'+encodeURIComponent(JSON.stringify({vac:x.vac,app:x.app,name:x.name,title:x.title,client:x.client})))}</div>`).join('')}</div></section>`:''}
+ <section class=card><h3>Record a charge</h3>${cl.length?crmChargeForm('',cl):'<p class=sub>Add an employer first (Recruitment → Employers).</p>'}</section>
+ ${D.unpaid.length?`<section class=card><h3>Waiting to be paid</h3><div class=crmlist>${D.unpaid.map(e=>crmEntry(e,1)).join('')}</div></section>`:''}
+ <div class=crmcols><section class=card><h3>${esc(mName(D.month))}</h3>${D.list.length?`<div class=crmlist>${D.list.map(e=>crmEntry(e,1)).join('')}</div>`:'<p class=sub>No charge this month.</p>'}</section>
+ <section class=card><h3>Top employers in ${esc(D.month.slice(0,4))}</h3>${D.top.length?`<div class=crmbars>${D.top.map(t=>`<button data-a="crmopen|${t.id}"><span><b>${esc(t.name)}</b>${crmAmt(t.v)}</span><i style="--w:${(t.v/mx*100).toFixed(1)}%"></i></button>`).join('')}</div>`:'<p class=sub>Nothing charged this year yet.</p>'}</section></div>`};
+
+// ---------- taps ----------
+Object.assign(A,{
+ crmf(k){CRM.f=CRM.f==k&&k!='all'?'all':k;refreshMain()},
+ crmopen(id){const e=flat(ui.r)[ui.v];CRM.edit=null;CRM.one=null;if(!e||e.b!='crm'){CRM.id=id;A.nav('crm')}else{crmOneLoad(id);refreshMain()}$('#main').scrollTop=0},
+ crmback(){CRM.id=null;CRM.one=null;CRM.chg=null;crmListLoad();refreshMain()},
+ crmnew(){CRM.edit={};refreshMain();setTimeout(()=>{const i=$('#crmf [name=name]');i&&i.focus()},30)},
+ crmadd(n){CRM.edit={name:decodeURIComponent(n)};refreshMain()},
+ crmedit(){if(CRM.one&&!CRM.one.err){CRM.edit=CRM.one;refreshMain()}},
+ crmcancel(){CRM.edit=null;refreshMain()},
+ crmarch(v){const c=CRM.one;if(!c)return;if(v=='1'&&!sure('arch'+c.id,'Archive '+c.name+'? Its history is kept'))return;api('/api/crm/archive',{id:c.id,v:v=='1'}).then(()=>{haptic('success');toast(v=='1'?'✔ Archived':'✔ Brought back');if(v=='1')A.crmback();else crmOneLoad(c.id)}).catch(crmErr)},
+ crmfudone(){const c=CRM.one;api('/api/crm/follow',{id:c.id,done:1}).then(()=>{haptic('success');toast('✔ Follow-up done');crmOneLoad(c.id)}).catch(crmErr)},
+ crmshow(){CRM.show=!CRM.show;refreshMain()},
+ crmmonth(m){CRM.month=m;crmMoneyLoad()},
+ crmchg(j){let x={};try{x=JSON.parse(decodeURIComponent(j))}catch(e){}const client=x.client||CRM.id;CRM.chg={client,link:{vac:x.vac,app:x.app,name:x.name},what:'Placed '+x.name+' as '+x.title};refreshMain();setTimeout(()=>{const i=$('#crmchf [name=amount]');if(i){i.scrollIntoView({block:'center',behavior:'smooth'});i.focus()}},40)},
+ crmchgx(){CRM.chg=null;refreshMain()},
+ crmpaid(id,v){const s=document.querySelector(`[data-crmpm="${id}"]`);api('/api/crm/paid',{id,v:v=='1',method:s?s.value:'momo'}).then(()=>{haptic('success');toast(v=='1'?'✔ Marked paid':'✔ Back to unpaid');crmReloadMoney()}).catch(crmErr)},
+ crmdel(id){if(!sure('chdel'+id,'Delete this charge for good'))return;api('/api/crm/uncharge',{id}).then(()=>{haptic('success');toast('✔ Charge deleted');crmReloadMoney()}).catch(crmErr)}});
+function crmReloadMoney(){const e=flat(ui.r)[ui.v];if(e&&e.b=='ledger')crmMoneyLoad();else if(CRM.id)crmOneLoad(CRM.id)}
+document.addEventListener('input',e=>{if(e.target.id=='crmq'){CRM.q=e.target.value;const pos=e.target.selectionStart;clearTimeout(CRM.qt);CRM.qt=setTimeout(()=>{refreshMain();const i=$('#crmq');if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(x){}}},160)}});
+document.addEventListener('submit',ev=>{const f=ev.target,id=f.id;if(!['crmf','crmnf','crmfuf','crmchf'].includes(id))return;ev.preventDefault();ev.stopImmediatePropagation();const d=Object.fromEntries(new FormData(f)),b=f.querySelector('button.p');if(b)b.disabled=true;const done=()=>{if(b)b.disabled=false};
+ if(id=='crmf'){const c=CRM.edit||{},contacts=[0,1,2].map(i=>({name:d['c'+i+'name'],role:d['c'+i+'role'],phone:d['c'+i+'phone'],email:d['c'+i+'email']}));
+  api('/api/crm/save',{id:c.id||'',name:d.name,aka:d.aka,sector:d.sector,area:d.area,address:d.address,phone:d.phone,email:d.email,web:d.web,tin:d.tin,about:d.about,contacts}).then(r=>{haptic('success');toast(c.id?'✔ Saved':'✔ Employer added');CRM.edit=null;crmNamesLoad();crmOneLoad(r.id);crmListLoad();refreshMain()}).catch(e=>{done();crmErr(e)})}
+ if(id=='crmnf')api('/api/crm/note',{id:CRM.id,kind:d.kind,text:d.text}).then(()=>{haptic('success');toast('✔ Note saved');crmOneLoad(CRM.id)}).catch(e=>{done();crmErr(e)});
+ if(id=='crmfuf')api('/api/crm/follow',{id:CRM.id,date:d.date,what:d.what}).then(()=>{haptic('success');toast('✔ Follow-up set for '+crmDay(d.date));crmOneLoad(CRM.id)}).catch(e=>{done();crmErr(e)});
+ if(id=='crmchf'){let link=null;try{link=d.link?JSON.parse(d.link):null}catch(x){}
+  api('/api/crm/charge',{client:d.client,what:d.what,amount:d.amount,date:d.date,note:d.note,link}).then(()=>{haptic('success');toast('✔ Charge recorded');CRM.chg=null;crmReloadMoney()}).catch(e=>{done();crmErr(e)})}});
+// State a vacancy: the Employer box suggests saved employers, so one company is always written the same way
+const crmForm0=V.form;V.form=function(k){const h=crmForm0.apply(this,arguments);if(k!='vfnew')return h;if(!CRM.names.length)crmNamesLoad();
+ return h.replace('<input name="employer" type="text"','<input name="employer" list="crmEmp" type="text"')+`<datalist id=crmEmp>${CRM.names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`};
+
+document.head.insertAdjacentHTML('beforeend',`<style>
+.crmtools{display:grid;gap:4px;margin:14px 0 6px}.crmtools input{max-width:520px}
+.crmdue{display:flex;align-items:center;gap:12px;width:100%;margin:14px 0 4px;padding:14px 16px;border-radius:16px;border:1px solid color-mix(in srgb,#ff9f0a 45%,var(--bd));background:color-mix(in srgb,#ff9f0a 12%,var(--s1));color:var(--tx);font:inherit;text-align:left;cursor:pointer}
+.crmdue b{font-size:26px;line-height:1}.crmdue span{flex:1}.crmdue em{font-style:normal;font-weight:700;color:#c46a00}
+.crmgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-top:10px}
+.crmcard{display:grid;gap:14px;text-align:left;padding:18px;border-radius:20px;border:1px solid var(--bd);background:var(--s1);color:var(--tx);font:inherit;cursor:pointer;transition:transform .2s,box-shadow .25s,border-color .25s}
+.crmcard:hover{transform:translateY(-2px);box-shadow:0 18px 40px -26px rgba(0,0,0,.45);border-color:color-mix(in srgb,var(--ac) 40%,var(--bd))}.crmcard.is-due{border-color:color-mix(in srgb,#ff9f0a 60%,var(--bd))}
+.crmcard header{display:flex;gap:12px;align-items:center}.crmcard header b{display:block;font-size:16px}.crmcard header small{color:var(--mu)}
+.crmav{flex:none;width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-weight:800;font-size:14px;letter-spacing:.02em;color:#fff;background:linear-gradient(150deg,color-mix(in srgb,var(--ac) 80%,#fff),var(--ac))}.crmav.big{width:64px;height:64px;border-radius:19px;font-size:22px}
+.crmstat{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px 0;border-block:1px solid var(--bd)}.crmstat span{display:grid;font-size:11.5px;color:var(--mu)}.crmstat b{font-size:15px;color:var(--tx)}
+.crmcard footer{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.crmh{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--s2)}.crmh i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.h-active{color:#1f9d4c}.h-quiet{color:#c47a00}.h-asleep{color:var(--mu)}.h-new{color:#2f74d0}
+.crmfu,.crmowe{font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;background:var(--s2)}.crmfu.due{background:color-mix(in srgb,#ff9f0a 20%,var(--s2));color:#b05f00}
+.crmloose{display:grid;gap:8px}.crmloose>div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border:1px dashed var(--bd);border-radius:14px}.crmloose b,.crmloose small{display:block}.crmloose small{color:var(--mu)}
+.crmback{border:0;background:none;color:var(--ac);font:inherit;font-weight:600;padding:4px 0;margin-bottom:8px;cursor:pointer}
+.crmhero{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:16px}.crmhero>div:nth-child(2){flex:1;min-width:220px}.crmhero h1{margin:0}.crmmeta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;align-items:center}.crmaka{font-size:12px;color:var(--mu)}.crmhact{display:flex;gap:8px}
+.crmkpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}.crmkpi[sm]{grid-template-columns:repeat(3,1fr);margin:12px 0}
+.crmkpi>div{padding:14px;border-radius:16px;background:var(--s1);border:1px solid var(--bd)}.crmkpi b{display:block;font-size:22px;letter-spacing:-.01em}.crmkpi[sm] b{font-size:16px}.crmkpi small{color:var(--mu)}
+.crmcols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}.crmcols .card{max-width:none}
+.crmppl,.crmlist{display:grid;gap:2px}.crmppl>div,.crmlist>div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}.crmppl>div:last-child,.crmlist>div:last-child{border-bottom:0}
+.crmppl b,.crmppl small,.crmlist b,.crmlist small{display:block}.crmppl small,.crmlist small{color:var(--mu);font-size:12.5px}.crmlinks{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.crmabout{margin:12px 0 0;color:var(--mu);line-height:1.55}
+.crmst{flex:none;font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:color-mix(in srgb,var(--ac) 12%,var(--s2));color:var(--ac)}.crmst.done{background:var(--s2);color:var(--mu)}
+.crmnext{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:var(--s2);margin-bottom:10px}.crmnext.due{background:color-mix(in srgb,#ff9f0a 16%,var(--s2))}.crmnext b,.crmnext small{display:block}.crmnext small{color:var(--mu)}
+.crmrowf{display:grid;grid-template-columns:auto 1fr auto;gap:8px}.crmrowf input[type=date]{width:auto}
+.crmnote{display:grid;gap:8px;margin-bottom:12px}.crmk{display:inline-flex;align-items:center;gap:4px;margin:0;color:var(--tx)}.crmk input{display:none}.crmk:has(input:checked){background:var(--ac);border-color:var(--ac);color:#fff}
+.crmtl{list-style:none;margin:0;padding:0;display:grid;gap:12px}.crmtl li{display:grid;grid-template-columns:30px 1fr;gap:10px}.crmtl i{font-style:normal;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:var(--s2)}.crmtl p{margin:0 0 2px;line-height:1.5}.crmtl small{color:var(--mu)}
+.crmpriv{border-color:color-mix(in srgb,#8a78e8 45%,var(--bd));background:linear-gradient(170deg,color-mix(in srgb,#8a78e8 9%,var(--s1)),var(--s1))}.crmprivh{display:flex;justify-content:space-between;align-items:center;gap:10px}.crmprivh h3{margin:0}
+.crmamt{transition:filter .25s}.crmamt.hid{filter:blur(7px);user-select:none}
+.crmch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 12px}.crmch [name=what],.crmch [name=client],.crmch [name=note]{grid-column:1/-1}.crmch .b{justify-self:start}
+.crme{flex-wrap:wrap}.crme>span:first-child{flex:1;min-width:180px}.crmv{font-size:15px;white-space:nowrap}.crme.paid .crmv{color:#1f9d4c}.crmeact{display:flex;gap:6px;align-items:center}.crmeact select{width:auto;padding:6px 8px}
+.crmtiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0 16px}.crmtiles>div{padding:18px;border-radius:20px;background:var(--s1);border:1px solid var(--bd);display:grid;gap:4px}
+.crmtiles small{color:var(--mu);font-weight:600}.crmtiles b{font-size:26px;letter-spacing:-.02em}.crmtiles em{font-style:normal;font-size:12.5px;color:var(--mu)}.crmtiles em.up{color:#1f9d4c}.crmtiles em.down{color:#d0453a}.crmtiles .crmwarn{border-color:color-mix(in srgb,#ff9f0a 45%,var(--bd))}
+.crmbars{display:grid;gap:10px}.crmbars button{display:grid;gap:5px;border:0;background:none;color:var(--tx);font:inherit;text-align:left;padding:0;cursor:pointer}.crmbars span{display:flex;justify-content:space-between;gap:10px;font-size:13.5px}
+.crmbars i{height:8px;border-radius:99px;background:var(--s2);position:relative;overflow:hidden}.crmbars i::after{content:'';position:absolute;inset:0;width:var(--w);border-radius:inherit;background:linear-gradient(90deg,#8a78e8,var(--ac))}
+.crmform{max-width:760px}.crmcts{display:grid;gap:8px}.crmcts>div{display:grid;grid-template-columns:1.1fr 1fr 1fr 1.2fr;gap:6px}
+@media(max-width:860px){.crmcols{grid-template-columns:1fr}.crmkpi{grid-template-columns:1fr 1fr}.crmtiles{grid-template-columns:1fr}.crmcts>div{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.crmrowf{grid-template-columns:1fr}.crmch{grid-template-columns:1fr}.crmhact{width:100%}}
+@media (prefers-reduced-motion:reduce){.crmcard{transition:none}}
+</style>`);
 
 _render();boot();if(PREVIEW)previewStart();else if(!softResume())showGate();
 </script></body></html>
