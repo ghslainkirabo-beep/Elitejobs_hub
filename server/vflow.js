@@ -29,8 +29,8 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     const rm = !!u.rm;
     const view = start || rm || (u.view !== undefined ? !!u.view : ['hr', 'cc', 'int'].includes(p.role));
     const db = !!u.db || (g.unlocked[p.id] || 0) > Date.now();
-    let post = false; try { post = !!urgent.rights(p).post; } catch (e) {}
-    return { start, rm, view, db, post };
+    let post = false, review = false; try { const U = urgent.rights(p); post = !!U.post; review = !!U.review; } catch (e) {}
+    return { start, rm, view, db, post, review };
   }
   const needAdmin = p => { if (!isAdmin(p)) throw err('Only Admin can change who takes part in vacancies.', 403); };
 
@@ -50,7 +50,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
       if (v.post && v.post.claimed && v.post.claimed.id !== p.id) me.why = `${v.post.claimed.name} is posting it now`;
       else { me.act = 'post'; me.ready = true; }
     } else if (v.stage === 'call' && p.role === 'cc' && R.view) {
-      me.act = 'call'; me.ready = apps.length > 0; if (!apps.length) me.why = 'Waiting for the first person to apply';
+      me.act = 'call'; me.ready = apps.length > 0 && R.review; if (!apps.length) me.why = 'Waiting for the first person to apply'; else if (!R.review) me.why = 'Ask Admin to give you “Review” in Urgent hiring, to see the applicants';
     } else if (v.stage === 'hr' && (p.role === 'hr' || R.rm || R.admin)) { me.act = 'complete'; me.ready = true; }
     else if (v.stage === 'notice' && p.role === 'int' && R.view) { me.act = 'interview'; me.ready = true; }
     else if (p.role === 'int' && R.view && STAGES.indexOf(v.stage) < STAGES.indexOf('notice')) me.why = 'Your step opens when HR completes the call list';
@@ -207,7 +207,10 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
   }
   const s20 = r => Math.round(r.scores.reduce((a, b) => a + b, 0) / (r.scores.length * 5) * 200) / 10;
   const finalOf = c => { const R = Object.values(c.rows).filter(r => r.scores); return R.length ? Math.round(R.reduce((a, r) => a + r.s20, 0) / R.length * 10) / 10 : 0; };
-  const pendingFor = (c, uid) => c.status === 'open' && c.rows[uid] && !c.rows[uid].scores && !c.rows[uid].absent;
+  // the form walks the interviewers in order: each one marks after the one before (or after they were noted as not here)
+  const turnOf = c => (c.order || Object.keys(c.rows)).find(id => c.rows[id] && !c.rows[id].scores && !c.rows[id].absent) || null;
+  const lastOf = c => [...(c.order || Object.keys(c.rows))].reverse().find(id => c.rows[id] && !c.rows[id].absent) || null;
+  const pendingFor = (c, uid) => c.status === 'open' && turnOf(c) === uid;
   function upView(v, p) {
     const C = Object.values((v.int && v.int.cands) || {}), arr = arrived(v);
     return { ...v, open: !!(v.int && (v.int.started || arr.length)), arrived: arr, cands: C, mineWaiting: C.filter(c => pendingFor(c, p.id)).length, applicants: 0, me: {} };
@@ -240,6 +243,8 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     const db = load(), v = find(db, String(b.id || '')), c = v.int && v.int.cands && v.int.cands[b.app];
     if (!c || c.status !== 'open') throw err('This interview is closed.', 409);
     const row = c.rows[p.id]; if (!row) throw err('You aren’t one of the interviewers on this form.', 403);
+    if (row.scores) throw err('You already marked this person.', 409);
+    const turn = turnOf(c); if (turn !== p.id) throw err(`It’s ${c.rows[turn] ? c.rows[turn].name : 'another interviewer'}’s turn first. The form comes to you when they press Done yet.`, 409);
     const sc = (Array.isArray(b.scores) ? b.scores : []).map(Number);
     if (sc.length < 1 || sc.length > 20) throw err('Choose between 1 and 20 questions.');
     if (sc.some(x => !(x >= 0 && x <= 5) || Math.round(x * 2) !== x * 2)) throw err('Each question is marked from 0 to 5 (halves allowed).');
@@ -263,6 +268,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     const rows = Object.values(c.rows), done = rows.filter(r => r.scores);
     if (rows.some(r => !r.scores && !r.absent)) throw err('Every interviewer has to mark their row first (or be noted as not here).', 409);
     if (!done.length) throw err('At least one interviewer has to mark this person.', 409);
+    if (!R.admin && lastOf(c) !== p.id) throw err(`Finish belongs to the last interviewer, ${c.rows[lastOf(c)] ? c.rows[lastOf(c)].name : ''}.`, 403);
     Object.assign(c, { status: 'done', final: finalOf(c), finished: { ...who(p), t: Date.now() }, day: kDay() });
     hist(v, p, `finished ${c.name}: ${c.final}/20`); save(db); log(p, `finished the interview of ${c.name} for ${v.title}: ${c.final}/20`); ping();
     return { ok: true, final: c.final };
