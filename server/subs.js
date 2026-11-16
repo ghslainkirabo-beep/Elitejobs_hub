@@ -44,9 +44,9 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity, broadcast, smsLas
   }
 
   // ---------- website: tell it who has how many left ----------
-  let pushing = false, lastPush = { t: 0, ok: false, err: '' };
+  let pushing = false, again = false, lastPush = { t: 0, ok: false, err: '' };
   async function push() {
-    if (pushing || fs.existsSync(F('moved.json'))) return; pushing = true;
+    if (fs.existsSync(F('moved.json'))) return; if (pushing) { again = true; return; } pushing = true; again = false;
     try {
       const D = load(), all = apps(), by = {}, people = {}, plans = {}, now = Date.now();
       for (const a of all) (by[a.k] = by[a.k] || []).push(a);
@@ -58,7 +58,7 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity, broadcast, smsLas
       const seen = all.filter(a => now - a.t < 30 * 6e4).map(a => a.id);
       await urgent.remote('/api/hub/quota', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ on: D.on, free: D.free, people, plans, seen }) });
       lastPush = { t: now, ok: true, err: '' };
-    } catch (e) { lastPush = { t: Date.now(), ok: false, err: e.message }; } finally { pushing = false; }
+    } catch (e) { lastPush = { t: Date.now(), ok: false, err: e.message }; } finally { pushing = false; if (again) setTimeout(push, 50); }   // a change made while sending goes out right after
   }
   setInterval(push, 60000).unref(); setTimeout(push, 20000);
 

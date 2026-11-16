@@ -443,6 +443,11 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
       const outcome = {}; V.forEach(v => v.call && v.call.list.forEach(x => { outcome[x.app] = { vac: v.title, outcome: x.outcome, calledBy: x.calledBy }; }));
       items = urgent.allApps().map(a => ({ day: kDay(a.created || a.got), t: a.created || a.got, k: norm([a.data.name, a.data.phone, a.data.email, a.title, a.data.lives].join(' ')),
         v: { id: a.id, name: a.data.name || '', phone: a.data.phone || '', wa: a.data.whatsapp || '', email: a.data.email || '', lives: a.data.lives || '', gender: a.data.gender || '', job: a.title, outcome: (outcome[a.id] || {}).outcome || a.outcome || '', vac: (outcome[a.id] || {}).vac || '', calledBy: (outcome[a.id] || {}).calledBy || a.reviewer || '', note: a.note || '' } }));
+      // applications for opening jobs sent on the website (the 4-chapter form) are applicants too
+      const IQ = { open: 'waiting', sms: 'sms', called: 'called' };
+      items = items.concat(rj(F('inquiries.json'), []).map(x => ({ day: kDay(x.created || x.got), t: x.created || x.got, k: norm([x.name, x.phone, x.email, x.title, x.live && x.live.d, x.live && x.live.s].join(' ')),
+        v: { id: x.id, name: x.name || '', phone: x.phone || '', wa: x.wa || '', email: x.email || '', lives: [x.live && x.live.s, x.live && x.live.d].filter(Boolean).join(', '), gender: x.gender || '', job: (x.title || 'Application') + ' (website)',
+          outcome: x.outcome || IQ[x.status] || x.status || '', vac: '', calledBy: x.by || '', note: x.note || '' } })));
     }
     if (room === 'ints') items = finished().map(c => ({ day: c.day, t: c.finished.t, k: norm(c.name + ' ' + c.vacTitle + ' ' + c.phone), v: { name: c.name, phone: c.phone, email: c.email, position: c.vacTitle, employer: c.employer, final: c.final, rows: Object.values(c.rows).map(r => ({ name: r.name, s20: r.s20 == null ? null : r.s20, topic: r.topic || '', q: r.scores ? r.scores.length : 0, absent: !!r.absent })), push: c.push ? { q: c.push.qualified, by: c.push.by.name } : null, called: c.called ? c.called.by.name : '', served: c.served ? c.served.v : null } }));
     if (room === 'reports') {
