@@ -784,6 +784,7 @@ function connectHub(){
     if(m.type=='urgent'){ugLive(m);if(typeof vfMine=='function'&&vfMine().some(v=>v.stage=='call'))vfLoad()}
     if(m.type=='vflow'&&typeof vfLoad=='function'){vfLoad();const e=flat(ui.r)[ui.v];if(e&&e.b=='vacs')vfList(e.g||'active');if(e&&e.b=='urgent')ugRevRefresh()}
     if(m.type=='crm'&&typeof crmPing=='function')crmPing();
+    if(m.type=='subs'&&typeof sbPing=='function')sbPing();
     if(m.type=='inq'){if(m.kind=='done'&&ui.iq)iqGone(m.id);else{const e=flat(ui.r)[ui.v];if(e&&(e.b=='inq'||e.b=='inqadmin')&&!ui.iq.sel)LOADERS[e.b]();iqMe()}}
     if(m.type=='webjobs'){const e=flat(ui.r)[ui.v];if(e&&e.b=='webjobs')LOADERS.webjobs()}
     if(m.type=='presence'){ONLINE=new Set(m.online||[]);render(true)}
@@ -2861,7 +2862,7 @@ V.ledger=function(){const D=CRM.money;if(!D)return'<h1>Private ledger</h1><div c
  if(!CRM.list)crmListLoad();const cl=(CRM.list&&CRM.list.list)||[];
  return`<div class=vfhead><div><h1>🔒 Private ledger</h1><div class=sub>What employers were charged for the service done on site. Only you see this room — staff, the website and the AI never do.</div></div><button class="ugoc ${CRM.show?'on':''}" data-a=crmshow>${CRM.show?'Hide amounts':'Show amounts'}</button></div>
  <div class=vfdates>${D.months.map(m=>`<button class="ugoc ${m==D.month?'on':''}" data-a="crmmonth|${m}">${esc(mName(m))}</button>`).join('')}</div>
- <div class=crmtiles><div><small>Received in ${esc(mName(D.month).split(' ')[0])}</small><b>${crmAmt(D.got)}</b><em class="${diff>=0?'up':'down'}">${CRM.show?(diff>=0?'▲ ':'▼ ')+crmRWF(Math.abs(diff))+' vs the month before':'&nbsp;'}</em></div><div><small>Charged in ${esc(mName(D.month).split(' ')[0])}</small><b>${crmAmt(D.billed)}</b><em>${D.count} charge${D.count==1?'':'s'}</em></div><div class=crmwarn><small>Unpaid, all months</small><b>${crmAmt(D.owed)}</b><em>${D.unpaid.length} waiting</em></div></div>
+ <div class=crmtiles><div><small>Received in ${esc(mName(D.month).split(' ')[0])}</small><b>${crmAmt(D.got)}</b><em class="${diff>=0?'up':'down'}">${CRM.show?(diff>=0?'▲ ':'▼ ')+crmRWF(Math.abs(diff))+' vs the month before':'&nbsp;'}</em></div><div><small>Charged in ${esc(mName(D.month).split(' ')[0])}</small><b>${crmAmt(D.billed)}</b><em>${D.count} charge${D.count==1?'':'s'}</em></div><div class=crmwarn><small>Unpaid, all months</small><b>${crmAmt(D.owed)}</b><em>${D.unpaid.length} waiting</em></div>${D.subs?`<div><small>Job seeker plans in ${esc(mName(D.month).split(' ')[0])}</small><b>${crmAmt(D.subs)}</b><em>from Plans & limit</em></div>`:''}</div>
  ${D.unbilled.length?`<section class=card><h3>Placed, not charged yet</h3><div class=sub style="margin:-6px 0 10px">People served in the last 4 months with no charge linked to them.</div><div class=crmlist>${D.unbilled.map(x=>`<div><span><b>${esc(x.name)}</b><small>${esc(x.title)} · ${esc(x.clientName)} · ${esc(vfWhen(x.t))}</small></span>${btn('Charge','crmchg|'+encodeURIComponent(JSON.stringify({vac:x.vac,app:x.app,name:x.name,title:x.title,client:x.client})))}</div>`).join('')}</div></section>`:''}
  <section class=card><h3>Record a charge</h3>${cl.length?crmChargeForm('',cl):'<p class=sub>Add an employer first (Recruitment → Employers).</p>'}</section>
  ${D.unpaid.length?`<section class=card><h3>Waiting to be paid</h3><div class=crmlist>${D.unpaid.map(e=>crmEntry(e,1)).join('')}</div></section>`:''}
@@ -2930,7 +2931,7 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .crmamt{transition:filter .25s}.crmamt.hid{filter:blur(7px);user-select:none}
 .crmch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 12px}.crmch [name=what],.crmch [name=client],.crmch [name=note]{grid-column:1/-1}.crmch .b{justify-self:start}
 .crme{flex-wrap:wrap}.crme>span:first-child{flex:1;min-width:180px}.crmv{font-size:15px;white-space:nowrap}.crme.paid .crmv{color:#1f9d4c}.crmeact{display:flex;gap:6px;align-items:center}.crmeact select{width:auto;padding:6px 8px}
-.crmtiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0 16px}.crmtiles>div{padding:18px;border-radius:20px;background:var(--s1);border:1px solid var(--bd);display:grid;gap:4px}
+.crmtiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:12px 0 16px}.crmtiles>div{padding:18px;border-radius:20px;background:var(--s1);border:1px solid var(--bd);display:grid;gap:4px}
 .crmtiles small{color:var(--mu);font-weight:600}.crmtiles b{font-size:26px;letter-spacing:-.02em}.crmtiles em{font-style:normal;font-size:12.5px;color:var(--mu)}.crmtiles em.up{color:#1f9d4c}.crmtiles em.down{color:#d0453a}.crmtiles .crmwarn{border-color:color-mix(in srgb,#ff9f0a 45%,var(--bd))}
 .crmbars{display:grid;gap:10px}.crmbars button{display:grid;gap:5px;border:0;background:none;color:var(--tx);font:inherit;text-align:left;padding:0;cursor:pointer}.crmbars span{display:flex;justify-content:space-between;gap:10px;font-size:13.5px}
 .crmbars i{height:8px;border-radius:99px;background:var(--s2);position:relative;overflow:hidden}.crmbars i::after{content:'';position:absolute;inset:0;width:var(--w);border-radius:inherit;background:linear-gradient(90deg,#8a78e8,var(--ac))}
@@ -2938,6 +2939,73 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 @media(max-width:860px){.crmcols{grid-template-columns:1fr}.crmkpi{grid-template-columns:1fr 1fr}.crmtiles{grid-template-columns:1fr}.crmcts>div{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.crmrowf{grid-template-columns:1fr}.crmch{grid-template-columns:1fr}.crmhact{width:100%}}
 @media (prefers-reduced-motion:reduce){.crmcard{transition:none}}
+</style>`);
+
+// ================= Job seeker plans (the application limit) =================
+const SB={me:null,v:null,q:'',pick:null,edit:null};
+const sbDate=t=>t?new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+function sbMe(){return api('/api/subs/me').then(r=>{SB.me=r;sbNav()}).catch(()=>{})}
+function sbLoad(){return api('/api/subs/view?q='+encodeURIComponent(SB.q)).then(r=>{SB.v=r;const e=flat(ui.r)[ui.v];if(e&&e.b=='subs')refreshMain()}).catch(e=>{SB.v={err:e.message};const x=flat(ui.r)[ui.v];if(x&&x.b=='subs')refreshMain()})}
+function sbNav(){const r=R[ui.r];if(!SB.me||!SB.me.desk||!r)return;if(r.nav.some(g=>g[1].some(e=>e.b=='subs')))return;
+ let g=r.nav.find(x=>x[0]=='Job seekers');if(!g){g=['Job seekers',[]];const i=r.nav.findIndex(x=>x[0]=='Recruitment');r.nav.splice(i<0?r.nav.length:i+1,0,g)}
+ g[1].push({l:'Plans & limit',i:'💳',b:'subs'});render(true)}
+if(!STATIC.includes('subs'))STATIC.push('subs');LOADERS.subs=()=>sbLoad();
+const sbVfNav=vfNav;vfNav=function(){sbVfNav();if(SB.me)sbNav();else sbMe()};
+function sbPing(){const e=flat(ui.r)[ui.v];if(e&&e.b=='subs'&&!SB.edit)sbLoad()}
+const sbLeft=c=>c.unlimited?'Unlimited':c.left==null?'No limit':c.left+' left';
+V.subs=function(){const D=SB.v;if(!D)return'<h1>Plans & limit</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Plans & limit</h1><p class=bad>${esc(D.err)}</p>`;
+ const plans=D.plans.filter(p=>!p.off),T=D.tiles;
+ return`<div class=vfhead><div><h1>Plans & limit</h1><div class=sub>${D.on?`The limit is <b>on</b>: everyone gets ${D.free} free application${D.free==1?'':'s'}, counted since ${esc(sbDate(D.onSince))}. After that, a plan lets them apply again.`:'The limit is <b>off</b>: anyone can apply as often as they like. Admin switches it on.'}</div></div></div>
+ ${D.admin?`<section class="card sbadm"><div class=sbsw><div><h3>Application limit</h3><small class=sub>${D.on?'Job seekers with no applications left are stopped on the website and told to get a plan at the office.':'Switch on when you’re ready. Counting starts that day; earlier applications don’t count.'}</small></div><button role=switch aria-checked=${D.on} class="sbtog ${D.on?'on':''}" data-a="sbon|${D.on?0:1}"><i></i><span class=sr-only>Application limit</span></button></div>
+  <form id=sbfreef class=sbfree><label for=sbfree>Free applications per person</label><input id=sbfree name=free type=number min=0 max=100 value="${D.free}"><button class=b>Save</button></form>
+  <div class=sbplh><h3>Plans</h3>${btn('+ New plan','sbplan|')}</div>
+  ${D.plans.length?`<div class=sbplans>${D.plans.map(p=>`<button class="sbplan ${p.off?'off':''}" data-a="sbplan|${p.id}"><b>${esc(p.name)}</b><span>${p.apps?p.apps+' applications':'Unlimited'} · ${p.days} days</span><em>${crmRWF(p.price)}</em>${p.off?'<small>Hidden</small>':''}</button>`).join('')}</div>`:'<p class=sub>No plan yet. Make one so the desk can start plans after payment.</p>'}
+  ${SB.edit?sbPlanForm(SB.edit):''}
+  <small class=sub>Website: ${D.push.ok?'up to date '+esc(vfWhen(D.push.t)):D.push.t?'not updated — '+esc(D.push.err):'waiting for the first update'}</small></section>`:''}
+ <div class=crmtiles><div><small>People who applied</small><b>${T.people}</b><em>by phone number</em></div><div><small>On a plan now</small><b>${T.active}</b><em>${T.month} started this month</em></div><div class=crmwarn><small>No applications left</small><b>${T.atLimit}</b><em>${D.on?'stopped on the website':'limit is off'}</em></div></div>
+ <div class=crmtools><input id=sbq type=search placeholder="Search a job seeker by name or phone" value="${esc(SB.q)}" aria-label="Search job seekers"></div>
+ ${!D.q&&D.list.length?'<h2 class=vfh>On a plan, or out of applications</h2>':''}
+ ${D.list.length?`<div class=sbl>${D.list.map(c=>sbCard(c,plans,D)).join('')}</div>`:`<div class=vfempty><b>${D.q?'Nobody found':'Search a job seeker'}</b><small>${D.q?'Try the phone number, like 0788 123 456.':'Type a name or phone number to see their applications and plan.'}</small></div>`}`};
+function sbCard(c,plans,D){const open=SB.pick==c.k,pct=c.left==null||c.unlimited?100:Math.max(0,Math.min(100,c.left/Math.max(1,c.sub?c.sub.apps:D.free)*100));
+ return`<article class="card sbc ${c.left===0?'out':''}"><header><span class=crmav aria-hidden=true>${esc((c.name.match(/\b\w/g)||['?']).slice(0,2).join('').toUpperCase())}</span><span><b>${esc(c.name)}</b><small><a class=cvlk href="tel:${esc(String(c.phone).replace(/[^\d+]/g,''))}">📞 ${esc(c.phone)}</a> · ${c.total} application${c.total==1?'':'s'}</small></span>
+  <span class=sbst><b>${sbLeft(c)}</b><small>${c.sub?esc(c.sub.name)+' until '+esc(sbDate(c.sub.end)):D.on?'Free':'—'}</small><i style="--p:${pct}%"></i></span></header>
+  ${c.apps.length?`<details><summary>Applications</summary><ul class=sbapps>${c.apps.map(a=>`<li><b>${esc(a.title)}</b><small>${esc(a.src)} · ${esc(vfWhen(a.t))}</small></li>`).join('')}</ul></details>`:''}
+  ${c.history.length?`<details><summary>Plans (${c.history.length})</summary><ul class=sbapps>${c.history.map(h=>`<li><b>${esc(h.name)}</b><small>${esc(sbDate(h.start))} → ${esc(sbDate(h.end))} · ${h.apps?h.apps+' applications':'unlimited'} · ${esc(h.method)} ${crmRWF(h.price)} · by ${esc(h.by)}</small>${D.admin&&h.end>Date.now()?btn('End','sbstop|'+c.k+'|'+h.id):''}</li>`).join('')}</ul></details>`:''}
+  ${plans.length?(open?`<form class=sbstart data-k="${esc(c.k)}" data-phone="${esc(c.phone)}" data-name="${esc(c.name)}"><div class=sbpick role=radiogroup aria-label=Plan>${plans.map((p,i)=>`<label class=sbopt><input type=radio name=plan value="${esc(p.id)}" ${i==0?'checked':''}><span><b>${esc(p.name)}</b><small>${p.apps?p.apps+' applications':'Unlimited'} · ${p.days} days</small><em>${crmRWF(p.price)}</em></span></label>`).join('')}</div>
+   <div class=sbpay><select name=method aria-label="Paid by"><option value=momo>Paid by MoMo</option><option value=cash>Paid in cash</option><option value=bank>Paid by bank</option></select><button class="b p">Start the plan</button>${btn('Cancel','sbpick|')}</div><small class=sub>Start it only after the person has paid.</small></form>`:`<div class=row>${btn(c.sub?'Add another plan':'Start a plan','sbpick|'+c.k,'p')}</div>`):D.admin?'':'<small class=sub>Admin hasn’t made any plan yet.</small>'}</article>`}
+function sbPlanForm(p){return`<form id=sbplanf class=sbplanf><input type=hidden name=id value="${esc(p.id||'')}"><div class=row2><div><label>Plan name</label><input name=name required maxlength=40 value="${esc(p.name||'')}" placeholder="Monthly"></div><div><label>Price (RWF)</label><input name=price required inputmode=numeric value="${p.price!=null?esc(String(p.price)):''}"></div></div>
+ <div class=row2><div><label>Applications <small>(0 = unlimited)</small></label><input name=apps type=number min=0 max=1000 required value="${p.apps!=null?p.apps:20}"></div><div><label>Days</label><input name=days type=number min=1 max=730 required value="${p.days||30}"></div></div>
+ ${p.id?`<label class=sbhide><input type=checkbox name=off ${p.off?'checked':''}> Hide this plan (people already on it keep it)</label>`:''}<div class=row><button class="b p">${p.id?'Save plan':'Make plan'}</button>${btn('Cancel','sbplanx')}</div></form>`}
+Object.assign(A,{
+ sbon(v){if(v=='1'&&!sure('sbon','Switch the limit on? Job seekers with no applications left will be stopped on the website'))return;api('/api/subs/settings',{on:v=='1'}).then(()=>{haptic('success');toast(v=='1'?'✔ The limit is on':'✔ The limit is off');sbLoad()}).catch(crmErr)},
+ sbplan(id){SB.edit=id?(SB.v.plans.find(p=>p.id==id)||{}):{};refreshMain();setTimeout(()=>{const i=$('#sbplanf [name=name]');i&&i.focus()},30)},
+ sbplanx(){SB.edit=null;refreshMain()},
+ sbpick(k){SB.pick=k||null;refreshMain()},
+ sbstop(k,id){if(!sure('sbstop'+id,'End this plan now'))return;api('/api/subs/stop',{phone:k,id}).then(()=>{haptic('success');toast('✔ Plan ended');sbLoad()}).catch(crmErr)}});
+document.addEventListener('input',e=>{if(e.target.id=='sbq'){SB.q=e.target.value;clearTimeout(SB.qt);SB.qt=setTimeout(()=>{const pos=e.target.selectionStart;sbLoad().then(()=>{const i=$('#sbq');if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(x){}}})},250)}});
+document.addEventListener('submit',ev=>{const f=ev.target;if(!(f.id=='sbplanf'||f.id=='sbfreef'||f.classList.contains('sbstart')))return;ev.preventDefault();ev.stopImmediatePropagation();const d=Object.fromEntries(new FormData(f));
+ if(f.id=='sbfreef')return api('/api/subs/settings',{free:d.free}).then(()=>{haptic('success');toast('✔ Saved');sbLoad()}).catch(crmErr);
+ if(f.id=='sbplanf')return api('/api/subs/plan',{...d,off:!!d.off}).then(()=>{haptic('success');toast('✔ Plan saved');SB.edit=null;sbLoad()}).catch(crmErr);
+ api('/api/subs/start',{phone:f.dataset.phone||f.dataset.k,name:f.dataset.name,plan:d.plan,method:d.method}).then(r=>{haptic('success');toast('✔ '+r.sub.name+' started — they can apply again in about a minute');SB.pick=null;sbLoad()}).catch(crmErr)});
+document.head.insertAdjacentHTML('beforeend',`<style>
+.sbadm{max-width:none;display:grid;gap:12px}.sbsw{display:flex;justify-content:space-between;gap:16px;align-items:center}.sbsw h3{margin:0 0 2px}
+.sbtog{flex:none;width:56px;height:32px;border-radius:99px;border:0;background:var(--bd);position:relative;cursor:pointer;transition:background .25s}.sbtog i{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .25s}
+.sbtog.on{background:#34c759}.sbtog.on i{transform:translateX(24px)}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.sbfree{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sbfree label{margin:0;color:var(--tx)}.sbfree input{width:90px}
+.sbplh{display:flex;justify-content:space-between;align-items:center}.sbplh h3{margin:0}
+.sbplans{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}.sbplan{display:grid;gap:3px;text-align:left;padding:14px 16px;border-radius:16px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;cursor:pointer}
+.sbplan span,.sbplan small{color:var(--mu);font-size:13px}.sbplan em{font-style:normal;font-weight:800;font-size:17px;margin-top:4px}.sbplan.off{opacity:.55}
+.sbplanf{padding:14px;border-radius:16px;border:1px dashed var(--ac);background:var(--bg)}.sbhide{display:flex;gap:8px;align-items:center;color:var(--tx)}.sbhide input{width:auto}
+.sbl{display:grid;gap:12px;margin-top:10px}.sbc{max-width:none;margin:0}.sbc.out{border-color:color-mix(in srgb,#ff9f0a 50%,var(--bd))}
+.sbc header{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}.sbc header b{display:block}.sbc header small{color:var(--mu)}
+.sbst{display:grid;justify-items:end;gap:3px;min-width:130px}.sbst b{font-size:17px}.sbst small{color:var(--mu);font-size:12px}.sbst i{width:100%;height:6px;border-radius:99px;background:var(--s2);position:relative;overflow:hidden}
+.sbst i::after{content:'';position:absolute;inset:0;width:var(--p);border-radius:inherit;background:#34c759}.sbc.out .sbst b{color:#c46a00}
+.sbc details{margin-top:10px}.sbc summary{cursor:pointer;color:var(--ac);font-weight:600}.sbapps{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}.sbapps li{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.sbapps b,.sbapps small{display:block}.sbapps small{color:var(--mu)}
+.sbstart{display:grid;gap:10px;margin-top:12px}.sbpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.sbopt{margin:0;cursor:pointer}.sbopt input{display:none}.sbopt span{display:grid;gap:2px;padding:12px 14px;border-radius:14px;border:1.5px solid var(--bd);background:var(--s2);color:var(--tx)}.sbopt small{color:var(--mu)}.sbopt em{font-style:normal;font-weight:800}
+.sbopt:has(input:checked) span{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 10%,var(--s2))}
+.sbpay{display:flex;gap:8px;flex-wrap:wrap}.sbpay select{width:auto}
+@media(max-width:560px){.sbc header{grid-template-columns:auto 1fr}.sbst{grid-column:1/-1;justify-items:start}}
 </style>`);
 
 _render();boot();if(PREVIEW)previewStart();else if(!softResume())showGate();

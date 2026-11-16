@@ -7,7 +7,7 @@
 // screens or the activity log (the log only says the ledger was changed — never an amount or an employer).
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 
-module.exports = function ({ DATA_DIR, rightsOf, appendActivity, broadcast }) {
+module.exports = function ({ DATA_DIR, subsMoney, rightsOf, appendActivity, broadcast }) {
   const F = n => path.join(DATA_DIR, n);
   const CL = F('clients.json'), LG = F('ledger.json'), VF = F('vflow.json');
   const rj = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return d; } };
@@ -168,7 +168,7 @@ module.exports = function ({ DATA_DIR, rightsOf, appendActivity, broadcast }) {
     const by = facts(), charged = new Set(L.list.filter(e => e.link).map(e => e.link.vac + '|' + e.link.app)), unbilled = [];
     for (const c of db.list) for (const x of merge(by, c).placed) if (!charged.has(x.vac + '|' + x.app) && Date.now() - x.t < 120 * 864e5) unbilled.push({ ...x, client: c.id, clientName: c.name });
     const name = e => ({ ...e, clientName: byId[e.client] || '—' });
-    return { month, months, billed: sum(billed), got: sum(got), gotPrev: sum(L.list.filter(e => e.paid && (e.paidOn || '').startsWith(pm))), owed: sum(unpaid), count: billed.length,
+    return { month, months, subs: subsMoney ? subsMoney(month) : 0, billed: sum(billed), got: sum(got), gotPrev: sum(L.list.filter(e => e.paid && (e.paidOn || '').startsWith(pm))), owed: sum(unpaid), count: billed.length,
       list: billed.map(name).sort((a, b) => b.date.localeCompare(a.date)), unpaid: unpaid.map(name).sort((a, b) => b.days - a.days),
       top: Object.entries(per).map(([id, v]) => ({ id, name: byId[id] || '—', v })).sort((a, b) => b.v - a.v).slice(0, 6), unbilled: unbilled.sort((a, b) => b.t - a.t).slice(0, 40) };
   }
