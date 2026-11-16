@@ -3008,5 +3008,33 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 @media(max-width:560px){.sbc header{grid-template-columns:auto 1fr}.sbst{grid-column:1/-1;justify-items:start}}
 </style>`);
 
+// ================= Smart match: the best people we already know, for a vacancy =================
+const SM={d:null,vac:'',title:''};
+function smLoad(){const q=SM.vac?'vac='+encodeURIComponent(SM.vac):'title='+encodeURIComponent(SM.title.trim());
+ return api('/api/smatch?'+q).then(r=>{SM.d=r;refreshSm()}).catch(e=>{SM.d={err:e.message,vacs:(SM.d&&SM.d.vacs)||[]};refreshSm()})}
+const refreshSm=()=>{const e=flat(ui.r)[ui.v];if(e&&e.b=='smatch')refreshMain()};
+if(!STATIC.includes('smatch'))STATIC.push('smatch');LOADERS.smatch=()=>smLoad();
+const smVfNav=vfNav;vfNav=function(){smVfNav();const Rt=vfRights(),r=R[ui.r];if(!r||!Rt.view)return;const g=r.nav.find(x=>x[0]=='Recruitment');if(g&&!g[1].some(e=>e.b=='smatch')){const i=g[1].findIndex(e=>e.b=='vfdash');g[1].splice(i<0?g[1].length:i+1,0,{l:'Smart match',i:'🎯',b:'smatch'});render(true)}};
+V.smatch=function(){const D=SM.d;if(!D)return'<h1>Smart match</h1><div class=sub>Opening…</div>';
+ return`<h1>Smart match</h1><div class=sub>Choose a vacancy, or type any position. You get the people Elitejobs already knows who fit best, from past applications, work experience and interview marks. Call them before you post.</div>
+ <div class=smbar><select id=smvac aria-label="Vacancy"><option value="">Type a position instead…</option>${(D.vacs||[]).map(v=>`<option value="${esc(v.id)}" ${SM.vac==v.id?'selected':''}>${esc(v.title)}${v.employer?' — '+esc(v.employer):''}</option>`).join('')}</select>
+ <input id=smt type=search placeholder="Position, e.g. Waiter, Driver, Accountant" value="${esc(SM.title)}" ${SM.vac?'disabled':''} aria-label="Position"></div>
+ ${D.err?`<p class=bad>${esc(D.err)}</p>`:!(SM.vac||SM.title.trim())?'<div class=vfempty><b>Who are you looking for?</b><small>Pick a vacancy above or type a position.</small></div>'
+ :D.list.length?`<p class=sub>${D.total} ${D.total==1?'person fits':'people fit'} <b>${esc(D.title)}</b>${D.vac&&D.vac.employer?' for '+esc(D.vac.employer):''}${D.total>D.list.length?' — showing the best '+D.list.length:''}.${D.vac?' People who already applied to this vacancy are left out.':''}</p>
+ <div class=sml>${D.list.map((x,i)=>`<article class="smc ${x.busy?'busy':''}"><span class=smrank>${i+1}</span><span class=smsc style="--s:${x.score}"><b>${x.score}</b><i>fit</i></span>
+  <div><b>${esc(x.name)}</b><small>${esc([x.lives,x.edu].filter(Boolean).join(' · '))}${x.lives||x.edu?' · ':''}${x.apps} application${x.apps==1?'':'s'} · last ${esc(crmAgo(x.last))}</small><ul>${x.why.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>
+  <a class=cvlk href="tel:${esc(String(x.phone).replace(/[^\d+]/g,''))}">📞 ${esc(x.phone)}</a></article>`).join('')}</div>`
+ :`<div class=vfempty><b>Nobody fits ${esc(D.title)} yet</b><small>As more people apply and get interviewed, matches appear here.</small></div>`}`};
+document.addEventListener('change',e=>{if(e.target.id=='smvac'){SM.vac=e.target.value;smLoad()}});
+document.addEventListener('input',e=>{if(e.target.id=='smt'){SM.title=e.target.value;clearTimeout(SM.t);SM.t=setTimeout(()=>{const pos=e.target.selectionStart;smLoad().then(()=>{const i=$('#smt');if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(x){}}})},300)}});
+document.head.insertAdjacentHTML('beforeend',`<style>
+.smbar{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1fr);gap:10px;margin:16px 0}
+.sml{display:grid;gap:10px;margin-top:8px}.smc{display:grid;grid-template-columns:28px 64px 1fr auto;gap:14px;align-items:center;padding:16px 18px;border-radius:18px;border:1px solid var(--bd);background:var(--s1)}
+.smc.busy{opacity:.7}.smrank{font-weight:800;color:var(--mu);text-align:center}.smc b{display:block}.smc small{color:var(--mu)}.smc ul{margin:6px 0 0;padding-left:18px;color:var(--tx);font-size:13.5px;line-height:1.5}
+.smsc{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;align-content:center;background:conic-gradient(var(--ac) calc(var(--s)*1%),var(--s2) 0);position:relative}
+.smsc::before{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--s1)}.smsc b,.smsc i{position:relative;line-height:1}.smsc b{font-size:17px}.smsc i{font-style:normal;font-size:10px;color:var(--mu)}
+@media(max-width:640px){.smbar{grid-template-columns:1fr}.smc{grid-template-columns:auto 1fr}.smrank{display:none}.smc .cvlk{grid-column:1/-1;justify-self:start}}
+</style>`);
+
 _render();boot();if(PREVIEW)previewStart();else if(!softResume())showGate();
 </script></body></html>

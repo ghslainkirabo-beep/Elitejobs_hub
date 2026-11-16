@@ -203,6 +203,7 @@ const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => bro
 const inquiries = require('./inquiries.js')({ DATA_DIR, broadcast: o => broadcast(o), appendActivity: a => appendActivity(a), urgent });
 const cvs = require('./cvs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a) });
 const vflow = require('./vflow.js')({ DATA_DIR, urgent, staffOf: () => (loadState().staff || []).filter(x => !x.left), stateOf: () => loadState() || {}, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), note: (r, t) => office.hubNote(r, t) });
+const smart = require('./match.js')({ DATA_DIR, rightsOf: p => vflow.rights(p) });
 const subs = require('./subs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
 const clients = require('./clients.js')({ DATA_DIR, subsMoney: m => subs.monthMoney(m), rightsOf: p => vflow.rights(p), appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
 const webjobs = require('./webjobs.js')({ DATA_DIR, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), need: (p, w) => urgent.need(p, w) });
@@ -408,6 +409,7 @@ const server = http.createServer((req, res) => {
     return send(res, 404, '');
   }
 
+  if (p === '/api/smatch') { const me = whoFrom(req); if (!me) return json(res, 401, { error: 'Sign in first.' }); try { return json(res, 200, smart.suggest(me, { vac: url.searchParams.get('vac') || '', title: url.searchParams.get('title') || '' })); } catch (e) { return json(res, e.code || 400, { error: e.message }); } }
   // ---- Job seeker subscriptions (the application limit). Desk = Admin, Front Desk, Reception; settings + plans = Admin ----
   if (p.startsWith('/api/subs/')) {
     const me = whoFrom(req), q = url.searchParams;
