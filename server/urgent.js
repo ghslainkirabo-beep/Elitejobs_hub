@@ -69,6 +69,32 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
     return r;
   }
 
+  // a small copy of a flyer for the website's urgent list (shown 64×80 there); the full flyer still opens when tapped.
+  // Made with the desktop app's own picture tools, so it only works inside the app (not when the server runs alone).
+  function smallCopy(buf) {
+    try {
+      const { nativeImage } = require('electron'); if (!nativeImage) return null;
+      const im = nativeImage.createFromBuffer(buf); if (im.isEmpty()) return null;
+      const { width: w, height: h } = im.getSize(), k = Math.min(1, 300 / Math.min(w, h));
+      const out = (k < 1 ? im.resize({ width: Math.round(w * k), height: Math.round(h * k), quality: 'best' }) : im).toJPEG(80);
+      return out.length && out.length < 3e5 ? { mime: 'image/jpeg', b64: out.toString('base64') } : null;
+    } catch (e) { return null; }
+  }
+  // flyers posted before small copies existed get one, a few at a time
+  let thumbing = false;
+  async function thumbs() {
+    if (thumbing || fs.existsSync(F('moved.json'))) return; const c = cfg(); if (!c.site || !c.token) return; thumbing = true;
+    try {
+      const { posts } = await (await remote('/api/hub/posts')).json();
+      for (const x of posts.filter(x => x.hasimg && !x.hasthumb && !x.removed && x.expires > Date.now()).slice(0, 5)) {
+        const r = await fetch(c.site + '/api/urgent/img/' + encodeURIComponent(x.id), { signal: AbortSignal.timeout(20000) }); if (!r.ok) continue;
+        const t = smallCopy(Buffer.from(await r.arrayBuffer())); if (!t) break;
+        await remote(`/api/hub/posts/${encodeURIComponent(x.id)}/thumb`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(t) });
+      }
+    } catch (e) { /* tried again in a few minutes */ } finally { thumbing = false; }
+  }
+  setInterval(thumbs, 5 * 60000).unref(); setTimeout(thumbs, 45000);
+
   // ---------------- collecting applications (every minute) ----------------
   let syncing = false;
   async function sync() {
@@ -177,7 +203,7 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
       const m = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(String(b.image || ''));
       if (!m) throw err('Add the flyer or photo of the job.');
       const positions = (Array.isArray(b.positions) ? b.positions : String(b.positions || '').split('\n')).map(x => String(x).trim().slice(0, 60)).filter(Boolean).slice(0, 12);
-      body = { title, role: b.role, text: b.text, place: b.place, positions, expires, by: p.name, rules: rulesOf(b.rules), image: { mime: m[1], b64: m[2], w: b.w, h: b.h } };
+      body = { title, role: b.role, text: b.text, place: b.place, positions, expires, by: p.name, rules: rulesOf(b.rules), image: { mime: m[1], b64: m[2], w: b.w, h: b.h }, thumb: smallCopy(Buffer.from(m[2], 'base64')) || undefined };
     }
     const r = await remote('/api/hub/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json();
