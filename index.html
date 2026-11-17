@@ -2951,6 +2951,8 @@ function sbNav(){const r=R[ui.r];if(!SB.me||!SB.me.desk||!r)return;if(r.nav.some
  g[1].push({l:'Plans & limit',i:'💳',b:'subs'});render(true)}
 if(!STATIC.includes('subs'))STATIC.push('subs');LOADERS.subs=()=>sbLoad();
 const sbVfNav=vfNav;vfNav=function(){sbVfNav();if(SB.me)sbNav();else sbMe()};
+// Front Desk and Reception have no vacancy rooms, so don't wait for the vacancy menu: ask once the person is signed in
+const sbBoot=setInterval(()=>{if(ui.me&&ui.me.id){clearInterval(sbBoot);if(!SB.me)sbMe();if(!CRM.me)crmMe()}},1500);
 function sbPing(){const e=flat(ui.r)[ui.v];if(e&&e.b=='subs'&&!SB.edit)sbLoad()}
 const sbLeft=c=>c.unlimited?'Unlimited':c.left==null?'No limit':c.left+' left';
 V.subs=function(){const D=SB.v;if(!D)return'<h1>Plans & limit</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Plans & limit</h1><p class=bad>${esc(D.err)}</p>`;
