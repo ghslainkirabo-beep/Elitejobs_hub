@@ -115,5 +115,14 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity, broadcast, smsLas
   // money from plans, for the private ledger
   function monthMoney(month) { const D = load(); return Object.values(D.people).flatMap(P => P.subs || []).filter(x => kDay(x.t).slice(0, 7) === month).reduce((a, x) => a + (x.price || 0), 0); }
 
-  return { view, settings, plan, start, stop, push, monthMoney, desk };
+  // website password help: a person who forgot their password calls or comes in; after staff check it is them,
+  // the Hub asks the website for a 6-digit code that works for 30 minutes. The code is shown once and never written in the log.
+  async function resetCode(p, b) {
+    needDesk(p); const k = nine(b.phone); if (!k) throw err('Write the person’s phone number.');
+    if (!b.checked) throw err('First check it is really them (their name, ID or how they applied).');
+    const r = await urgent.remote('/api/hub/reset-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '0' + k }) });
+    const j = await r.json(); log(p, `gave a website password code to ${j.name || 'a job seeker'} (0${k.slice(0, 3)} ••• ${k.slice(-3)})`);
+    return { code: j.code, name: j.name, mins: j.mins || 30 };
+  }
+  return { view, settings, plan, start, stop, push, monthMoney, desk, resetCode };
 };

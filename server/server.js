@@ -166,7 +166,7 @@ function bindDevice(p, key, s) {
   saveDevs(d);
   if (!ok) office.secEvent(otherAdmin && !mine.length
     ? '“' + p.name + '” signed in as a new Admin. Their device can’t use protected rooms until the existing Admin approves it (Urgent hiring → Access).'
-    : p.name + ' (' + p.dept + ') signed in on a new device. It can’t use protected rooms until Admin approves it (Urgent hiring → Access).', ['admin', 'it']);
+    : p.name + (p.dept ? ' (' + p.dept + ')' : '') + ' signed in on a new device. It can’t use protected rooms until Admin approves it (Urgent hiring → Access).', ['admin', 'it']);
   if (cur && cur.uid !== p.id) office.secEvent('A device that belonged to ' + (((s.staff.find(y => y.id === cur.uid)) || {}).name || cur.uid) + ' was used to sign in as ' + p.name + '.', ['admin', 'it']);
   return ok ? 'trusted' : 'waiting';
 }
@@ -424,6 +424,7 @@ const server = http.createServer((req, res) => {
     if (p === '/api/subs/plan') return body(b => subs.plan(me, b));
     if (p === '/api/subs/start') return body(b => subs.start(me, b));
     if (p === '/api/subs/stop') return body(b => subs.stop(me, b));
+    if (p === '/api/subs/reset-code') return body(b => subs.resetCode(me, b));
     return send(res, 404, '');
   }
 
