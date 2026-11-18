@@ -786,6 +786,7 @@ function connectHub(){
     if(m.type=='vflow'&&typeof vfLoad=='function'){vfLoad();const e=flat(ui.r)[ui.v];if(e&&e.b=='vacs')vfList(e.g||'active');if(e&&e.b=='urgent')ugRevRefresh()}
     if(m.type=='crm'&&typeof crmPing=='function')crmPing();
     if(m.type=='subs'&&typeof sbPing=='function')sbPing();
+    if(m.type=='members'&&typeof mbPing=='function')mbPing();
     if(m.type=='inq'){if(m.kind=='done'&&ui.iq)iqGone(m.id);else{const e=flat(ui.r)[ui.v];if(e&&(e.b=='inq'||e.b=='inqadmin')&&!ui.iq.sel)LOADERS[e.b]();iqMe()}}
     if(m.type=='webjobs'){const e=flat(ui.r)[ui.v];if(e&&e.b=='webjobs')LOADERS.webjobs()}
     if(m.type=='presence'){ONLINE=new Set(m.online||[]);render(true)}
@@ -3044,4 +3045,62 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 </style>`);
 
 _render();boot();if(PREVIEW)previewStart();else if(!softResume())showGate();
+
+// ===================== Website members: everyone with an account on the website, and everything they did =====================
+const MB={me:null,v:null,q:'',open:null};
+const mbDay=t=>t?new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+const MB_L={fields:'Fields',roles:'Jobs they want',district:'Lives in',shift:'Can work',start:'Can start',exp:'Experience',edu:'Education',langs:'Languages',skills:'Skills',want:'Work they want'};
+const MB_F={"hospitality":"Hospitality & food","cleaning":"Cleaning & household","security":"Security","driving-logistics":"Driving & logistics","it-technology":"IT & technology","finance":"Finance & accounting","sales-marketing":"Sales & marketing","health-care":"Health & care","construction-trades":"Construction & trades","education-childcare":"Education & childcare","office-admin":"Office & administration","agriculture-environment":"Agriculture & environment","manufacturing":"Manufacturing & production","tourism-beauty-media":"Tourism, beauty & media","ngo-public":"NGO & public service","energy-mining":"Energy, mining & utilities","property":"Property","sports-fitness":"Sports & fitness","other":"Other"};
+const MB_V={fields:MB_F,shift:{day:'Day',night:'Night',any:'Day or night'},start:{now:'Now',w2:'In 2 weeks',m1:'In a month'},exp:{none:'None yet',y1:'Under 1 year',y3:'1 to 3 years',y4:'More than 3 years'},edu:{pri:'Primary',sec:'Secondary',tvet:'TVET / certificate',dip:'Diploma',deg:'Degree'},
+ district:{gasabo:'Gasabo',kicukiro:'Kicukiro',nyarugenge:'Nyarugenge',other:'Outside Kigali'},langs:{rw:'Kinyarwanda',en:'English',fr:'French',sw:'Kiswahili'}};
+const mbVal=(k,v)=>String(v||'').split(',').map(x=>x.trim()).filter(Boolean).map(x=>(MB_V[k]&&MB_V[k][x])||x).join(', ');
+function mbMe(){return api('/api/members/me').then(r=>{MB.me=r;mbNav()}).catch(()=>{})}
+function mbLoad(){return api('/api/members/view?q='+encodeURIComponent(MB.q)).then(r=>{MB.v=r;const e=flat(ui.r)[ui.v];if(e&&(e.b=='members'||e.b=='dbparts'))refreshMain()}).catch(e=>{MB.v={err:e.message};const x=flat(ui.r)[ui.v];if(x&&(x.b=='members'||x.b=='dbparts'))refreshMain()})}
+function mbNav(){const r=R[ui.r];if(!MB.me||!MB.me.may||!r)return;if(r.nav.some(g=>g[1].some(e=>e.b=='members')))return;
+ const i=r.nav.findIndex(x=>x[0]=='Job seekers'||x[0]=='Recruitment');r.nav.splice(i<0?r.nav.length:i+1,0,['Website members',[{l:'Members',i:'👥',b:'members'},{l:'Database in 3 parts',i:'🗂️',b:'dbparts'}]]);render(true)}
+['members','dbparts'].forEach(b=>{if(!STATIC.includes(b))STATIC.push(b);LOADERS[b]=()=>mbLoad()});
+const mbBoot=setInterval(()=>{if(ui.me&&ui.me.id){clearInterval(mbBoot);if(!MB.me)mbMe()}},1600);
+const mbVfNav=vfNav;vfNav=function(){mbVfNav();if(MB.me)mbNav();else mbMe()};
+function mbPing(){const e=flat(ui.r)[ui.v];if(e&&(e.b=='members'||e.b=='dbparts'))mbLoad()}
+const mbSteps=['Received','Called','Interview','Result','Placed'];
+function mbApp(a){return`<li class="mbapp ${a.end?'end':''}"><div><b>${esc(a.title)}</b><small>${a.kind=='urgent'?'Urgent job':'Open job'} · ${esc(mbDay(a.t))}</small></div><ol class=mbtrack aria-label="${esc(a.say)}">${mbSteps.map((s,i)=>`<li class="${i<a.s?'done':i==a.s?'now':''}" title="${s}"></li>`).join('')}</ol><em>${esc(a.say)}</em></li>`}
+function mbCard(m){const open=MB.open==m.id,P=m.profile||{},ini=esc((String(m.name).match(/\b\p{L}/gu)||['?']).slice(0,2).join('').toUpperCase()),isNew=Date.now()-m.since<7*864e5;
+ return`<article class="card mbc ${open?'mbon':''}"><header data-a="mbopen|${m.id}" role=button tabindex=0 aria-expanded=${open}><span class=crmav aria-hidden=true>${ini}</span><span class=mbwho><b>${esc(m.name)}</b><small>${m.phone?`<a class=cvlk href="tel:${esc(m.phone)}">📞 ${esc(m.phone)}</a>`:'No phone yet'} · member since ${esc(mbDay(m.since))}</small><span class=mbbad>${m.proven?'<i class=ok>Number proven</i>':'<i>Number not proven</i>'}${m.google?'<i>Google</i>':''}${isNew?'<i class=new>New</i>':''}${m.cv||m.cvMade?'<i class=ok>CV</i>':''}</span></span>
+  <span class=mbring style="--p:${m.done}" title="Profile ${m.done}% complete"><b>${m.done}%</b></span><span class=mbn><b>${m.napps}</b><small>application${m.napps==1?'':'s'}</small></span></header>
+  ${open?`<div class=mbbody><div class=mbcol><h4>Profile</h4><dl class=mbdl>${P.email?`<dt>Email</dt><dd><a class=cvlk href="mailto:${esc(P.email)}">${esc(P.email)}</a></dd>`:''}${Object.keys(MB_L).filter(k=>P[k]).map(k=>`<dt>${MB_L[k]}</dt><dd>${esc(mbVal(k,P[k]))}</dd>`).join('')||'<dd class=sub>They haven’t filled their profile yet.</dd>'}</dl>
+   ${P.about?`<p class=mbabout>${esc(P.about)}</p>`:''}<div class=row>${m.cv?btn('📄 Open their CV','mbcv|'+m.id,'p'):''}${m.cvMade&&!m.cv?'<small class=sub>Made a CV on the website (not downloaded yet)</small>':''}${!m.cv&&!m.cvMade?'<small class=sub>No CV yet</small>':''}</div></div>
+   <div class=mbcol><h4>Fits now</h4>${m.fits.length?`<ul class=mbfit>${m.fits.map(f=>`<li><b>${esc(f.title)}</b><small>${f.kind=='urgent'?'Urgent job':'Vacancy'}${f.where?' · '+esc(f.where):''}</small></li>`).join('')}</ul>`:'<p class=sub>Nothing open matches what they want right now.</p>'}
+   <h4>Applications</h4>${m.apps.length?`<ul class=mbapps>${m.apps.map(mbApp).join('')}</ul>`:'<p class=sub>No application yet.</p>'}</div></div>`:''}</article>`}
+V.members=function(){const D=MB.v;if(!D)return'<h1>Website members</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Website members</h1><p class=bad>${esc(D.err)}</p>`;const T=D.parts.members;
+ return`<div class=vfhead><div><h1>Website members</h1><div class=sub>Everyone with an account on elitejobsrwanda.com. Their applications still arrive in the usual rooms; here you see each person’s whole story in one place.</div></div></div>
+ <div class=crmtiles><div><small>Members</small><b>${T.n}</b><em>${T.week} new this week</em></div><div><small>Applied at least once</small><b>${T.applied}</b><em>of ${T.n} members</em></div><div><small>With a CV</small><b>${T.withCv}</b><em>uploaded or made on the website</em></div><div><small>Number proven</small><b>${T.proven}</b><em>${T.google} signed up with Google</em></div></div>
+ <div class=crmtools><input id=mbq type=search placeholder="Search a member by name, phone, email, place or job" value="${esc(MB.q)}" aria-label="Search members"></div>
+ ${D.list.length?`<div class=mbl>${D.list.map(mbCard).join('')}</div>`:`<div class=vfempty><b>${D.q?'Nobody found':'No member yet'}</b><small>${D.q?'Try the phone number, like 0788 123 456.':'When someone makes an account on the website, they appear here within a few minutes.'}</small></div>`}
+ <small class=sub>Website: ${D.sync.ok?'up to date '+esc(vfWhen(D.sync.t)):D.sync.t?'not reached — '+esc(D.sync.err):'reading the website…'}</small>`};
+V.dbparts=function(){const D=MB.v;if(!D)return'<h1>Database in 3 parts</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Database in 3 parts</h1><p class=bad>${esc(D.err)}</p>`;const P=D.parts;
+ return`<div class=vfhead><div><h1>Database in 3 parts</h1><div class=sub>Who Elite Jobs knows, split the way the office works with them.</div></div></div>
+ <div class=dbp>
+  <section class="card dbpc on" data-a="nav|members"><span class=dbpi>👥</span><h3>Members</h3><b>${P.members.n}</b><p>People with a website account. Their applications fill themselves from their account and CV.</p><ul><li>${P.members.applied} applied</li><li>${P.members.withCv} with a CV</li><li>${P.members.week} new this week</li></ul></section>
+  <section class="card dbpc"><span class=dbpi>🧾</span><h3>Applied without an account</h3><b>${P.guests.n}</b><p>People who applied (urgent or open jobs) without signing up. They are in Applicants, as always.</p><ul><li>${P.guests.apps} applications</li></ul></section>
+  <section class="card dbpc sleep" aria-disabled=true><div class=dbblur><span class=dbpi>🌙</span><h3>Sleeping pool</h3><b>${P.sleeping.walkins+P.sleeping.calls+P.sleeping.cvs}</b><p>Daily office logs and customer records. Not counted as candidates yet.</p><ul><li>${P.sleeping.walkins} walk-ins</li><li>${P.sleeping.calls} call logs</li><li>${P.sleeping.cvs} CVs made at the office</li></ul></div>
+   <div class=dblock><span aria-hidden=true>🔒</span><b>Asleep for now</b><small>It wakes up when the office decides how these people become candidates.</small></div></section>
+ </div>`};
+Object.assign(A,{mbopen(id){MB.open=MB.open==id?null:id;haptic('soft');refreshMain()},
+ mbcv(id){toast('Opening the CV…');api('/api/members/cv?id='+encodeURIComponent(id)).then(r=>{const b=Uint8Array.from(atob(r.b64),c=>c.charCodeAt(0)),u=URL.createObjectURL(new Blob([b],{type:r.mime}));const w=window.open(u,'_blank');if(!w){const a=document.createElement('a');a.href=u;a.download=r.name;a.click()}haptic('success')}).catch(crmErr)}});
+document.addEventListener('input',e=>{if(e.target.id=='mbq'){MB.q=e.target.value;clearTimeout(MB.qt);MB.qt=setTimeout(()=>{const pos=e.target.selectionStart;mbLoad().then(()=>{const i=$('#mbq');if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(x){}}})},250)}});
+document.head.insertAdjacentHTML('beforeend',`<style>
+.mbl{display:grid;gap:10px}.mbc{padding:0;overflow:hidden}.mbc>header{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer}.mbc>header:focus-visible{outline:2px solid var(--ac);outline-offset:-2px}
+.mbwho{flex:1;min-width:0;display:grid;gap:3px}.mbwho small{color:var(--mut)}.mbbad{display:flex;gap:6px;flex-wrap:wrap}.mbbad i{font-style:normal;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--s2,rgba(127,127,127,.14));color:var(--mut)}.mbbad i.ok{color:#2fbf86;background:rgba(47,191,134,.14)}.mbbad i.new{color:#fff;background:var(--ac)}
+.mbring{--p:0;flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#2fbf86 calc(var(--p)*1%),rgba(127,127,127,.2) 0)}.mbring b{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--s1);font-size:12px}
+.mbn{display:grid;justify-items:center;min-width:64px}.mbn b{font-size:22px}.mbn small{color:var(--mut);font-size:11px}
+.mbbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:18px;padding:4px 16px 16px;border-top:1px solid var(--bd)}.mbbody h4{margin:14px 0 8px;font-size:13px;color:var(--mut);letter-spacing:.02em}
+.mbdl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}.mbdl dt{color:var(--mut);font-size:13px}.mbdl dd{margin:0;font-weight:600}.mbabout{margin:10px 0;line-height:1.5}
+.mbapps,.mbfit{list-style:none;margin:0;padding:0;display:grid;gap:8px}.mbapp{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--s2,rgba(127,127,127,.1))}.mbapp small{display:block;color:var(--mut);font-size:12px}.mbapp em{grid-column:1/-1;font-style:normal;font-size:12.5px;font-weight:700;color:#2fbf86}.mbapp.end em{color:var(--mut)}
+.mbtrack{list-style:none;margin:0;padding:0;display:flex;gap:4px}.mbtrack li{width:18px;height:6px;border-radius:4px;background:rgba(127,127,127,.25)}.mbtrack li.done{background:#2fbf86}.mbtrack li.now{background:var(--ac)}
+.mbfit li{padding:9px 12px;border-radius:14px;background:rgba(47,191,134,.1)}.mbfit small{display:block;color:var(--mut);font-size:12px}
+.dbp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.dbpc{position:relative;padding:20px;display:grid;gap:8px;align-content:start;overflow:hidden}.dbpc.on{cursor:pointer}.dbpc h3{margin:0}.dbpc>b,.dbblur>b{font-size:40px;letter-spacing:-.03em}.dbpc p{margin:0;color:var(--mut);line-height:1.5}.dbpc ul{margin:4px 0 0;padding-left:18px;color:var(--mut)}
+.dbpi{font-size:26px}.dbblur{display:grid;gap:8px;filter:blur(5px);opacity:.55;pointer-events:none;user-select:none}
+.dblock{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:6px;text-align:center;padding:20px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.18))}.dblock span{font-size:30px}.dblock small{color:var(--mut);max-width:28ch;line-height:1.45}
+@media(max-width:900px){.mbbody,.dbp{grid-template-columns:1fr}.mbn{display:none}}
+</style>`);
 </script></body></html>
