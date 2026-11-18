@@ -32,4 +32,6 @@ jobs:
           cp "desktop/dist/Elitejobs-Hub-Setup-$V.exe" "desktop/dist/Elitejobs-Hub-Setup-$V.exe.blockmap" desktop/dist/latest.yml downloads/
           cd downloads && ls Elitejobs-Hub-Setup-*.exe | sort -V | head -n -2 | while read f; do rm -f "$f" "$f.blockmap"; done; cd ..
           git config user.name "Elitejobs Hub build"; git config user.email "build@elitejobsrwanda.com"
-          git add -A downloads && git commit -m "Windows installer $V (built on GitHub)" && git pull --rebase && git push
+          git add -A downloads && git commit -m "Windows installer $V (built on GitHub)"
+          git stash -u || true
+          git pull --rebase && git push
