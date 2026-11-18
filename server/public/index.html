@@ -574,7 +574,7 @@ img{image-rendering:auto}
 .ugseg3 input:checked+span{background:var(--card,#fff);box-shadow:0 1px 4px rgba(0,0,0,.14)}
 .ugseg3 input:focus-visible+span{outline:2px solid var(--brand,#5B489D)}
 .ugrn{font-size:11.5px;opacity:.65}
-.ugpa{display:flex;gap:6px;flex:none}
+.ugpa{display:flex;gap:6px;flex:none}.ugph{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0 8px}.ugph b{flex:1}.ugpq{max-width:240px;padding:8px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:inherit;font:inherit}
 .ugdocs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0}.ugdocs small{opacity:.6;font-size:11.5px}
 
 /* ================= CV studio ================= */
@@ -1787,7 +1787,7 @@ function ugRulesHTML(f){const r=ugRulesFrom(f);return`<fieldset class=ugrules><l
 const ugRulesRead=f=>({cv:!!(f&&f.querySelector('[name=r_cv]:checked')),dip:!!(f&&f.querySelector('[name=r_dip]:checked')),gender:((f&&f.querySelector('[name=r_g]:checked'))||{}).value||'any'});
 const ugRulesLine=r=>r?[r.cv?'CV':'',r.dip?'Diploma':'',r.gender=='f'?'Women only':r.gender=='m'?'Men only':''].filter(Boolean).join(' · '):'';
 // typing a title switches "CV required" for you (cleaner, security… need none) until you touch the switch yourself
-document.addEventListener('input',e=>{const t=e.target;if(!t||t.name!='title'||!t.form)return;const c=t.form.querySelector('[data-ugrcv]');if(c&&!c.dataset.touched)c.checked=!NO_CV.test(t.value)});
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.ugpq){ui.ug.pq=t.value;const pos=t.selectionStart;refreshMain();const n=document.querySelector('[data-ugpq]');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}return}if(!t||t.name!='title'||!t.form)return;const c=t.form.querySelector('[data-ugrcv]');if(c&&!c.dataset.touched)c.checked=!NO_CV.test(t.value)});
 document.addEventListener('change',e=>{if(e.target&&e.target.matches&&e.target.matches('[data-ugrcv]'))e.target.dataset.touched=1});
 function ugForm(){const g=ui.ug,f=g.f||{};return`<form class=ugf id=ugpub autocomplete=off>
  <label>Job title<input name=title maxlength=80 required placeholder="5 waiters for tonight" value="${esc(f.title||'')}"></label>
@@ -1798,7 +1798,10 @@ function ugForm(){const g=ui.ug,f=g.f||{};return`<form class=ugf id=ugpub autoco
  <div class=ug2><label>How long it stays up<select name=life data-uglife=1>${UGLIFE.map(([v,l])=>`<option value=${v} ${g.life==v?'selected':''}>${l}</option>`).join('')}</select></label>${g.life=='custom'?`<label>Ends at<input type=datetime-local name=until value="${esc(f.until||'')}"></label>`:'<span></span>'}</div>
  <div class=row>${btn(g.busy=='pub'?'Publishing…':'Publish to the website','ugpublish','p')}</div></form>`}
 function ugPosts(){const g=ui.ug,P=g.posts;if(g.postsErr)return`<p class=bad>${esc(g.postsErr)}</p>`;if(!P)return'';if(!P.length)return'<div class=empty>No live urgent jobs. What you publish shows on elitejobsrwanda.com and is deleted for good when its time ends or you take it down.</div>';
- return`<div class=ugposts>${P.slice(0,12).map(p=>`<div class="ugpost"><div><b>${esc(p.title)}</b><small>${ugLeft(p.expires)} · ${p.applied} applied${p.by?' · by '+esc(p.by):''}${ugRulesLine(p.rules)?' · '+esc(ugRulesLine(p.rules)):''}</small></div>${ui.ug.me.post?`<span class=ugpa>${btn('Edit','ugedit|'+p.id)}${btn('Take down','ugdown|'+p.id)}</span>`:''}</div>`).join('')}</div>`}
+ // every live job on the website is listed here (no cut-off), newest first, so each one can be edited or taken down
+ const q=(g.pq||'').trim().toLowerCase(),L=q?P.filter(p=>[p.title,p.place,p.role,p.by,(p.meta||{}).loc].join(' ').toLowerCase().includes(q)):P,can=ui.ug.me.post;
+ return`<div class=ugposts><div class=ugph><b>All live urgent jobs on the website · ${P.length}</b>${P.length>6?`<input class=ugpq type=search placeholder="Find a job…" value="${esc(g.pq||'')}" data-ugpq=1 aria-label="Find a job">`:''}</div>
+ ${L.length?L.map(p=>`<div class="ugpost"><div><b>${esc(p.title)}</b><small>${ugLeft(p.expires)} · ${p.applied} applied${p.by?' · by '+esc(p.by):''}${ugRulesLine(p.rules)?' · '+esc(ugRulesLine(p.rules)):''}</small></div>${can?`<span class=ugpa>${btn('Edit','ugedit|'+p.id)}${g.sure==p.id?btn('Yes, take it down','ugdown|'+p.id,'p')+btn('Keep','ugkeep'):btn('Take down','ugsure|'+p.id)}</span>`:''}</div>`).join(''):`<div class=empty>No live job matches “${esc(g.pq)}”.</div>`}</div>`}
 function ugConn(){const c=ui.ug.cfg||{};return`<div class=card><h3>Website connection</h3><p class=sub>The Hub collects applications from elitejobsrwanda.com every minute and publishes urgent jobs there. Use the same Hub key you saved in Cloudflare (HUB_TOKEN).</p>
  <form class=ugf id=ugcfg autocomplete=off><div class=ug2><label>Website address<input name=site placeholder="https://elitejobsrwanda.com" value="${esc(c.site||'')}"></label><label>Hub key<input name=token type=password placeholder="${c.hasToken?'Saved — type a new one to change it':'Paste the key'}"></label></div>
  <div class=row>${btn('Save connection','ugcfg','p')}${btn('Check now','ugsync')}<span class=${c.lastError?'bad':'sub'} style="margin:0">${c.lastError?esc(c.lastError):c.lastSync?'Last checked '+agoT(c.lastSync):'Not checked yet'}</span></div></form></div>`}
@@ -2001,7 +2004,9 @@ Object.assign(A,{
   FM.ugedit.f=[['title','Job title'],['until','Ends at',null,{type:'datetime-local'}]].concat(card?[['salMin','Pay from (RWF)',null,{opt:1}],['salMax','Pay up to (RWF)',null,{opt:1}],['loc','Where'],['desc','Description',null,{opt:1,area:1}]]:[['place','Where',null,{opt:1}],['text','Short description',null,{opt:1,area:1}]])
    .concat([['cv','CV',[['1','Required'],['0','Not required']]],['dip','Diploma or certificate',[['0','Not required'],['1','Required']]],['gender','Who can apply',UG_G]]);
   ui.pre={};ui.nv=true;ui.modal='ugedit';render()},
- ugdown(id){api('/api/urgent/posts/remove',{id}).then(()=>{toast('Taken down from the website');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
+ ugsure(id){ui.ug.sure=id;refreshMain()},
+ ugkeep(){ui.ug.sure=null;refreshMain()},
+ ugdown(id){ui.ug.sure=null;api('/api/urgent/posts/remove',{id}).then(()=>{toast('Taken down from the website');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
  uggrant(key){const g=ui.ug,a=g.acc&&g.acc[key],uid=a&&a.uid;if(!uid)return;const post=key!='rev',review=key!='pub';api('/api/urgent/grants',{uid,post,review}).then(()=>{g.acc[key]={role:a.role,uid:''};toast('✔ Access saved');haptic('success');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
  ugrevoke(uid){api('/api/urgent/grants',{uid,post:false,review:false}).then(()=>{toast('Access removed');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
  ugdev(id,ok){api('/api/devices',{id,ok:ok=='1'}).then(()=>{toast(ok=='1'?'✔ Device approved':'Device removed');LOADERS.urgent()}).catch(e=>toast('✖ '+e.message))},
