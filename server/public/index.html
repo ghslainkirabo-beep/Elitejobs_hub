@@ -787,6 +787,7 @@ function connectHub(){
     if(m.type=='crm'&&typeof crmPing=='function')crmPing();
     if(m.type=='subs'&&typeof sbPing=='function')sbPing();
     if(m.type=='members'&&typeof mbPing=='function')mbPing();
+    if(m.type=='cvpays'&&typeof cvpLoad=='function'){const e=flat(ui.r)[ui.v];if(e&&e.b=='cvpays'){cvpLoad();if(m.kind=='grants')cvpGrants()}}
     if(m.type=='inq'){if(m.kind=='done'&&ui.iq)iqGone(m.id);else{const e=flat(ui.r)[ui.v];if(e&&(e.b=='inq'||e.b=='inqadmin')&&!ui.iq.sel)LOADERS[e.b]();iqMe()}}
     if(m.type=='webjobs'){const e=flat(ui.r)[ui.v];if(e&&e.b=='webjobs')LOADERS.webjobs()}
     if(m.type=='presence'){ONLINE=new Set(m.online||[]);render(true)}
@@ -3112,5 +3113,60 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .dbpi{font-size:26px}.dbblur{display:grid;gap:8px;filter:blur(5px);opacity:.55;pointer-events:none;user-select:none}
 .dblock{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:6px;text-align:center;padding:20px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.18))}.dblock span{font-size:30px}.dblock small{color:var(--mut);max-width:28ch;line-height:1.45}
 @media(max-width:900px){.mbbody,.dbp{grid-template-columns:1fr}.mbn{display:none}}
+</style>`);
+
+// ===================== CV payments: every CV plan bought on the website (approved by the payer's own PIN) =====================
+const CVP={me:null,v:null,tab:'paid',q:'',g:null,pick:''};
+const CVP_N={silver:'Silver',platinum:'Platinum',diamond:'Diamond'},CVP_CV={silver:3,platinum:5,diamond:10};
+const cvpF=n=>Number(n||0).toLocaleString('en-US');
+function cvpMe(){return api('/api/cvpays/me').then(r=>{CVP.me=r;cvpNav()}).catch(()=>{})}
+function cvpLoad(){return api('/api/cvpays/view').then(r=>{CVP.v=r;const e=flat(ui.r)[ui.v];if(e&&e.b=='cvpays')refreshMain()}).catch(e=>{CVP.v={err:e.message};const x=flat(ui.r)[ui.v];if(x&&x.b=='cvpays')refreshMain()});}
+function cvpGrants(){if(!CVP.me||!CVP.me.admin)return;api('/api/cvpays/grants').then(r=>{CVP.g=r;const e=flat(ui.r)[ui.v];if(e&&e.b=='cvpays')refreshMain()}).catch(()=>{})}
+function cvpNav(){const r=R[ui.r];if(!CVP.me||!CVP.me.may||!r)return;if(r.nav.some(g=>g[1].some(e=>e.b=='cvpays')))return;
+ const i=r.nav.findIndex(x=>x[0]=='Website members'||x[0]=='Job seekers'||x[0]=='Recruitment');r.nav.splice(i<0?r.nav.length:i+1,0,['CV plans',[{l:'CV payments',i:'💳',b:'cvpays'}]]);render(true)}
+if(!STATIC.includes('cvpays'))STATIC.push('cvpays');LOADERS.cvpays=()=>{cvpLoad();cvpGrants()};
+const cvpBoot=setInterval(()=>{if(ui.me&&ui.r&&R[ui.r]){clearInterval(cvpBoot);if(!CVP.me)cvpMe()}},1700);
+const cvpVfNav=vfNav;vfNav=function(){cvpVfNav();if(CVP.me)cvpNav();else cvpMe()};
+setInterval(()=>{const e=flat(ui.r)[ui.v];if(e&&e.b=='cvpays'&&!document.hidden)cvpLoad()},60000);
+function cvpRow(x,P){const pp=P[x.uid]||{},ended=x.status=='paid'&&pp.ended,cur=x.status=='paid'&&pp.plan;
+ return`<div class="cvpr cvst-${x.status} ${ended?'ended':''}"><span class="cvpg cvp-${x.plan}">${CVP_N[x.plan]||x.plan}</span>
+ <div class=cvpw><b>${esc(x.name||'Member')}</b><small>${esc(x.phone)} · ${x.net=='airtel'?'Airtel Money':'MTN MoMo'} · ${esc(vfWhen(x.done||x.created))}</small>
+ ${x.status=='paid'?`<small class=cvps>${ended?'Plan used up — locked until they pay again':`Now: ${esc(CVP_N[pp.plan]||'—')} · ${pp.left} of ${pp.total} CVs left · ${pp.letters} letters`}</small>`:x.status=='failed'?`<small class=cvps>${esc(x.note||'Not approved')}</small>`:'<small class=cvps>Waiting for the PIN on their phone</small>'}</div>
+ <div class=cvpa><b>${cvpF(x.rwf)} RWF</b><small>$${(+x.usd).toFixed(x.usd%1?2:0)} · ${x.ref?esc(String(x.ref).slice(0,18)):esc(x.id)}</small>${x.status=='pending'?btn('Check again','cvpcheck|'+x.id):''}</div></div>`}
+V.cvpays=function(){const D=CVP.v;if(!D)return'<h1>CV payments</h1><div class=sub>Opening…</div>';if(D.err&&!D.pays)return`<h1>CV payments</h1><p class=bad>${esc(D.err)}</p>`;
+ const all=D.pays||[],P=D.people||{},q=CVP.q.trim().toLowerCase(),day=new Date().setHours(0,0,0,0),mon=new Date(new Date().getFullYear(),new Date().getMonth(),1).getTime();
+ const paid=all.filter(x=>x.status=='paid'),wait=all.filter(x=>x.status=='pending'),fail=all.filter(x=>x.status=='failed');
+ const sum=a=>a.reduce((n,x)=>n+(+x.rwf||0),0),L={paid,wait,fail}[CVP.tab]||paid,F=q?L.filter(x=>[x.name,x.phone,x.plan,x.ref,x.id].join(' ').toLowerCase().includes(q)):L;
+ const active=Object.values(P).filter(x=>x.plan).length,ended=Object.values(P).filter(x=>x.ended).length;
+ const G=CVP.g;
+ return`<div class=vfhead><div><h1>CV payments</h1><div class=sub>Every CV plan bought on elitejobsrwanda.com. Each payment was approved with the payer’s own PIN on their phone, so nothing here is confirmed by hand. Checked every minute.</div></div></div>
+ ${D.provider?'':'<p class=cvpoff>Paying on the website isn’t switched on yet. IT adds the Paypack key (PAYPACK_ID and PAYPACK_SECRET) in Cloudflare; payments start the same minute.</p>'}
+ <div class=crmtiles><div><small>Paid today</small><b>${cvpF(sum(paid.filter(x=>x.done>=day)))} RWF</b><em>${paid.filter(x=>x.done>=day).length} plans</em></div><div><small>Paid this month</small><b>${cvpF(sum(paid.filter(x=>x.done>=mon)))} RWF</b><em>${paid.filter(x=>x.done>=mon).length} plans</em></div>
+ <div><small>People with a plan on</small><b>${active}</b><em>${ended} used up</em></div><div><small>By plan</small><b class=cvpmix>${['silver','platinum','diamond'].map(k=>`<span class="cvpg cvp-${k}">${CVP_N[k]} ${paid.filter(x=>x.plan==k).length}</span>`).join('')}</b></div></div>
+ <div class=crmtools><div class=cvptabs role=tablist>${[['paid','Paid',paid.length],['wait','Waiting for PIN',wait.length],['fail','Not approved',fail.length]].map(([k,l,n])=>`<button role=tab aria-selected="${CVP.tab==k}" class="${CVP.tab==k?'on':''}" data-a="cvptab|${k}">${l} <i>${n}</i></button>`).join('')}</div>
+ <input id=cvpq type=search placeholder="Find a name, phone, plan or reference" value="${esc(CVP.q)}" aria-label="Find a payment"></div>
+ ${F.length?`<div class=cvpl>${F.map(x=>cvpRow(x,P)).join('')}</div>`:`<div class=vfempty><b>${q?'Nothing found':CVP.tab=='paid'?'No CV plan bought yet':CVP.tab=='wait'?'Nobody is paying right now':'No refused payment'}</b><small>${CVP.tab=='paid'?'When someone pays on the website, it appears here within a minute.':''}</small></div>`}
+ <small class=sub>Website: ${D.t?'checked '+esc(vfWhen(D.t)):'reading…'}${D.err?' · '+esc(D.err):''}</small>
+ ${D.admin&&G?`<div class="card cvpacc"><h3>Who can open this room</h3><p class=sub>Admin always can. Give it to the people who follow sales; every change is logged in Activity.</p>
+ <div class=ug2><label>Person<select id=cvppick><option value="">Choose…</option>${G.staff.filter(s=>!G.grants[s.id]).map(s=>`<option value="${s.id}" ${CVP.pick==s.id?'selected':''}>${esc(s.name)} · ${esc(s.dept||s.role)}</option>`).join('')}</select></label><span>${btn('Give access','cvpgrant','p')}</span></div>
+ ${Object.keys(G.grants).length?Object.entries(G.grants).map(([id,g])=>{const s=G.staff.find(x=>x.id==id);return s?`<div class=ugpost><div><b>${esc(s.name)}</b><small>${esc(s.dept||s.role)} · given by ${esc(g.by)} ${esc(vfWhen(g.t))}</small></div>${btn('Remove','cvprevoke|'+id)}</div>`:''}).join(''):'<div class=empty>Only Admin for now.</div>'}</div>`:''}`};
+Object.assign(A,{cvptab(k){CVP.tab=k;refreshMain()},
+ cvpcheck(id){api('/api/cvpays/check',{id}).then(r=>{toast(r.status=='paid'?'✔ Paid':r.status=='failed'?'Not approved':'Still waiting for the PIN');cvpLoad()}).catch(e=>toast('✖ '+e.message))},
+ cvpgrant(){const v=($('#cvppick')||{}).value;if(!v)return toast('✖ Choose a person');api('/api/cvpays/grant',{uid:v,on:true}).then(()=>{toast('✔ Access given');CVP.pick='';cvpGrants()}).catch(e=>toast('✖ '+e.message))},
+ cvprevoke(id){api('/api/cvpays/grant',{uid:id,on:false}).then(()=>{toast('Access removed');cvpGrants()}).catch(e=>toast('✖ '+e.message))}});
+document.addEventListener('input',e=>{if(e.target&&e.target.id=='cvpq'){CVP.q=e.target.value;const pos=e.target.selectionStart;refreshMain();const n=$('#cvpq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}}});
+document.addEventListener('change',e=>{if(e.target&&e.target.id=='cvppick')CVP.pick=e.target.value});
+document.head.insertAdjacentHTML('beforeend',`<style>
+.cvpoff{padding:12px 14px;border-radius:12px;background:rgba(255,184,0,.12);border:1px solid rgba(255,184,0,.35);margin:0 0 14px}
+.cvptabs{display:flex;gap:6px;flex-wrap:wrap}.cvptabs button{padding:8px 12px;border-radius:99px;border:1px solid var(--bd);background:var(--card);color:inherit;font:inherit;font-weight:600;cursor:pointer}.cvptabs button.on{background:var(--ac);border-color:var(--ac);color:#fff}.cvptabs i{font-style:normal;opacity:.75;margin-left:4px}
+.cvpl{display:grid;gap:8px;margin:12px 0}
+.cvpr{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:14px;border:1px solid var(--bd);background:var(--card)}
+.cvpr.ended{filter:grayscale(1);opacity:.55}.cvpr.ended .cvpw b{filter:blur(.4px)}
+.cvpw small{display:block;color:var(--mut)}.cvps{margin-top:2px}.cvpr.cvst-paid .cvps{color:var(--ok,#18a058)}.cvpr.ended .cvps{color:var(--mut)}.cvpr.cvst-failed .cvps{color:#e5484d}
+.cvpa{text-align:right}.cvpa b{display:block}.cvpa small{display:block;color:var(--mut);font-size:11.5px}.cvpa .btn{margin-top:6px}
+.cvpg{display:inline-block;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;color:#1C1C1E;white-space:nowrap}
+.cvp-silver{background:linear-gradient(135deg,#FDFDFF,#B9BCC6)}.cvp-platinum{background:linear-gradient(135deg,#F7F3EC,#B3A792)}.cvp-diamond{background:linear-gradient(135deg,#33476E,#0F1A2E);color:#F2F6FF}
+.cvpmix{display:flex;gap:4px;flex-wrap:wrap;font-size:inherit}.cvpacc{margin-top:16px}
+@media(max-width:700px){.cvpr{grid-template-columns:1fr}.cvpa{text-align:left}}
 </style>`);
 </script></body></html>

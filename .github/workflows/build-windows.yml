@@ -1,0 +1,35 @@
+# Builds the Hub's Windows installer on a real Windows machine and puts it in downloads/ (the Hub updates itself from there).
+name: Build Hub for Windows
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Bring in the server and the screen
+        shell: bash
+        run: |
+          cp server/*.js desktop/
+          mkdir -p desktop/public && cp -r server/public/. desktop/public/
+          cp index.html desktop/public/index.html
+          V=$(node -p "require('./server/package.json').version")
+          node -e "const f='desktop/package.json',p=require('./'+f);p.version='$V';require('fs').writeFileSync(f,JSON.stringify(p,null,2))"
+          echo "V=$V" >> $GITHUB_ENV
+      - name: Build the installer
+        working-directory: desktop
+        run: |
+          npm ci
+          npx electron-builder --win nsis --publish never
+      - name: Put it in downloads (keep this version and the one before)
+        shell: bash
+        run: |
+          cp "desktop/dist/Elitejobs-Hub-Setup-$V.exe" "desktop/dist/Elitejobs-Hub-Setup-$V.exe.blockmap" desktop/dist/latest.yml downloads/
+          cd downloads && ls Elitejobs-Hub-Setup-*.exe | sort -V | head -n -2 | while read f; do rm -f "$f" "$f.blockmap"; done; cd ..
+          git config user.name "Elitejobs Hub build"; git config user.email "build@elitejobsrwanda.com"
+          git add -A downloads && git commit -m "Windows installer $V (built on GitHub)" && git pull --rebase && git push

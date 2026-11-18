@@ -1,0 +1,54 @@
+{
+  "name": "elitejobs-hub",
+  "version": "1.8.11",
+  "description": "Elitejobs Rwanda workspaces: one app for every position, live across the whole office.",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "node server.js",
+    "desktop": "electron .",
+    "dist": "electron-builder"
+  },
+  "keywords": [],
+  "author": "Elitejobs Rwanda",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
+    "electron-updater": "^6.8.11",
+    "qrcode": "^1.5.4",
+    "ws": "^8.22.1",
+    "unpdf": "1.8.1"
+  },
+  "build": {
+    "appId": "com.elitejobsrwanda.hub",
+    "productName": "Elitejobs Hub",
+    "files": [
+      "*.js",
+      "public/**"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Elitejobs Hub",
+      "runAfterFinish": true,
+      "artifactName": "Elitejobs-Hub-Setup-${version}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "http://localhost:8787/updates"
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  }
+}

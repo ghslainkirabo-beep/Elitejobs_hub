@@ -206,6 +206,7 @@ const vflow = require('./vflow.js')({ DATA_DIR, urgent, staffOf: () => (loadStat
 const appStatus = require('./status.js')({ DATA_DIR, urgent, sendSms: (to, t) => inquiries.sendSms(to, t), smsReady: () => inquiries.smsView().ready, appendActivity: a => appendActivity(a) });
 const smart = require('./match.js')({ DATA_DIR, rightsOf: p => vflow.rights(p) });
 const members = require('./members.js')({ DATA_DIR, urgent, rightsOf: p => vflow.rights(p), appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), readState: () => loadState() });
+const cvpays = require('./cvpays.js')({ DATA_DIR, urgent, loadState: () => loadState(), appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
 const subs = require('./subs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), smsLast: () => appStatus.smsLast() });
 const clients = require('./clients.js')({ DATA_DIR, subsMoney: m => subs.monthMoney(m), rightsOf: p => vflow.rights(p), appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
 const webjobs = require('./webjobs.js')({ DATA_DIR, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), need: (p, w) => urgent.need(p, w) });
@@ -420,6 +421,19 @@ const server = http.createServer((req, res) => {
     if (p === '/api/members/me') return run(() => ({ may: members.may(me) }));
     if (p === '/api/members/view') return run(() => members.view(me, { q: q.get('q') || '' }));
     if (p === '/api/members/cv') return run(() => members.cv(me, q.get('id') || ''));
+    return json(res, 404, { error: 'Not found' });
+  }
+  // ---- CV payments: Admin, and the people Admin gives the room ----
+  if (p.startsWith('/api/cvpays/')) {
+    const me = whoFrom(req), q = url.searchParams;
+    const run = fn => Promise.resolve().then(fn).then(r => json(res, 200, r)).catch(e => json(res, e.code >= 400 && e.code < 600 ? e.code : 400, { error: e.message || String(e) }));
+    const body = fn => readBody(req, 2e4, buf => run(() => fn(JSON.parse(buf.toString() || '{}'))));
+    if (!me) return json(res, 401, { error: 'Sign in first.' });
+    if (p === '/api/cvpays/me') return run(() => ({ may: cvpays.may(me), admin: me.role === 'admin' && !String(me.name).includes('@') }));
+    if (p === '/api/cvpays/view') return run(() => cvpays.view(me));
+    if (p === '/api/cvpays/grants') return run(() => cvpays.grants(me));
+    if (req.method === 'POST' && p === '/api/cvpays/check') return body(b => cvpays.check(me, b.id));
+    if (req.method === 'POST' && p === '/api/cvpays/grant') return body(b => cvpays.setGrant(me, b));
     return json(res, 404, { error: 'Not found' });
   }
   if (p.startsWith('/api/subs/')) {
