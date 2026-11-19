@@ -9,7 +9,9 @@ const fs = require('fs'), path = require('path'), crypto = require('crypto');
 
 module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendActivity, secEvent }) {
   const F = n => path.join(DATA_DIR, n);
-  const GR = F('urgent-grants.json'), CFG = F('urgent-config.json'), APPS = F('urgent-apps.json'), PH = F('urgent-photos');
+  const GR = F('urgent-grants.json'), CFG = F('urgent-config.json'), APPS = F('urgent-apps.json'), PH = F('urgent-photos'), ASKS = F('abroad-asks.json');
+  // the two chapters: Rwanda (Urgent hiring) and Abroad. A job or applicant is abroad when its country isn't Rwanda.
+  const isAbroad = x => !!x && !!x.country && x.country !== 'RW', inWhere = (x, w) => w === 'abroad' ? isAbroad(x) : w === 'rw' ? !isAbroad(x) : true;
   fs.mkdirSync(PH, { recursive: true });
   const rj = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return d; } };
   const wj = (f, o) => { const t = f + '.tmp'; fs.writeFileSync(t, JSON.stringify(o, null, 1)); fs.renameSync(t, f); };
@@ -128,7 +130,7 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
                 const name = `${a.id}-${k}.${ext}`; fs.writeFileSync(path.join(PH, name), Buffer.from(await r.arrayBuffer())); docs[k] = name;
               } catch (e) { /* kept without it; staff can ask for it on the call */ }
             }
-            const rec = { id: a.id, post: a.post, title: a.title || (a.data && a.data.job) || 'Urgent job', created: a.created, got: Date.now(), data: a.data || {}, photos, docs, status: 'new' };
+            const rec = { id: a.id, post: a.post, title: a.title || (a.data && a.data.job) || 'Urgent job', country: a.country || (a.data && a.data.country) || 'RW', created: a.created, got: Date.now(), data: a.data || {}, photos, docs, status: 'new' };
             have.push(rec); fresh.push(rec); wj(APPS, have);
           }
           await remote(`/api/hub/apps/${encodeURIComponent(a.id)}/ack`, { method: 'POST' }); // the website deletes its copy
@@ -139,6 +141,13 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
         broadcast({ type: 'urgent', kind: 'new', n: fresh.length, title: fresh[0].title });
         appendActivity({ t: Date.now(), by: 'Website', uid: '', role: 'web', text: `${fresh.length} new urgent-job application${fresh.length > 1 ? 's' : ''} arrived from the website` });
       }
+      // Abroad enquiries from the Abroad page
+      try {
+        const { asks } = await (await remote('/api/hub/abroad-ask')).json(), list = rj(ASKS, []), got = [];
+        for (const q of asks || []) { if (!list.some(x => x.id === q.id)) { const d = q.data || {}; const r = { id: q.id, created: q.created, got: Date.now(), name: String(d.name || '').slice(0, 60), phone: String(d.phone || '').slice(0, 20), country: String(d.country || '').slice(0, 2), work: String(d.work || '').slice(0, 60), status: 'new' }; list.push(r); got.push(r) }
+          wj(ASKS, list); await remote(`/api/hub/abroad-ask/${encodeURIComponent(q.id)}/ack`, { method: 'POST' }); }
+        if (got.length) { broadcast({ type: 'abroad', kind: 'asks', n: got.length }); appendActivity({ t: Date.now(), by: 'Website', uid: '', role: 'web', text: `${got.length} new Abroad enquir${got.length > 1 ? 'ies' : 'y'} arrived from the website` }); }
+      } catch (e) { /* an older website without Abroad enquiries: nothing to collect */ }
     } catch (e) { const c2 = cfg(); c2.lastError = e.message; c2.lastSync = Date.now(); wj(CFG, c2); }
     finally { syncing = false; }
     tidy();
@@ -180,11 +189,11 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
   }
 
   // ---------------- posts (published from the Hub to the website) ----------------
-  async function posts(p) {
+  async function posts(p, where) {
     const r = rights(p); if (!r.post && !r.review) need(p, 'post');
     const { posts, waiting } = await (await remote('/api/hub/posts')).json();
     const local = rj(APPS, []);
-    return { posts: posts.filter(x => !x.removed && x.expires > Date.now()).map(x => ({ ...x, applied: local.filter(a => a.post === x.id).length + (waiting[x.id] || 0), live: !x.removed && x.expires > Date.now() })) };
+    return { posts: posts.filter(x => !x.removed && x.expires > Date.now() && inWhere(x, where)).map(x => ({ ...x, applied: local.filter(a => a.post === x.id).length + (waiting[x.id] || 0), live: !x.removed && x.expires > Date.now() })) };
   }
   async function publish(p, b) {
     need(p, 'post');
@@ -253,7 +262,7 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
   const light = a => ({ ...a, photos: a.photos.length, docs: Object.keys(a.docs || {}), day: kDay(applied(a)) });
   function apps(p, q = {}) {
     need(p, 'review'); tidy();
-    const all = rj(APPS, []), cut = cutoff(), scope = q.scope || 'live';
+    const all = rj(APPS, []).filter(a => inWhere(a, q.where)), cut = cutoff(), scope = q.scope || 'live';
     let list;
     if (scope === 'day') { const d = /^\d{4}-\d{2}-\d{2}$/.test(q.d || '') ? q.d : kDay(cut - 1); list = all.filter(a => kDay(applied(a)) === d && !isLive(a, cut)); }
     else if (scope === 'data') list = all.filter(a => a.status === 'done' && a.archivedAt);
@@ -285,7 +294,8 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
   }
   function me(p) {
     const r = rights(p), list = r.review ? rj(APPS, []) : [];
-    const cut = cutoff(); return { ...r, newCount: list.filter(a => a.status === 'new' && isLive(a, cut)).length, connection: (r.admin || r.post || r.review) ? cfgView() : null, outcomes: OUTCOMES };
+    const cut = cutoff(); const fresh = list.filter(a => a.status === 'new' && isLive(a, cut));
+    return { ...r, newCount: fresh.filter(a => !isAbroad(a)).length, newAbroad: fresh.filter(isAbroad).length, asksNew: r.review ? rj(ASKS, []).filter(a => a.status !== 'done').length : 0, connection: (r.admin || r.post || r.review) ? cfgView() : null, outcomes: OUTCOMES };
   }
   function report(p) {
     need(p, 'admin');
@@ -299,6 +309,21 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
       outcomes: sum(list), byPost: Object.values(byPost).sort((a, b) => b.applied - a.applied), byReviewer: byRev, labels: OUTCOMES
     };
   }
-  return { rights, me, grantsView, setGrant, cfgView, setCfg, sync, posts, publish, removePost, editPost, doc, apps, photo, outcome, reopen, finish, report, need, remote,
+  // ---------------- Abroad enquiries: people who want work in a country abroad ----------------
+  function asks(p) { need(p, 'review'); return { asks: rj(ASKS, []).sort((a, b) => b.created - a.created) } }
+  const ASK_OUT = { called: 'Called — waiting for a job there', noanswer: 'Didn’t answer', placed: 'Matched to a job abroad', notnow: 'Not interested now' };
+  function askSet(p, b) {
+    need(p, 'review'); const list = rj(ASKS, []), a = list.find(x => x.id === b.id); if (!a) throw err('That enquiry isn’t in the list any more.', 404);
+    if (b.reopen) Object.assign(a, { status: 'new', outcome: '', reviewer: '', reviewedAt: 0 });
+    else { if (!ASK_OUT[b.outcome]) throw err('Choose what happened on the call.'); Object.assign(a, { status: 'done', outcome: b.outcome, note: String(b.note || '').slice(0, 400), reviewer: p.name, reviewedAt: Date.now() }); }
+    wj(ASKS, list); appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: b.reopen ? `moved the Abroad enquiry of ${a.name} back to New` : `called ${a.name} about work in ${a.country}: ${ASK_OUT[b.outcome]}` });
+    broadcast({ type: 'abroad', kind: 'asks' }); return { ok: true };
+  }
+  function askDel(p, id) {
+    need(p, 'admin'); const list = rj(ASKS, []), a = list.find(x => x.id === id); if (!a) throw err('That enquiry isn’t in the list any more.', 404);
+    wj(ASKS, list.filter(x => x.id !== id)); appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `deleted the Abroad enquiry of ${a.name} (${a.country})` });
+    broadcast({ type: 'abroad', kind: 'asks' }); return { ok: true };
+  }
+  return { asks, askSet, askDel, rights, me, grantsView, setGrant, cfgView, setCfg, sync, posts, publish, removePost, editPost, doc, apps, photo, outcome, reopen, finish, report, need, remote,
     allApps: () => rj(APPS, []), filePath: n => path.join(PH, path.basename(String(n))) };
 };

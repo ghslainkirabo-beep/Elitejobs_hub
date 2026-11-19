@@ -782,6 +782,7 @@ function connectHub(){
   WS.onclose=ev=>{NET_READY=false;render(true);if(ev.code==4001){LS.del('office-key');showKeyGate('That passcode no longer works. Ask IT Support for the current one.');return}setTimeout(connectHub,2000)};
   WS.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}
     if(m.type=='state'){if(PENDING)return;adopt(m.state);render(true)} // offline work is sent first, then the merged copy comes back
+    if(m.type=='abroad'){const e=flat(ui.r)[ui.v];ugMe();if(m.n)toast('🌍 '+m.n+' new Abroad enquir'+(m.n>1?'ies':'y'));if(e&&e.b=='abroadinq')LOADERS.abroadinq()}
     if(m.type=='urgent'){ugLive(m);if(typeof vfMine=='function'&&vfMine().some(v=>v.stage=='call'))vfLoad()}
     if(m.type=='vflow'&&typeof vfLoad=='function'){vfLoad();const e=flat(ui.r)[ui.v];if(e&&e.b=='vacs')vfList(e.g||'active');if(e&&e.b=='urgent')ugRevRefresh()}
     if(m.type=='crm'&&typeof crmPing=='function')crmPing();
@@ -836,7 +837,7 @@ function note(rs,text){const t=Date.now();lastNotifT=t;S.log.unshift({t,by:ui.me
 const id=p=>{++S.n;return p+'-'+Date.now().toString(36).slice(-3).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase()};
 const Q={tickets:a=>S.tickets.filter(t=>a=='open'?t.st!='resolved':a=='crit'?t.pri=='Critical'&&t.st!='resolved':a=='done'?t.st=='resolved':1),calls:a=>S.calls.filter(c=>a=='all'||c.st==(a=='queue'?'queued':a)),visitors:a=>S.visitors.filter(v=>a=='all'||v.st=={exp:'expected',in:'in'}[a]),cands:a=>S.cands.filter(c=>a=='all'||(a=='walkin'?c.src=='walk-in':c.st==a)),ints:a=>S.ints.filter(i=>a=='all'||i.st==a),leaves:a=>S.leaves.filter(l=>a=='all'||l.st==a)};
 const unread=r=>S.notifs.filter(n=>(n.r==r||n.r=='all')&&!n.read).length;
-const cnt=e=>e.b=='tasks'?(typeof vfActionable=='function'?vfActionable():0):e.b=='vacs'&&e.g=='notices'?(VF.list.notices&&VF.list.notices.length||0):Q[e.b]&&['open','crit','queue','pending','exp','scheduled'].includes(e.g)?Q[e.b](e.g).length:e.b=='msgs'?S.msgs.filter(m=>!m.done).length:e.b=='inbox'?unread(ui.r):e.b=='urgent'?((ui.ug&&ui.ug.me&&ui.ug.me.newCount)||0):e.b=='inq'?((ui.iq&&ui.iq.me&&ui.iq.me.rooms[e.g]&&ui.iq.me.rooms[e.g].allowed&&ui.iq.me.rooms[e.g].count)||0):0;
+const cnt=e=>e.b=='tasks'?(typeof vfActionable=='function'?vfActionable():0):e.b=='vacs'&&e.g=='notices'?(VF.list.notices&&VF.list.notices.length||0):Q[e.b]&&['open','crit','queue','pending','exp','scheduled'].includes(e.g)?Q[e.b](e.g).length:e.b=='msgs'?S.msgs.filter(m=>!m.done).length:e.b=='inbox'?unread(ui.r):e.b=='urgent'?((ui.ug&&ui.ug.me&&ui.ug.me.newCount)||0):e.b=='abroad'?((ui.ug&&ui.ug.me&&ui.ug.me.newAbroad)||0):e.b=='abroadinq'?((ui.ug&&ui.ug.me&&ui.ug.me.asksNew)||0):e.b=='inq'?((ui.iq&&ui.iq.me&&ui.iq.me.rooms[e.g]&&ui.iq.me.rooms[e.g].allowed&&ui.iq.me.rooms[e.g].count)||0):0;
 const rb=r=>({it:Q.tickets('open').length,hr:Q.leaves('pending').length,cc:Q.calls('queue').length,rec:Q.calls('queue').length,front:Q.visitors('exp').length,int:Q.ints('scheduled').length,ops:Q.tickets('crit').length,admin:unread('admin')})[r];
 const flat=r=>R[r].nav.flatMap(s=>s[1]);
 const bdg=t=>`<span class="bd ${String(t).toLowerCase().replace(/\W/g,'')}">${t}</span>`,btn=(l,a,p)=>`<button class="b ${p||''}" data-a="${a.replace(/"/g,'&quot;')}">${l}</button>`;
@@ -1468,6 +1469,8 @@ const EJ_POS_ALL = (() => { const m = new Map(); for (const [c, v] of Object.ent
 function devKey(){let k=LS.get('dev-key');if(!k||!/^[a-f0-9]{64}$/.test(k)){const a=new Uint8Array(32);crypto.getRandomValues(a);k=[...a].map(b=>b.toString(16).padStart(2,'0')).join('');LS.set('dev-key',k)}return k}
 const UG_POS=['admin','it','hr','ops','int','front','rec','cc','sm'];
 UG_POS.forEach(k=>{if(R[k]&&!flat(k).some(e=>e.b=='urgent'))R[k].nav.splice(1,0,['Hiring',[{l:'Urgent hiring',i:'⚡',b:'urgent'}]])});
+// the Abroad chapter: the same urgent hiring and applicant records, only for jobs in countries outside Rwanda, plus the enquiries from the website's Abroad page
+UG_POS.forEach(k=>{if(R[k]&&!flat(k).some(e=>e.b=='abroad')){const i=R[k].nav.findIndex(g=>g[0]=='Hiring');R[k].nav.splice(i<0?1:i+1,0,['Abroad',[{l:'Urgent hiring abroad',i:'✈️',b:'abroad'},{l:'Abroad enquiries',i:'🌍',b:'abroadinq'}]])}});
 
 // ================= Open jobs inquiry: the website's "Message us" (name + phone) → rooms → SMS reply =================
 // Every position has the chapter; each room opens only for the positions Admin allows. Admin always can.
@@ -1664,16 +1667,19 @@ Object.assign(A,{
  iqsmssave(){const b={provider:($('#iqprov')||{}).value||'',key:($('#iqkey')||{}).value||'',sender:($('#iqsender')||{}).value||'',username:($('#iquser')||{}).value||''};api('/api/inq/sms',b).then(s=>{ui.iq.sms=s;haptic('success');toast('✔ SMS settings saved');refreshMain();iqMe()}).catch(e=>{haptic('error');toast('✖ '+e.message)})},
  iqsmstest(){const to=($('#iqtestto')||{}).value||'';if(!to.trim())return toast('✖ Type your phone number first');api('/api/inq/sms/test',{to}).then(()=>{haptic('success');toast('✔ Test SMS sent — check your phone')}).catch(e=>{haptic('error');toast('✖ '+e.message);LOADERS.inqsms()})}
 });
-STATIC.push('urgent');
+STATIC.push('urgent','abroad','abroadinq');
+const ugIsAb=()=>{const e=flat(ui.r)[ui.v];return!!e&&e.b=='abroad'};
+function ugWhere(w){const g=ui.ug=ui.ug||{};if(g.where!==w){g.where=w;g.posts=null;g.apps=null;g.days=[];g.data=null;g.day=null;g.open=null;g.sure=null;g.edit=null}}
+const ugW=()=>'where='+((ui.ug&&ui.ug.where)||'rw');
 ui.ug=ui.ug||{life:'24',open:null,imgs:{}};
 const UGL={'no-answer':'Didn’t pick up','not-available':'Not available','not-interested':'Not interested in the job','coming':'Coming on site'};
 const UGLIFE=[['3','3 hours'],['6','6 hours'],['12','12 hours'],['24','1 day'],['72','3 days'],['168','1 week'],['336','2 weeks'],['custom','Choose a date…']];
-function ugMe(){return api('/api/urgent/me').then(m=>{const was=ui.ug.me;ui.ug.me=m;ui.ug.old=false;if(!was||was.newCount!=m.newCount)render(true);return m}).catch(e=>{ui.ug.old=/404/.test(e.message);return null})}
-LOADERS.urgent=function(){const g=ui.ug;g.err=null;
+function ugMe(){return api('/api/urgent/me').then(m=>{const was=ui.ug.me;ui.ug.me=m;ui.ug.old=false;if(!was||was.newCount!=m.newCount||was.newAbroad!=m.newAbroad||was.asksNew!=m.asksNew)render(true);return m}).catch(e=>{ui.ug.old=/404/.test(e.message);return null})}
+LOADERS.urgent=function(){ugWhere(ugIsAb()?'abroad':'rw');const g=ui.ug;g.err=null;
  ugMe().then(m=>{if(!m){g.err=g.old?'This room needs the Hub app 1.6. IT Support installs it in IT Control → Deploy update → Update the app itself.':'The Hub didn’t answer. Check the connection and try again.';return refreshMain()}
   const jobs=[];
-  jobs.push((m.post||m.review)?api('/api/urgent/posts').then(r=>{g.posts=r.posts;g.postsErr=null}).catch(e=>{g.postsErr=e.message}):0);
-  jobs.push(m.review?api('/api/urgent/apps').then(r=>{g.apps=r.apps;g.days=r.days||[];g.next=r.next||0;g.data=null;if(g.day)g.day.stale=1}).catch(e=>{g.appsErr=e.message}):0);
+  jobs.push((m.post||m.review)?api('/api/urgent/posts?'+ugW()).then(r=>{g.posts=r.posts;g.postsErr=null}).catch(e=>{g.postsErr=e.message}):0);
+  jobs.push(m.review?api('/api/urgent/apps?'+ugW()).then(r=>{g.apps=r.apps;g.days=r.days||[];g.next=r.next||0;g.data=null;if(g.day)g.day.stale=1}).catch(e=>{g.appsErr=e.message}):0);
   if(m.admin){jobs.push(api('/api/urgent/grants').then(r=>{g.grants=r}).catch(()=>{}));jobs.push(api('/api/devices').then(r=>{g.devs=r}).catch(()=>{}));jobs.push(api('/api/urgent/report').then(r=>{g.rep=r}).catch(()=>{}))}
   if(m.admin||itKey())jobs.push(api('/api/urgent/cfg').then(r=>{g.cfg=r}).catch(()=>{}));
   return Promise.all(jobs).then(refreshMain)})};
@@ -1685,18 +1691,21 @@ const ugInit=n=>esc(String(n||'?').split(' ').map(w=>w[0]).slice(0,2).join('').t
 function ugLockedSec(title,what,ghost){return`<section class="ugs locked" aria-disabled=true><h3>${title}</h3><div class=ugghost aria-hidden=true>${ghost}</div><div class=uglock><b>🔒 ${what}</b><span>Admin can give you this in Urgent hiring → Access.</span></div></section>`}
 const UG_GHOST_ROWS='<div class=ugrow><i class=ugav></i><div><b>Candidate name</b><small>Urgent job · 5 min ago</small></div></div>'.repeat(3);
 const UG_GHOST_FORM='<div class=ugf><label>Job title<input disabled></label><label>Flyer<input disabled></label><label>How long it stays up<select disabled></select></label></div>';
+const UG_H=()=>ugIsAb()?'Urgent hiring abroad':'Urgent hiring';
 V.urgent=function(){const g=ui.ug,m=g.me;
- if(g.err)return`<h1>Urgent hiring</h1><div class="card bad">${esc(g.err)}</div>`;
- if(!m)return'<h1>Urgent hiring</h1><div class=empty>Loading…</div>';
- if(!m.signedIn)return`<h1>Urgent hiring</h1><div class="uggate"><div class=ugmark>⚡</div><h2>This device isn’t approved yet</h2><p>Urgent hiring only opens on a device Admin has approved for you, so nobody can use another person’s account. Admin approves new devices in <b>Urgent hiring → Access</b>.</p></div>`;
- if(!m.post&&!m.review)return`<h1>Urgent hiring</h1><div class=ugroom>${ugLockedSec('Publish an urgent job','Not given to you',UG_GHOST_FORM)}${ugLockedSec('New applications','Not given to you',UG_GHOST_ROWS)}${ugLockedSec('Called','Not given to you',UG_GHOST_ROWS)}<div class="uggate over"><div class=ugmark>⚡</div><h2>Urgent hiring is closed for you</h2><p>Admin chooses who can publish urgent jobs to elitejobsrwanda.com and who can call the people who apply. When Admin gives you access, this room opens by itself.</p></div></div>`;
+ if(g.err)return`<h1>`+UG_H()+`</h1><div class="card bad">${esc(g.err)}</div>`;
+ if(!m)return'<h1>'+UG_H()+'</h1><div class=empty>Loading…</div>';
+ if(!m.signedIn)return`<h1>`+UG_H()+`</h1><div class="uggate"><div class=ugmark>⚡</div><h2>This device isn’t approved yet</h2><p>Urgent hiring only opens on a device Admin has approved for you, so nobody can use another person’s account. Admin approves new devices in <b>Urgent hiring → Access</b>.</p></div>`;
+ if(!m.post&&!m.review)return`<h1>`+UG_H()+`</h1><div class=ugroom>${ugLockedSec('Publish an urgent job','Not given to you',UG_GHOST_FORM)}${ugLockedSec('New applications','Not given to you',UG_GHOST_ROWS)}${ugLockedSec('Called','Not given to you',UG_GHOST_ROWS)}<div class="uggate over"><div class=ugmark>⚡</div><h2>Urgent hiring is closed for you</h2><p>Admin chooses who can publish urgent jobs to elitejobsrwanda.com and who can call the people who apply. When Admin gives you access, this room opens by itself.</p></div></div>`;
  setTimeout(()=>{ugHydrate($('#main'));ugShowStart();ejLiquidInit();ugMidnight()},0);
  const can=[m.post&&'Publish',m.review&&'Review'].filter(Boolean);
  const conn=m.connection&&!m.connection.live?`<div class="card ugwarn">The Hub isn’t connected to the website yet, so nothing can be published or received. ${m.admin||itKey()?'Connect it below in <b>Website connection</b>.':'Admin or IT can connect it.'}</div>`:'';
  const apps=g.apps||[];
- const wide=g.mode=='endover',s1=m.post?`<section class="ugs wide ugpub"><h3>Publish an urgent job</h3>${ugSeg()}${wide?eoRoot():ugForm()}${ugShowHTML()}${ugPosts()}</section>`:ugLockedSec('Publish an urgent job','Publishing isn’t given to you',UG_GHOST_FORM).replace('class="ugs locked"','class="ugs wide locked"');
+ const wide=g.mode=='endover',s1=m.post?`<section class="ugs wide ugpub"><h3>${ugIsAb()?'Publish a job abroad':'Publish an urgent job'}</h3>${ugSeg()}${wide?eoRoot():ugForm()}${ugShowHTML()}${ugPosts()}</section>`:ugLockedSec('Publish an urgent job','Publishing isn’t given to you',UG_GHOST_FORM).replace('class="ugs locked"','class="ugs wide locked"');
  const s2=ugRevCard(m);
- return`<h1>Urgent hiring</h1><p class=sub>You can: ${can.join(' and ')}. Everything here goes to and comes from elitejobsrwanda.com.</p>${conn}<div class=ugstack>${s1}${s2}</div>${m.admin||itKey()?ugConn():''}${m.admin?ugAdmin():''}`};
+ const ab=ugIsAb();
+ return`<h1>${UG_H()}</h1><p class=sub>You can: ${can.join(' and ')}. ${ab?'Jobs in countries outside Rwanda. They show only on the website’s Abroad page, and their applicants are kept here, apart from Rwanda.':'Jobs in Rwanda. Everything here goes to and comes from elitejobsrwanda.com.'}</p>${conn}<div class=ugstack>${s1}${s2}</div>${ab?'<p class=sub>Who can publish and review is set in <b>Urgent hiring → Access</b> — the same people work on both chapters.</p>':(m.admin||itKey()?ugConn():'')+(m.admin?ugAdmin():'')}`};
+V.abroad=V.urgent;
 // ---------- Review card: New applicants → Called → Daily review → Job data (by position, A–Z, searchable) ----------
 const ugPosName=a=>String((a.data&&a.data.position)||a.title||'Urgent job').trim();
 const ugPosKey=a=>ugPosName(a).toLowerCase().replace(/\s+/g,' ');
@@ -1757,7 +1766,7 @@ function ugRevList(t){const g=ui.ug,D=ugRevData(),q=ugQ(t);
   const what=Q.m=='new'?'not reviewed yet':Q.m=='called'?'called':'in total';
   return`<p class=sub><b>${L.length}</b> ${Q.t?'“'+esc(Q.t)+'” ':''}${L.length==1?'person':'people'} ${what} · ${esc(ugDLabel(d))}${Q.m=='new'&&L.length?' · oldest first':''}</p>${ugMemChips(L)}<div class=ugdaylist>${ugMF(L).map(ugRow).join('')||'<div class=empty>No one here. Try <b>all '+esc(Q.t||'waiter')+'</b> to see everyone in this position.</div>'}</div>`}
  if(t=='data'){
-  if(!g.data){if(!g.dataBusy){g.dataBusy=1;api('/api/urgent/apps?scope=data').then(r=>{g.data=r.apps}).catch(e=>{g.data=[];g.appsErr=e.message}).finally(()=>{g.dataBusy=0;if(g.rt=='data')ugRevRefresh()})}return'<div class=empty>Opening Job data…</div>'}
+  if(!g.data){if(!g.dataBusy){g.dataBusy=1;api('/api/urgent/apps?scope=data&'+ugW()).then(r=>{g.data=r.apps}).catch(e=>{g.data=[];g.appsErr=e.message}).finally(()=>{g.dataBusy=0;if(g.rt=='data')ugRevRefresh()})}return'<div class=empty>Opening Job data…</div>'}
   const days=new Map();(g.data||[]).forEach(a=>{const d=ugDayKey(a.reviewedAt);(days.get(d)||days.set(d,[]).get(d)).push(a)});
   if(g.vData){const day=days.get(g.vData.d),x=day&&ugBy(day).get(g.vData.k);if(x)return`<button class=ugback data-a="ugopenpos|data|">← All saved days</button><h4 class=ugpn>${esc(x.name)} <small>· ${ugDayName(x.list[0].reviewedAt)}</small></h4>${ugApplicants(x.list.sort((a,b)=>b.reviewedAt-a.reviewedAt),g.vData.f||'')}`}
   const ds=[...days.keys()].sort().reverse();if(!ds.length)return'<div class=empty>When you press Done on a position, its people are saved here by date, then by position. Kept for 180 days.</div>';
@@ -1767,7 +1776,7 @@ function ugRevList(t){const g=ui.ug,D=ugRevData(),q=ugQ(t);
  return''}
 // Daily review: one date at a time, loaded only when opened (the Hub never sends the whole archive at once)
 function ugDD(){const g=ui.ug;if(!g.dd)g.dd=(g.days&&g.days[0]&&g.days[0].d)||ugKDay(Date.now()-864e5);return g.dd}
-function ugDayLoad(d){const g=ui.ug;if(g.dayBusy==d)return;g.dayBusy=d;api('/api/urgent/apps?scope=day&d='+encodeURIComponent(d)).then(r=>{g.day={d,apps:r.apps};if(r.days)g.days=r.days}).catch(e=>{g.day={d,apps:[],err:e.message}}).finally(()=>{g.dayBusy=null;if((g.rt||'new')=='daily'&&ugDD()==d)ugRevRefresh()})}
+function ugDayLoad(d){const g=ui.ug;if(g.dayBusy==d)return;g.dayBusy=d;api('/api/urgent/apps?'+ugW()+'&scope=day&d='+encodeURIComponent(d)).then(r=>{g.day={d,apps:r.apps};if(r.days)g.days=r.days}).catch(e=>{g.day={d,apps:[],err:e.message}}).finally(()=>{g.dayBusy=null;if((g.rt||'new')=='daily'&&ugDD()==d)ugRevRefresh()})}
 // “/waiter” = not reviewed · “waiter/” = called · “all waiter” or “waiter” = everyone
 function ugDQ(q){q=String(q||'').trim().toLowerCase().replace(/\s+/g,' ');if(q.startsWith('all '))return{m:'all',t:q.slice(4).trim()};if(q=='all')return{m:'all',t:''};if(q.startsWith('/'))return{m:'new',t:q.slice(1).trim()};if(q.endsWith('/'))return{m:'called',t:q.slice(0,-1).trim()};return{m:'all',t:q}}
 function ugRevCard(m){
@@ -1792,7 +1801,7 @@ document.addEventListener('input',e=>{const t=e.target;if(t&&t.dataset&&t.datase
 document.addEventListener('change',e=>{if(e.target&&e.target.matches&&e.target.matches('[data-ugrcv]'))e.target.dataset.touched=1});
 function ugForm(){const g=ui.ug,f=g.f||{};return`<form class=ugf id=ugpub autocomplete=off>
  <label>Job title<input name=title maxlength=80 required placeholder="5 waiters for tonight" value="${esc(f.title||'')}"></label>
- <div class=ug2><label>Kind of work<input name=role maxlength=60 placeholder="Hospitality" value="${esc(f.role||'')}"></label><label>Where<input name=place maxlength=80 placeholder="Kigali, Kimihurura" value="${esc(f.place||'')}"></label></div>
+ <div class=ug2><label>Kind of work<input name=role maxlength=60 placeholder="Hospitality" value="${esc(f.role||'')}"></label><label>Where<input name=place maxlength=80 placeholder="${ugIsAb()?'Doha':'Kigali, Kimihurura'}" value="${esc(f.place||'')}"></label></div>
  <div class=ug2>${ugCtSel(f.country)}<span></span></div>
  <label>Short description<textarea name=text maxlength=600 rows=3 placeholder="Pay, hours, what to bring…">${esc(f.text||'')}</textarea></label>
  <label class=ugdrop>${g.flyer?`<img src="${g.flyer.url}" alt="Flyer preview">`:'<span>Add the flyer or a photo of the job</span>'}<input type=file name=flyer accept="image/*" data-ugflyer=1></label>
@@ -1802,7 +1811,8 @@ function ugForm(){const g=ui.ug,f=g.f||{};return`<form class=ugf id=ugpub autoco
 // countries a job can be in (same list as the website): Rwanda, or abroad — jobs abroad show on the website's Abroad page
 const UG_CT=[["RW", "Rwanda", "RWF"], ["AE", "United Arab Emirates", "AED"], ["QA", "Qatar", "QAR"], ["SA", "Saudi Arabia", "SAR"], ["KW", "Kuwait", "KWD"], ["OM", "Oman", "OMR"], ["BH", "Bahrain", "BHD"], ["JO", "Jordan", "JOD"], ["IL", "Israel", "ILS"], ["TR", "Türkiye", "TRY"], ["PL", "Poland", "PLN"], ["DE", "Germany", "EUR"], ["FR", "France", "EUR"], ["BE", "Belgium", "EUR"], ["NL", "Netherlands", "EUR"], ["GB", "United Kingdom", "GBP"], ["IE", "Ireland", "EUR"], ["CA", "Canada", "CAD"], ["US", "United States", "USD"], ["AU", "Australia", "AUD"], ["JP", "Japan", "JPY"], ["KR", "South Korea", "KRW"], ["CN", "China", "CNY"], ["KE", "Kenya", "KES"], ["UG", "Uganda", "UGX"], ["TZ", "Tanzania", "TZS"], ["BI", "Burundi", "BIF"], ["CD", "DR Congo", "USD"], ["ZA", "South Africa", "ZAR"]],UG_CTB=Object.fromEntries(UG_CT.map(x=>[x[0],x])),ugCur=c=>(UG_CTB[c]||UG_CTB.RW)[2];
 const ugFlag=c=>c&&c!='RW'?String.fromCodePoint(...[...c].map(x=>127397+x.charCodeAt(0)))+' ':'';
-function ugCtSel(v,name){v=v||'RW';return`<label>Country<select name=${name||'country'} data-ugct=1><option value=RW ${v=='RW'?'selected':''}>Rwanda</option><optgroup label="Abroad — shows on the Abroad page">${UG_CT.filter(x=>x[0]!='RW').map(x=>`<option value=${x[0]} ${v==x[0]?'selected':''}>${x[1]} (${x[2]})</option>`).join('')}</optgroup></select></label>`}
+function ugCtSel(v,name){if(!ugIsAb())return`<input type=hidden name=${name||'country'} value=RW>`;v=v&&v!='RW'?v:'';return`<label>Country<select name=${name||'country'} data-ugct=1><option value="" ${v?'':'selected'}>Choose the country…</option>${UG_CT.filter(x=>x[0]!='RW').map(x=>`<option value=${x[0]} ${v==x[0]?'selected':''}>${x[1]} (${x[2]})</option>`).join('')}</select></label>`}
+const ugCurF=c=>c&&UG_CTB[c]?UG_CTB[c][2]:(ugIsAb()?'USD':'RWF');
 // place and pay, written the same way the website shows them on the urgent jobs page
 const ugPlace=p=>{const c=p.country&&p.country!='RW'?p.country:'',l=(p.kind=='card'&&p.meta&&p.meta.loc)||p.place||(c?'':'Kigali');return c?ugFlag(c)+[l,(UG_CTB[c]||[,c])[1]].filter(Boolean).join(', '):l};
 function ugPay(p){const m=p.meta,f=n=>Number(n).toLocaleString('en-US'),A={month:'a month',day:'a day',week:'a week',hour:'an hour'};
@@ -1811,7 +1821,7 @@ function ugPay(p){const m=p.meta,f=n=>Number(n).toLocaleString('en-US'),A={month
 function ugPosts(){const g=ui.ug,P=g.posts;if(g.postsErr)return`<p class=bad>${esc(g.postsErr)}</p>`;if(!P)return'';if(!P.length)return'<div class=empty>No live urgent jobs. What you publish shows on elitejobsrwanda.com and is deleted for good when its time ends or you take it down.</div>';
  // every live job on the website is listed here (no cut-off), newest first, so each one can be edited or taken down
  const q=(g.pq||'').trim().toLowerCase(),L=q?P.filter(p=>[p.title,p.place,p.role,p.by,(p.meta||{}).loc].join(' ').toLowerCase().includes(q)):P,can=ui.ug.me.post;
- return`<div class=ugposts><div class=ugph><b>All live urgent jobs on the website · ${P.length}</b>${P.length>6?`<input class=ugpq type=search placeholder="Find a job…" value="${esc(g.pq||'')}" data-ugpq=1 aria-label="Find a job">`:''}</div>
+ return`<div class=ugposts><div class=ugph><b>${ugIsAb()?'All live jobs abroad on the website':'All live urgent jobs on the website'} · ${P.length}</b>${P.length>6?`<input class=ugpq type=search placeholder="Find a job…" value="${esc(g.pq||'')}" data-ugpq=1 aria-label="Find a job">`:''}</div>
  ${L.length?L.map(p=>`<div class="ugpost"><div><b>${esc(p.title)}</b><span class=ugpl><span>📍 ${esc(ugPlace(p))}</span><span>💰 ${esc(ugPay(p))}</span></span><small>${ugLeft(p.expires)} · ${p.applied} applied${p.by?' · by '+esc(p.by):''}${ugRulesLine(p.rules)?' · '+esc(ugRulesLine(p.rules)):''}</small></div>${can?`<span class=ugpa>${btn('Edit','ugedit|'+p.id)}${g.sure==p.id?btn('Yes, take it down','ugdown|'+p.id,'p')+btn('Keep','ugkeep'):btn('Take down','ugsure|'+p.id)}</span>`:''}</div>`).join(''):`<div class=empty>No live job matches “${esc(g.pq)}”.</div>`}</div>`}
 function ugConn(){const c=ui.ug.cfg||{};return`<div class=card><h3>Website connection</h3><p class=sub>The Hub collects applications from elitejobsrwanda.com every minute and publishes urgent jobs there. Use the same Hub key you saved in Cloudflare (HUB_TOKEN).</p>
  <form class=ugf id=ugcfg autocomplete=off><div class=ug2><label>Website address<input name=site placeholder="https://elitejobsrwanda.com" value="${esc(c.site||'')}"></label><label>Hub key<input name=token type=password placeholder="${c.hasToken?'Saved — type a new one to change it':'Paste the key'}"></label></div>
@@ -1845,13 +1855,13 @@ const EO_TYPE=['Full-time','Part-time','One day','Contract','Internship'];
 const EO_BEN=['Meals','Transport','Housing','Tips','Insurance','Training','Uniform','Bonus'];
 const eoMo=()=>(new Date().getDay()+6)%7; // Mon=0 … Sun=6 — one distinct motion per day, then the loop starts again
 const EO_DAY=['Glide','Flip','Zoom','Cube','Rise','Swing','Iris'];
-function eo(){const g=ui.ug;if(!g.eo){let l=[];try{l=JSON.parse(LS.get('ug-batch')||'[]')}catch(e){}g.eo={f:{life:'24',ben:[]},list:Array.isArray(l)?l:[],sel:null,busy:false}}return g.eo}
-function eoSave(){LS.set('ug-batch',JSON.stringify(eo().list))}
+function eo(){const g=ui.ug,K=ugIsAb()?'eoAb':'eo';if(!g[K]){let l=[];try{l=JSON.parse(LS.get(ugIsAb()?'ug-batch-ab':'ug-batch')||'[]')}catch(e){}g[K]={f:{life:'24',ben:[]},list:Array.isArray(l)?l:[],sel:null,busy:false}}return g[K]}
+function eoSave(){LS.set(ugIsAb()?'ug-batch-ab':'ug-batch',JSON.stringify(eo().list))}
 function eoRead(){const f=$('#eof');if(!f)return eo().f;const fd=new FormData(f),d={};for(const[k,v]of fd.entries())if(k!='ben')d[k]=v;d.ben=fd.getAll('ben');d.neg=!!fd.get('neg');eo().f=d;return d}
 function eoBuild(f){const cat=f.cat||'gen',title=String(f.title||'').trim(),tpl=EJ_TPL[f.tpl]?f.tpl:ejPick(title,cat);
  const n=v=>{const x=Number(String(v||'').replace(/[^0-9.]/g,''));return x>0?x:0},lines=s=>String(s||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,8);
  const country=f.country&&UG_CTB[f.country]?f.country:'RW';
- return{title,tpl,country,meta:{cat,country,cur:f.cur||ugCur(country),type:f.type||'',salMin:n(f.salMin),salMax:n(f.salMax),per:f.per||'month',neg:!!f.neg,loc:String(f.loc||'').trim(),openings:Math.max(1,Math.min(999,n(f.open)||1)),exp:String(f.exp||'').trim(),edu:String(f.edu||'').trim(),req:lines(f.req),ben:(f.ben||[]).slice(0,8),desc:String(f.desc||'').trim().slice(0,400),photos:eoPicks().map(p=>p.u),credit:eoPicks().map(p=>p.by)}}}
+ return{title,tpl,country,meta:{cat,country,cur:f.cur||ugCurF(f.country),type:f.type||'',salMin:n(f.salMin),salMax:n(f.salMax),per:f.per||'month',neg:!!f.neg,loc:String(f.loc||'').trim(),openings:Math.max(1,Math.min(999,n(f.open)||1)),exp:String(f.exp||'').trim(),edu:String(f.edu||'').trim(),req:lines(f.req),ben:(f.ben||[]).slice(0,8),desc:String(f.desc||'').trim().slice(0,400),photos:eoPicks().map(p=>p.u),credit:eoPicks().map(p=>p.by)}}}
 function eoPrev(){const f=eo().f,sel=eo().sel!=null?eo().list.find(x=>x.id==eo().sel):null;
  if(sel)return ejPhotoCard(sel.post);
  if(!String(f.title||'').trim())return`<div class=eoghost><span>⚡</span><b>Your card appears here</b><small>Type a job title — the Hub picks the template that fits.</small></div>`;
@@ -1862,11 +1872,11 @@ function eoForm(){const f=eo().f;return`<form class=ugf id=eof autocomplete=off>
  <div class=eovault id=eovault>${eoVault()}</div>
  <div class=ug2><label>Category<select name=cat>${EJ_CATS.map(([k,l])=>`<option value=${k} ${(f.cat||'gen')==k?'selected':''}>${l}</option>`).join('')}</select></label>
  <label>Type of work<select name=type><option value="">—</option>${EO_TYPE.map(t=>`<option ${f.type==t?'selected':''}>${t}</option>`).join('')}</select></label></div>
- <div class=ug2>${ugCtSel(f.country)}<label>Paid in<select name=cur>${[...new Set([ugCur(f.country||'RW'),'USD','EUR','RWF'])].map(c=>`<option ${(f.cur||ugCur(f.country||'RW'))==c?'selected':''}>${c}</option>`).join('')}</select></label></div>
- <div class=ug3><label><span data-ugcur=from>Pay from (${esc(f.cur||ugCur(f.country||'RW'))})</span><input name=salMin inputmode=numeric placeholder="${(f.country||'RW')=='RW'?'150000':'1500'}" value="${esc(f.salMin||'')}"></label><label><span data-ugcur=to>Pay up to (${esc(f.cur||ugCur(f.country||'RW'))})</span><input name=salMax inputmode=numeric placeholder="${(f.country||'RW')=='RW'?'250000':'2000'}" value="${esc(f.salMax||'')}"></label>
+ <div class=ug2>${ugCtSel(f.country)}<label>Paid in<select name=cur>${[...new Set([ugCurF(f.country),'USD','EUR','RWF'])].map(c=>`<option ${(f.cur||ugCurF(f.country))==c?'selected':''}>${c}</option>`).join('')}</select></label></div>
+ <div class=ug3><label><span data-ugcur=from>Pay from (${esc(f.cur||ugCurF(f.country))})</span><input name=salMin inputmode=numeric placeholder="${(f.country||'RW')=='RW'?'150000':'1500'}" value="${esc(f.salMin||'')}"></label><label><span data-ugcur=to>Pay up to (${esc(f.cur||ugCurF(f.country))})</span><input name=salMax inputmode=numeric placeholder="${(f.country||'RW')=='RW'?'250000':'2000'}" value="${esc(f.salMax||'')}"></label>
  <label>Paid<select name=per>${EO_PER.map(([k,l])=>`<option value=${k} ${(f.per||'month')==k?'selected':''}>${l}</option>`).join('')}</select></label></div>
  <label class=ugck><input type=checkbox name=neg ${f.neg?'checked':''}> Pay is negotiable</label>
- <div class=ug2><label>Where<input name=loc maxlength=80 placeholder="Kigali, Kimihurura" value="${esc(f.loc||'')}"></label><label>How many people<input name=open inputmode=numeric placeholder="1" value="${esc(f.open||'')}"></label></div>
+ <div class=ug2><label>Where<input name=loc maxlength=80 placeholder="${ugIsAb()?'Doha':'Kigali, Kimihurura'}" value="${esc(f.loc||'')}"></label><label>How many people<input name=open inputmode=numeric placeholder="1" value="${esc(f.open||'')}"></label></div>
  <div class=ug2><label>Experience<input name=exp maxlength=60 placeholder="1 year or more" value="${esc(f.exp||'')}"></label><label>Education<input name=edu maxlength=60 placeholder="Secondary school" value="${esc(f.edu||'')}"></label></div>
  <label>Requirements <small>(one per line)</small><textarea name=req rows=3 maxlength=500 placeholder="Speaks Kinyarwanda and English&#10;Can start tomorrow">${esc(f.req||'')}</textarea></label>
  <div class=eoben><span>They also get</span>${EO_BEN.map(b=>`<label class=eochip><input type=checkbox name=ben value="${b}" ${(f.ben||[]).includes(b)?'checked':''}><i>${b}</i></label>`).join('')}</div>
@@ -1884,7 +1894,7 @@ function eoPanel(){const e=eo(),sel=e.sel!=null?e.list.find(x=>x.id==e.sel):null
  <div class=eobar><button class="b p eogo" data-a=eogo ${n&&!e.busy?'':'disabled'}>${e.busy?'Publishing…':n?'Endover — publish '+n+' job'+(n>1?'s':'')+' to the website':'Endover'}</button><small>${n?'All of them go live on elitejobsrwanda.com together and leave by themselves when their time ends.':'Add at least one job first.'}</small></div>`}
 function eoRoot(){return`<div class=eoroot id=eoroot data-mo="${eoMo()}">${eoPanel()}</div>`}
 function eoMount(){const r=$('#eoroot');if(r)r.innerHTML=eoPanel()}
-function eoLive(){{const fm=$('#eof');if(fm&&fm.country&&fm.cur){if((eo().f.country||'RW')!==fm.country.value){const d=ugCur(fm.country.value);fm.cur.innerHTML=[...new Set([d,'USD','EUR','RWF'])].map(c=>`<option>${c}</option>`).join('');fm.cur.value=d}fm.querySelectorAll('[data-ugcur]').forEach(x=>x.textContent=(x.dataset.ugcur=='from'?'Pay from (':'Pay up to (')+fm.cur.value+')');const rw=fm.country.value=='RW';fm.salMin.placeholder=rw?'150000':'1500';fm.salMax.placeholder=rw?'250000':'2000'}}const f=eoRead();const p=$('#eoprev'),t=$('#eotpl');if(!p)return;
+function eoLive(){{const fm=$('#eof');if(fm&&fm.country&&fm.cur){if((eo().f.country||'')!==fm.country.value){const d=ugCurF(fm.country.value);fm.cur.innerHTML=[...new Set([d,'USD','EUR','RWF'])].map(c=>`<option>${c}</option>`).join('');fm.cur.value=d}fm.querySelectorAll('[data-ugcur]').forEach(x=>x.textContent=(x.dataset.ugcur=='from'?'Pay from (':'Pay up to (')+fm.cur.value+')');const rw=fm.country.value=='RW';fm.salMin.placeholder=rw?'150000':'1500';fm.salMax.placeholder=rw?'250000':'2000'}}const f=eoRead();const p=$('#eoprev'),t=$('#eotpl');if(!p)return;
  const u=$('#eountil');if(u)u.hidden=f.life!='custom';
  if(eo().sel!=null){eo().sel=null;eoMount();return}
  const prevTpl=p.dataset.tpl,nb=String(f.title||'').trim()?eoBuild(f):null,k=nb?nb.tpl:'';
@@ -1892,7 +1902,7 @@ function eoLive(){{const fm=$('#eof');if(fm&&fm.country&&fm.cur){if((eo().f.coun
  if(k!==prevTpl){p.dataset.tpl=k;if(k){p.classList.remove('eo-in');void p.offsetWidth;p.classList.add('eo-in');haptic('tick')}}
  const l=p.querySelector('.lq');if(l)l.classList.add('hot-off')}
 function eoCheck(f){const b=eoBuild(f),m=b.meta;
- if(b.title.length<3)return'Give the job a short title';if(!m.loc)return'Add where the job is';
+ if(b.title.length<3)return'Give the job a short title';if(ugIsAb()&&(!f.country||f.country=='RW'))return'Choose the country abroad';if(!m.loc)return'Add where the job is';
  if(m.salMin&&m.salMax&&m.salMin>m.salMax)return'The lowest pay can’t be higher than the highest pay';
  if(f.life=='custom'){if(!f.until)return'Choose when it ends';if(Date.parse(f.until)<Date.now()+10*6e4)return'The end time must be at least 10 minutes away'}return''}
 function eoFly(from,toEl,done){const calm=matchMedia('(prefers-reduced-motion:reduce)').matches;if(calm||!from||!toEl||!toEl.animate){done();return}
@@ -2008,13 +2018,13 @@ Object.assign(A,{
   .catch(e=>{g.busy=null;toast('✖ '+e.message)})},
  ugreopen(id){api('/api/urgent/reopen',{id}).then(()=>{const a=ugFind(id);a.status='new';ugShow(()=>{ui.ug.open=null});toast(ui.ug.rt=='daily'?'Marked as not reviewed again':'Moved back to New applications')}).catch(e=>toast('✖ '+e.message))},
  ugpublish(){const g=ui.ug,f=$('#ugpub');if(!f||g.busy)return;const d=Object.fromEntries(new FormData(f));
-  if(!d.title||d.title.trim().length<3)return toast('✖ Give the job a short title');if(!g.flyer)return toast('✖ Add the flyer or a photo');
+  if(!d.title||d.title.trim().length<3)return toast('✖ Give the job a short title');if(ugIsAb()&&(!d.country||d.country=='RW'))return toast('✖ Choose the country abroad');if(!g.flyer)return toast('✖ Add the flyer or a photo');
   const body={title:d.title,role:d.role,place:d.place,text:d.text,country:d.country||'RW',image:g.flyer.data,w:g.flyer.w,h:g.flyer.h,rules:ugRulesRead(f)};
   if(g.life=='custom'){if(!d.until)return toast('✖ Choose when it ends');body.until=new Date(d.until).toISOString()}else body.hours=+g.life;
   g.busy='pub';g.f=d;refreshMain();api('/api/urgent/posts',body).then(()=>{g.busy=null;g.f={};g.flyer=null;haptic('success');toast('✔ Published — it’s on elitejobsrwanda.com now');LOADERS.urgent()}).catch(e=>{g.busy=null;refreshMain();toast('✖ '+e.message)})},
  ugdoc(id,k){const w=window.open('','_blank');fetch('/api/urgent/doc?app='+encodeURIComponent(id)+'&k='+k,{headers:hdrs()}).then(async r=>{if(!r.ok)throw new Error(await r.text()||'Not available');const u=URL.createObjectURL(await r.blob());if(w)w.location=u;else location.href=u}).catch(e=>{if(w)w.close();toast('✖ '+e.message)})},
  ugedit(id){const p=(ui.ug.posts||[]).find(x=>x.id==id);if(!p)return;ui.ug.edit=p;const card=p.kind=='card',m=p.meta||{};
-  const cu=m.cur||ugCur(p.country);FM.ugedit.f=[['title','Job title'],['until','Ends at',null,{type:'datetime-local'}],['country','Country',UG_CT.map(x=>[x[0],x[0]=='RW'?'Rwanda':x[1]+' — abroad'])]].concat(card?[['salMin','Pay from ('+cu+')',null,{opt:1}],['salMax','Pay up to ('+cu+')',null,{opt:1}],['loc','Where'],['desc','Description',null,{opt:1,area:1}]]:[['place','Where',null,{opt:1}],['text','Short description',null,{opt:1,area:1}]])
+  const cu=m.cur||ugCur(p.country);FM.ugedit.f=[['title','Job title'],['until','Ends at',null,{type:'datetime-local'}],['country','Country',ugIsAb()?UG_CT.filter(x=>x[0]!='RW').map(x=>[x[0],x[1]]).concat([['RW','Rwanda (moves it to Urgent hiring)']]):[['RW','Rwanda'],...UG_CT.filter(x=>x[0]!='RW').map(x=>[x[0],x[1]+' (moves it to Abroad)'])]]].concat(card?[['salMin','Pay from ('+cu+')',null,{opt:1}],['salMax','Pay up to ('+cu+')',null,{opt:1}],['loc','Where'],['desc','Description',null,{opt:1,area:1}]]:[['place','Where',null,{opt:1}],['text','Short description',null,{opt:1,area:1}]])
    .concat([['cv','CV',[['1','Required'],['0','Not required']]],['dip','Diploma or certificate',[['0','Not required'],['1','Required']]],['gender','Who can apply',UG_G]]);
   ui.pre={};ui.nv=true;ui.modal='ugedit';render()},
  ugsure(id){ui.ug.sure=id;refreshMain()},
@@ -2037,7 +2047,7 @@ addEventListener('keydown',e=>{if(e.key=='Escape'&&ui.ug.open)A.ugclose()});
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&'ugdd' in t.dataset&&/^\d{4}-\d{2}-\d{2}$/.test(t.value)){ui.ug.dd=t.value;haptic('tick');ugRevRefresh()}});
 document.addEventListener('input',e=>{const t=e.target;if(t.dataset&&t.dataset.ugq){const g=ui.ug;g.q=g.q||{};g.q[t.dataset.ugq]=t.value;const l=$('#ugrevlist');if(l){l.innerHTML=ugRevList(g.rt||'new');ugHydrate(l)}}});
 // live: new applications arrive → refresh the room and tell reviewers
-function ugLive(m){const e=flat(ui.r)[ui.v];ugMe().then(me=>{if(m.kind=='new'&&me&&me.review){toast('⚡ '+m.n+' new urgent application'+(m.n>1?'s':'')+' — '+m.title);haptic('success')}});if(e&&e.b=='urgent'&&!ui.ug.open)LOADERS.urgent()}
+function ugLive(m){const e=flat(ui.r)[ui.v];ugMe().then(me=>{if(m.kind=='new'&&me&&me.review){toast('⚡ '+m.n+' new urgent application'+(m.n>1?'s':'')+' — '+m.title);haptic('success')}});if(e&&(e.b=='urgent'||e.b=='abroad')&&!ui.ug.open)LOADERS.urgent()}
 {const c=document.createElement('div');c.id='ugc';c.hidden=true;document.body.append(c)}
 setTimeout(ugMe,1500);
 
@@ -3175,5 +3185,42 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .cvp-silver{background:linear-gradient(135deg,#FDFDFF,#B9BCC6)}.cvp-platinum{background:linear-gradient(135deg,#F7F3EC,#B3A792)}.cvp-diamond{background:linear-gradient(135deg,#33476E,#0F1A2E);color:#F2F6FF}
 .cvpmix{display:flex;gap:4px;flex-wrap:wrap;font-size:inherit}.cvpacc{margin-top:16px}
 @media(max-width:700px){.cvpr{grid-template-columns:1fr}.cvpa{text-align:left}}
+</style>`);
+// ---------- Abroad enquiries: people who told the website's Abroad page where they want to work ----------
+// New → called (with what happened and a note) → kept as data. Admin can delete one; every change is in Activity.
+LOADERS.abroad=(...a)=>LOADERS.urgent(...a);
+const AQ={tab:'new',q:'',c:'',open:null,sure:null};
+const AQ_OUT=[['called','Called — waiting for a job there'],['noanswer','Didn’t answer'],['placed','Matched to a job abroad'],['notnow','Not interested now']];
+LOADERS.abroadinq=()=>{ugMe().then(m=>{AQ.me=m||{};if(!m||!m.review){AQ.list=[];return refreshMain()}return api('/api/urgent/asks').then(r=>{AQ.list=r.asks;AQ.err=null}).catch(e=>{AQ.err=e.message}).then(refreshMain)})};
+const aqName=c=>(UG_CTB[c]||[,c||'—'])[1];
+function aqRow(a){const op=AQ.open==a.id,done=a.status=='done',out=(AQ_OUT.find(x=>x[0]==a.outcome)||[])[1];
+ return`<div class="aqr${done?' aqdone':''}${op?' open':''}"><div class=aqf>${ugFlag(a.country)||'🌍'}</div>
+ <div class=aqw><b>${esc(a.name)}</b><small>${esc(a.work)} · wants to work in <b>${esc(aqName(a.country))}</b></small><small>${agoT(a.created)}${done?` · ${esc(out||'Called')}${a.reviewer?' · by '+esc(a.reviewer):''}${a.note?' · “'+esc(a.note)+'”':''}`:''}</small></div>
+ <div class=aqa><a class="b" style="text-decoration:none;color:inherit" href="tel:${esc(a.phone)}">📞 ${esc(a.phone)}</a>${done?btn('Move back to New','aqreopen|'+a.id):btn(op?'Close':'Record the call','aqopen|'+a.id,op?'':'p')}${AQ.me&&AQ.me.admin?(AQ.sure==a.id?btn('Yes, delete','aqdel|'+a.id,'p')+btn('Keep','aqkeep'):btn('Delete','aqsure|'+a.id)):''}</div>
+ ${op?`<div class=aqcall><div class=aqouts>${AQ_OUT.map(([k,l])=>`<label><input type=radio name=aqout value=${k}><span>${l}</span></label>`).join('')}</div><textarea id=aqnote rows=2 maxlength=400 placeholder="A note for the team (optional)"></textarea>${btn('Save','aqsave|'+a.id,'p')}</div>`:''}</div>`}
+V.abroadinq=function(){const m=AQ.me;if(!m)return'<h1>Abroad enquiries</h1><div class=empty>Loading…</div>';
+ if(!m.review)return`<h1>Abroad enquiries</h1><div class=uggate><div class=ugmark>🌍</div><h2>Not given to you</h2><p>The people who review urgent applicants also see these. Admin gives that in <b>Urgent hiring → Access</b>.</p></div>`;
+ if(AQ.err&&!AQ.list)return`<h1>Abroad enquiries</h1><p class=bad>${esc(AQ.err)}</p>`;
+ const L=AQ.list||[],nw=L.filter(a=>a.status!='done'),dn=L.filter(a=>a.status=='done'),cs=[...new Set(L.map(a=>a.country))];
+ const q=AQ.q.trim().toLowerCase(),pick=(AQ.tab=='done'?dn:AQ.tab=='all'?L:nw).filter(a=>(!AQ.c||a.country==AQ.c)&&(!q||[a.name,a.phone,a.work,aqName(a.country)].join(' ').toLowerCase().includes(q)));
+ return`<h1>Abroad enquiries</h1><p class=sub>People who told the website’s Abroad page where they would like to work. Call them when a job in that country opens. Collected from elitejobsrwanda.com every minute.</p>
+ <div class=crmtiles><div><small>New</small><b>${nw.length}</b><em>waiting for a call</em></div><div><small>Called</small><b>${dn.length}</b><em>kept as data</em></div><div><small>Countries</small><b>${cs.length}</b><em>${cs.slice(0,4).map(ugFlag).join('')}</em></div></div>
+ <div class=aqbar><div class=cvptabs>${[['new','New · '+nw.length],['done','Called · '+dn.length],['all','All · '+L.length]].map(([k,l])=>`<button class="${AQ.tab==k?'on':''}" data-a="aqtab|${k}">${l}</button>`).join('')}</div>
+ <select id=aqc aria-label="Country"><option value="">Every country</option>${cs.map(c=>`<option value=${c} ${AQ.c==c?'selected':''}>${aqName(c)}</option>`).join('')}</select><input id=aqq type=search placeholder="Find a name, phone or work…" value="${esc(AQ.q)}" aria-label="Find"></div>
+ <div class=aql>${pick.length?pick.map(aqRow).join(''):`<div class=empty>${L.length?'Nobody matches.':'No enquiries yet. They arrive here when someone fills in “Tell us where you would like to work” on the website’s Abroad page.'}</div>`}</div>`};
+Object.assign(A,{aqtab(k){AQ.tab=k;AQ.open=null;refreshMain()},aqopen(id){AQ.open=AQ.open==id?null:id;refreshMain()},aqsure(id){AQ.sure=id;refreshMain()},aqkeep(){AQ.sure=null;refreshMain()},
+ aqsave(id){const o=document.querySelector('input[name=aqout]:checked');if(!o)return toast('✖ Choose what happened on the call');api('/api/urgent/asks/set',{id,outcome:o.value,note:($('#aqnote')||{}).value||''}).then(()=>{haptic('success');toast('✔ Saved');AQ.open=null;LOADERS.abroadinq()}).catch(e=>toast('✖ '+e.message))},
+ aqreopen(id){api('/api/urgent/asks/set',{id,reopen:true}).then(()=>{toast('Moved back to New');LOADERS.abroadinq()}).catch(e=>toast('✖ '+e.message))},
+ aqdel(id){api('/api/urgent/asks/remove',{id}).then(()=>{AQ.sure=null;toast('Deleted — written in Activity');LOADERS.abroadinq()}).catch(e=>toast('✖ '+e.message))}});
+document.addEventListener('input',e=>{if(e.target&&e.target.id=='aqq'){AQ.q=e.target.value;const pos=e.target.selectionStart;refreshMain();const n=$('#aqq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}}});
+document.addEventListener('change',e=>{if(e.target&&e.target.id=='aqc'){AQ.c=e.target.value;refreshMain()}});
+document.head.insertAdjacentHTML('beforeend',`<style>
+.aqbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.aqbar select,.aqbar input{padding:9px 12px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:inherit;font:inherit}.aqbar input{flex:1;min-width:200px}
+.aql{display:grid;gap:8px;margin:12px 0}
+.aqr{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:14px;border:1px solid var(--bd);background:var(--card)}
+.aqr.aqdone{opacity:.72}.aqf{font-size:26px;width:40px;text-align:center}.aqw small{display:block;color:var(--mut)}.aqa{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.aqcall{grid-column:1/-1;display:grid;gap:10px;padding-top:6px}.aqouts{display:flex;gap:8px;flex-wrap:wrap}.aqouts label{display:flex;gap:6px;align-items:center;padding:8px 12px;border-radius:99px;border:1px solid var(--bd);cursor:pointer}
+.aqcall textarea{padding:10px 12px;border-radius:12px;border:1px solid var(--bd);background:transparent;color:inherit;font:inherit}
+@media(max-width:700px){.aqr{grid-template-columns:auto 1fr}.aqa{grid-column:1/-1;justify-content:flex-start}}
 </style>`);
 </script></body></html>

@@ -541,12 +541,15 @@ const server = http.createServer((req, res) => {
     if (p === '/api/urgent/grants' && post) return readBody(req, 1e4, buf => run(() => urgent.setGrant(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/urgent/cfg' && post) return readBody(req, 1e4, buf => run(() => { if (!hasIT(req)) urgent.need(me, 'admin'); return urgent.setCfg(JSON.parse(buf.toString() || '{}')); }));
     if (p === '/api/urgent/sync' && post) return run(async () => { urgent.need(me, urgent.rights(me).review ? 'review' : 'admin'); await urgent.sync(); return urgent.cfgView(); });
-    if (p === '/api/urgent/posts' && !post) return run(() => urgent.posts(me));
+    if (p === '/api/urgent/posts' && !post) return run(() => urgent.posts(me, q.get('where') || ''));
+    if (p === '/api/urgent/asks' && !post) return run(() => urgent.asks(me));
+    if (p === '/api/urgent/asks/set' && post) return readBody(req, 1e4, buf => run(() => urgent.askSet(me, JSON.parse(buf.toString() || '{}'))));
+    if (p === '/api/urgent/asks/remove' && post) return readBody(req, 1e4, buf => run(() => urgent.askDel(me, JSON.parse(buf.toString() || '{}').id)));
     if (p === '/api/urgent/posts' && post) return readBody(req, 12e6, buf => run(async () => { const b = JSON.parse(buf.toString() || '{}'), j = await urgent.publish(me, b); if (b.vac && j && j.id) vflow.posted(me, String(b.vac), j.id, b.title); return j; }));
     if (p === '/api/urgent/posts/edit' && post) return readBody(req, 2e4, buf => run(() => urgent.editPost(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/urgent/doc') { try { const f = urgent.doc(me, q.get('app'), q.get('k')); return fs.readFile(f.file, (e, d) => e ? send(res, 404, '') : (res.setHeader('Content-Disposition', `inline; filename="${f.name}"`), send(res, 200, d, f.type))); } catch (e) { return send(res, e.code || 400, e.message); } }
     if (p === '/api/urgent/posts/remove' && post) return readBody(req, 1e4, buf => run(() => urgent.removePost(me, JSON.parse(buf.toString() || '{}').id)));
-    if (p === '/api/urgent/apps') return run(() => urgent.apps(me, { scope: q.get('scope') || '', d: q.get('d') || '' }));
+    if (p === '/api/urgent/apps') return run(() => urgent.apps(me, { scope: q.get('scope') || '', d: q.get('d') || '', where: q.get('where') || '' }));
     if (p === '/api/urgent/photo') { try { const f = urgent.photo(me, q.get('app'), q.get('n')); return fs.readFile(f.file, (e, d) => e ? send(res, 404, '') : send(res, 200, d, f.type)); } catch (e) { return send(res, e.code || 400, e.message); } }
     if (p === '/api/urgent/outcome' && post) return readBody(req, 1e4, buf => run(() => urgent.outcome(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/urgent/finish' && post) return readBody(req, 1e4, buf => run(() => urgent.finish(me, JSON.parse(buf.toString() || '{}'))));
