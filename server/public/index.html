@@ -1374,7 +1374,7 @@ function ejPay(m) {
   const a = Number(m.salMin) || 0, b = Number(m.salMax) || 0;
   if (!a && !b) return { v: m.neg ? 'Negotiable' : 'Pay on request', u: '' };
   const v = a && b && a !== b ? ejNum(a) + ' – ' + ejNum(b) : ejNum(a || b);
-  return { v: (a && b ? '' : a ? 'From ' : 'Up to ') + v, u: 'RWF / ' + (ejPer[m.per] || 'month') + (m.neg ? ' · negotiable' : '') };
+  return { v: (a && b ? '' : a ? 'From ' : 'Up to ') + v, u: (m.cur || 'RWF') + ' / ' + (ejPer[m.per] || 'month') + (m.neg ? ' · negotiable' : '') };
 }
 // One liquid card. mini = tiny tab version (icon + title only).
 function ejCard(p, mini) {
@@ -1793,16 +1793,21 @@ document.addEventListener('change',e=>{if(e.target&&e.target.matches&&e.target.m
 function ugForm(){const g=ui.ug,f=g.f||{};return`<form class=ugf id=ugpub autocomplete=off>
  <label>Job title<input name=title maxlength=80 required placeholder="5 waiters for tonight" value="${esc(f.title||'')}"></label>
  <div class=ug2><label>Kind of work<input name=role maxlength=60 placeholder="Hospitality" value="${esc(f.role||'')}"></label><label>Where<input name=place maxlength=80 placeholder="Kigali, Kimihurura" value="${esc(f.place||'')}"></label></div>
+ <div class=ug2>${ugCtSel(f.country)}<span></span></div>
  <label>Short description<textarea name=text maxlength=600 rows=3 placeholder="Pay, hours, what to bring…">${esc(f.text||'')}</textarea></label>
  <label class=ugdrop>${g.flyer?`<img src="${g.flyer.url}" alt="Flyer preview">`:'<span>Add the flyer or a photo of the job</span>'}<input type=file name=flyer accept="image/*" data-ugflyer=1></label>
  ${ugRulesHTML(f)}
  <div class=ug2><label>How long it stays up<select name=life data-uglife=1>${UGLIFE.map(([v,l])=>`<option value=${v} ${g.life==v?'selected':''}>${l}</option>`).join('')}</select></label>${g.life=='custom'?`<label>Ends at<input type=datetime-local name=until value="${esc(f.until||'')}"></label>`:'<span></span>'}</div>
  <div class=row>${btn(g.busy=='pub'?'Publishing…':'Publish to the website','ugpublish','p')}</div></form>`}
+// countries a job can be in (same list as the website): Rwanda, or abroad — jobs abroad show on the website's Abroad page
+const UG_CT=[["RW", "Rwanda", "RWF"], ["AE", "United Arab Emirates", "AED"], ["QA", "Qatar", "QAR"], ["SA", "Saudi Arabia", "SAR"], ["KW", "Kuwait", "KWD"], ["OM", "Oman", "OMR"], ["BH", "Bahrain", "BHD"], ["JO", "Jordan", "JOD"], ["IL", "Israel", "ILS"], ["TR", "Türkiye", "TRY"], ["PL", "Poland", "PLN"], ["DE", "Germany", "EUR"], ["FR", "France", "EUR"], ["BE", "Belgium", "EUR"], ["NL", "Netherlands", "EUR"], ["GB", "United Kingdom", "GBP"], ["IE", "Ireland", "EUR"], ["CA", "Canada", "CAD"], ["US", "United States", "USD"], ["AU", "Australia", "AUD"], ["JP", "Japan", "JPY"], ["KR", "South Korea", "KRW"], ["CN", "China", "CNY"], ["KE", "Kenya", "KES"], ["UG", "Uganda", "UGX"], ["TZ", "Tanzania", "TZS"], ["BI", "Burundi", "BIF"], ["CD", "DR Congo", "USD"], ["ZA", "South Africa", "ZAR"]],UG_CTB=Object.fromEntries(UG_CT.map(x=>[x[0],x])),ugCur=c=>(UG_CTB[c]||UG_CTB.RW)[2];
+const ugFlag=c=>c&&c!='RW'?String.fromCodePoint(...[...c].map(x=>127397+x.charCodeAt(0)))+' ':'';
+function ugCtSel(v,name){v=v||'RW';return`<label>Country<select name=${name||'country'} data-ugct=1><option value=RW ${v=='RW'?'selected':''}>Rwanda</option><optgroup label="Abroad — shows on the Abroad page">${UG_CT.filter(x=>x[0]!='RW').map(x=>`<option value=${x[0]} ${v==x[0]?'selected':''}>${x[1]} (${x[2]})</option>`).join('')}</optgroup></select></label>`}
 // place and pay, written the same way the website shows them on the urgent jobs page
-const ugPlace=p=>(p.kind=='card'&&p.meta&&p.meta.loc)||p.place||'Kigali';
+const ugPlace=p=>{const c=p.country&&p.country!='RW'?p.country:'',l=(p.kind=='card'&&p.meta&&p.meta.loc)||p.place||(c?'':'Kigali');return c?ugFlag(c)+[l,(UG_CTB[c]||[,c])[1]].filter(Boolean).join(', '):l};
 function ugPay(p){const m=p.meta,f=n=>Number(n).toLocaleString('en-US'),A={month:'a month',day:'a day',week:'a week',hour:'an hour'};
  if(!m||(!m.salMin&&!m.salMax))return /negot/i.test(p.text||'')?'Negotiable':'At interview';
- return(m.salMin&&m.salMax?f(m.salMin)+'–'+f(m.salMax):f(m.salMin||m.salMax))+' RWF '+(A[m.per]||A.month)+(m.neg?', negotiable':'')}
+ return(m.salMin&&m.salMax?f(m.salMin)+'–'+f(m.salMax):f(m.salMin||m.salMax))+' '+(m.cur||ugCur(p.country))+' '+(A[m.per]||A.month)+(m.neg?', negotiable':'')}
 function ugPosts(){const g=ui.ug,P=g.posts;if(g.postsErr)return`<p class=bad>${esc(g.postsErr)}</p>`;if(!P)return'';if(!P.length)return'<div class=empty>No live urgent jobs. What you publish shows on elitejobsrwanda.com and is deleted for good when its time ends or you take it down.</div>';
  // every live job on the website is listed here (no cut-off), newest first, so each one can be edited or taken down
  const q=(g.pq||'').trim().toLowerCase(),L=q?P.filter(p=>[p.title,p.place,p.role,p.by,(p.meta||{}).loc].join(' ').toLowerCase().includes(q)):P,can=ui.ug.me.post;
@@ -1829,10 +1834,10 @@ function ugAdmin(){const g=ui.ug;const waiting=(g.devs||[]).filter(d=>!d.ok);con
  ${Object.keys(r.byReviewer).length?`<h4 class=ugh4>Calls made</h4>${Object.entries(r.byReviewer).map(([n,c])=>`<div class=ugpost><div><b>${esc(n)}</b></div><span>${c}</span></div>`).join('')}`:''}`:'<div class=empty>Loading…</div>'}</div></div>`}
 const ugUn=v=>String(v==null?'':v).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&');
 const ugLocal=t=>{const d=new Date(t-new Date(t).getTimezoneOffset()*6e4);return d.toISOString().slice(0,16)};
-FM.ugedit={t:'Edit urgent job',f:[],def:()=>{const p=ui.ug.edit||{},m=p.meta||{},r=p.rules||{};return{title:p.title,until:ugLocal(p.expires||Date.now()),salMin:m.salMin||'',salMax:m.salMax||'',loc:m.loc||p.place||'',desc:m.desc||p.text||'',place:p.place||'',text:p.text||'',cv:r.cv?'1':'0',dip:r.dip?'1':'0',gender:r.gender||'any'}},
+FM.ugedit={t:'Edit urgent job',f:[],def:()=>{const p=ui.ug.edit||{},m=p.meta||{},r=p.rules||{};return{title:p.title,until:ugLocal(p.expires||Date.now()),country:p.country||'RW',salMin:m.salMin||'',salMax:m.salMax||'',loc:m.loc||p.place||'',desc:m.desc||p.text||'',place:p.place||'',text:p.text||'',cv:r.cv?'1':'0',dip:r.dip?'1':'0',gender:r.gender||'any'}},
  checkTitle:'⚠ Check this first:',checkBtn:'Save anyway',check:d=>{const t=Date.parse(d.until),w=[];if(!(t>Date.now()+6e4))w.push({msg:'The end time is in the past — the website will refuse it.'});if(t>Date.now()+90*864e5)w.push({msg:'A post can stay up for 90 days at most.'});if(+d.salMin&&+d.salMax&&+d.salMin>+d.salMax)w.push({msg:'The lowest pay is higher than the highest pay.'});return w},
  go:d=>{const p=ui.ug.edit;if(!p)return;const b={id:p.id,title:ugUn(d.title),until:new Date(d.until).toISOString(),rules:{cv:d.cv=='1',dip:d.dip=='1',gender:d.gender}};
-  if(p.kind=='card')b.meta={salMin:+String(d.salMin).replace(/\D/g,'')||0,salMax:+String(d.salMax).replace(/\D/g,'')||0,loc:ugUn(d.loc),desc:ugUn(d.desc)};else{b.place=ugUn(d.place);b.text=ugUn(d.text)}
+  if(d.country)b.country=d.country;if(p.kind=='card')b.meta={salMin:+String(d.salMin).replace(/\D/g,'')||0,salMax:+String(d.salMax).replace(/\D/g,'')||0,loc:ugUn(d.loc),desc:ugUn(d.desc)};else{b.place=ugUn(d.place);b.text=ugUn(d.text)}
   api('/api/urgent/posts/edit',b).then(()=>{haptic('success');toast('✔ Saved — the website shows the change now');LOADERS.urgent()}).catch(e=>{haptic('error');toast('✖ '+e.message)})}};
 // ---------- Endover: full job cards → stacked on the right → published together ----------
 const EO_PER=[['month','Per month'],['week','Per week'],['day','Per day'],['hour','Per hour'],['job','Per job']];
@@ -1845,7 +1850,8 @@ function eoSave(){LS.set('ug-batch',JSON.stringify(eo().list))}
 function eoRead(){const f=$('#eof');if(!f)return eo().f;const fd=new FormData(f),d={};for(const[k,v]of fd.entries())if(k!='ben')d[k]=v;d.ben=fd.getAll('ben');d.neg=!!fd.get('neg');eo().f=d;return d}
 function eoBuild(f){const cat=f.cat||'gen',title=String(f.title||'').trim(),tpl=EJ_TPL[f.tpl]?f.tpl:ejPick(title,cat);
  const n=v=>{const x=Number(String(v||'').replace(/[^0-9.]/g,''));return x>0?x:0},lines=s=>String(s||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,8);
- return{title,tpl,meta:{cat,type:f.type||'',salMin:n(f.salMin),salMax:n(f.salMax),per:f.per||'month',neg:!!f.neg,loc:String(f.loc||'').trim(),openings:Math.max(1,Math.min(999,n(f.open)||1)),exp:String(f.exp||'').trim(),edu:String(f.edu||'').trim(),req:lines(f.req),ben:(f.ben||[]).slice(0,8),desc:String(f.desc||'').trim().slice(0,400),photos:eoPicks().map(p=>p.u),credit:eoPicks().map(p=>p.by)}}}
+ const country=f.country&&UG_CTB[f.country]?f.country:'RW';
+ return{title,tpl,country,meta:{cat,country,cur:f.cur||ugCur(country),type:f.type||'',salMin:n(f.salMin),salMax:n(f.salMax),per:f.per||'month',neg:!!f.neg,loc:String(f.loc||'').trim(),openings:Math.max(1,Math.min(999,n(f.open)||1)),exp:String(f.exp||'').trim(),edu:String(f.edu||'').trim(),req:lines(f.req),ben:(f.ben||[]).slice(0,8),desc:String(f.desc||'').trim().slice(0,400),photos:eoPicks().map(p=>p.u),credit:eoPicks().map(p=>p.by)}}}
 function eoPrev(){const f=eo().f,sel=eo().sel!=null?eo().list.find(x=>x.id==eo().sel):null;
  if(sel)return ejPhotoCard(sel.post);
  if(!String(f.title||'').trim())return`<div class=eoghost><span>⚡</span><b>Your card appears here</b><small>Type a job title — the Hub picks the template that fits.</small></div>`;
@@ -1856,7 +1862,8 @@ function eoForm(){const f=eo().f;return`<form class=ugf id=eof autocomplete=off>
  <div class=eovault id=eovault>${eoVault()}</div>
  <div class=ug2><label>Category<select name=cat>${EJ_CATS.map(([k,l])=>`<option value=${k} ${(f.cat||'gen')==k?'selected':''}>${l}</option>`).join('')}</select></label>
  <label>Type of work<select name=type><option value="">—</option>${EO_TYPE.map(t=>`<option ${f.type==t?'selected':''}>${t}</option>`).join('')}</select></label></div>
- <div class=ug3><label>Pay from (RWF)<input name=salMin inputmode=numeric placeholder="150000" value="${esc(f.salMin||'')}"></label><label>Pay up to (RWF)<input name=salMax inputmode=numeric placeholder="250000" value="${esc(f.salMax||'')}"></label>
+ <div class=ug2>${ugCtSel(f.country)}<label>Paid in<select name=cur>${[...new Set([ugCur(f.country||'RW'),'USD','EUR','RWF'])].map(c=>`<option ${(f.cur||ugCur(f.country||'RW'))==c?'selected':''}>${c}</option>`).join('')}</select></label></div>
+ <div class=ug3><label><span data-ugcur=from>Pay from (${esc(f.cur||ugCur(f.country||'RW'))})</span><input name=salMin inputmode=numeric placeholder="${(f.country||'RW')=='RW'?'150000':'1500'}" value="${esc(f.salMin||'')}"></label><label><span data-ugcur=to>Pay up to (${esc(f.cur||ugCur(f.country||'RW'))})</span><input name=salMax inputmode=numeric placeholder="${(f.country||'RW')=='RW'?'250000':'2000'}" value="${esc(f.salMax||'')}"></label>
  <label>Paid<select name=per>${EO_PER.map(([k,l])=>`<option value=${k} ${(f.per||'month')==k?'selected':''}>${l}</option>`).join('')}</select></label></div>
  <label class=ugck><input type=checkbox name=neg ${f.neg?'checked':''}> Pay is negotiable</label>
  <div class=ug2><label>Where<input name=loc maxlength=80 placeholder="Kigali, Kimihurura" value="${esc(f.loc||'')}"></label><label>How many people<input name=open inputmode=numeric placeholder="1" value="${esc(f.open||'')}"></label></div>
@@ -1877,7 +1884,7 @@ function eoPanel(){const e=eo(),sel=e.sel!=null?e.list.find(x=>x.id==e.sel):null
  <div class=eobar><button class="b p eogo" data-a=eogo ${n&&!e.busy?'':'disabled'}>${e.busy?'Publishing…':n?'Endover — publish '+n+' job'+(n>1?'s':'')+' to the website':'Endover'}</button><small>${n?'All of them go live on elitejobsrwanda.com together and leave by themselves when their time ends.':'Add at least one job first.'}</small></div>`}
 function eoRoot(){return`<div class=eoroot id=eoroot data-mo="${eoMo()}">${eoPanel()}</div>`}
 function eoMount(){const r=$('#eoroot');if(r)r.innerHTML=eoPanel()}
-function eoLive(){const f=eoRead();const p=$('#eoprev'),t=$('#eotpl');if(!p)return;
+function eoLive(){{const fm=$('#eof');if(fm&&fm.country&&fm.cur){if((eo().f.country||'RW')!==fm.country.value){const d=ugCur(fm.country.value);fm.cur.innerHTML=[...new Set([d,'USD','EUR','RWF'])].map(c=>`<option>${c}</option>`).join('');fm.cur.value=d}fm.querySelectorAll('[data-ugcur]').forEach(x=>x.textContent=(x.dataset.ugcur=='from'?'Pay from (':'Pay up to (')+fm.cur.value+')');const rw=fm.country.value=='RW';fm.salMin.placeholder=rw?'150000':'1500';fm.salMax.placeholder=rw?'250000':'2000'}}const f=eoRead();const p=$('#eoprev'),t=$('#eotpl');if(!p)return;
  const u=$('#eountil');if(u)u.hidden=f.life!='custom';
  if(eo().sel!=null){eo().sel=null;eoMount();return}
  const prevTpl=p.dataset.tpl,nb=String(f.title||'').trim()?eoBuild(f):null,k=nb?nb.tpl:'';
@@ -1951,7 +1958,7 @@ Object.assign(A,{
   const clone=src;eoMount();const tab=document.querySelector('.eotab[data-id="'+item.id+'"]');if(tab)tab.classList.add('fresh');
   eoFly(clone,tab&&tab.querySelector('.eoth'),()=>{if(tab){tab.classList.remove('fresh');tab.classList.add('eopop')}haptic('success')})},
  async eogo(){const e=eo();if(e.busy||!e.list.length)return;e.busy=true;eoMount();let ok=0;
-  for(const x of e.list.slice()){const body={kind:'card',title:x.post.title,tpl:x.post.tpl,meta:x.post.meta,rules:x.rules||ugRulesFrom({title:x.post.title})};if(x.form&&x.form.vac)body.vac=x.form.vac;if(x.until)body.until=x.until;else body.hours=+x.life;
+  for(const x of e.list.slice()){const body={kind:'card',title:x.post.title,tpl:x.post.tpl,meta:x.post.meta,country:(x.post.meta&&x.post.meta.country)||'RW',rules:x.rules||ugRulesFrom({title:x.post.title})};if(x.form&&x.form.vac)body.vac=x.form.vac;if(x.until)body.until=x.until;else body.hours=+x.life;
    try{await api('/api/urgent/posts',body);ok++;const t=document.querySelector('.eotab[data-id="'+x.id+'"]');if(t)t.classList.add('sent');haptic('success');await new Promise(r=>setTimeout(r,360));e.list=e.list.filter(y=>y.id!=x.id);eoSave()}
    catch(er){e.busy=false;eoMount();haptic('error');toast('✖ '+x.post.title+': '+er.message+(ok?' ('+ok+' already published)':''));if(ok)LOADERS.urgent();return}}
   e.busy=false;e.sel=null;toast('✔ '+ok+' job'+(ok>1?'s are':' is')+' on elitejobsrwanda.com now');LOADERS.urgent();vfLoad()}});
@@ -2002,12 +2009,12 @@ Object.assign(A,{
  ugreopen(id){api('/api/urgent/reopen',{id}).then(()=>{const a=ugFind(id);a.status='new';ugShow(()=>{ui.ug.open=null});toast(ui.ug.rt=='daily'?'Marked as not reviewed again':'Moved back to New applications')}).catch(e=>toast('✖ '+e.message))},
  ugpublish(){const g=ui.ug,f=$('#ugpub');if(!f||g.busy)return;const d=Object.fromEntries(new FormData(f));
   if(!d.title||d.title.trim().length<3)return toast('✖ Give the job a short title');if(!g.flyer)return toast('✖ Add the flyer or a photo');
-  const body={title:d.title,role:d.role,place:d.place,text:d.text,image:g.flyer.data,w:g.flyer.w,h:g.flyer.h,rules:ugRulesRead(f)};
+  const body={title:d.title,role:d.role,place:d.place,text:d.text,country:d.country||'RW',image:g.flyer.data,w:g.flyer.w,h:g.flyer.h,rules:ugRulesRead(f)};
   if(g.life=='custom'){if(!d.until)return toast('✖ Choose when it ends');body.until=new Date(d.until).toISOString()}else body.hours=+g.life;
   g.busy='pub';g.f=d;refreshMain();api('/api/urgent/posts',body).then(()=>{g.busy=null;g.f={};g.flyer=null;haptic('success');toast('✔ Published — it’s on elitejobsrwanda.com now');LOADERS.urgent()}).catch(e=>{g.busy=null;refreshMain();toast('✖ '+e.message)})},
  ugdoc(id,k){const w=window.open('','_blank');fetch('/api/urgent/doc?app='+encodeURIComponent(id)+'&k='+k,{headers:hdrs()}).then(async r=>{if(!r.ok)throw new Error(await r.text()||'Not available');const u=URL.createObjectURL(await r.blob());if(w)w.location=u;else location.href=u}).catch(e=>{if(w)w.close();toast('✖ '+e.message)})},
  ugedit(id){const p=(ui.ug.posts||[]).find(x=>x.id==id);if(!p)return;ui.ug.edit=p;const card=p.kind=='card',m=p.meta||{};
-  FM.ugedit.f=[['title','Job title'],['until','Ends at',null,{type:'datetime-local'}]].concat(card?[['salMin','Pay from (RWF)',null,{opt:1}],['salMax','Pay up to (RWF)',null,{opt:1}],['loc','Where'],['desc','Description',null,{opt:1,area:1}]]:[['place','Where',null,{opt:1}],['text','Short description',null,{opt:1,area:1}]])
+  const cu=m.cur||ugCur(p.country);FM.ugedit.f=[['title','Job title'],['until','Ends at',null,{type:'datetime-local'}],['country','Country',UG_CT.map(x=>[x[0],x[0]=='RW'?'Rwanda':x[1]+' — abroad'])]].concat(card?[['salMin','Pay from ('+cu+')',null,{opt:1}],['salMax','Pay up to ('+cu+')',null,{opt:1}],['loc','Where'],['desc','Description',null,{opt:1,area:1}]]:[['place','Where',null,{opt:1}],['text','Short description',null,{opt:1,area:1}]])
    .concat([['cv','CV',[['1','Required'],['0','Not required']]],['dip','Diploma or certificate',[['0','Not required'],['1','Required']]],['gender','Who can apply',UG_G]]);
   ui.pre={};ui.nv=true;ui.modal='ugedit';render()},
  ugsure(id){ui.ug.sure=id;refreshMain()},

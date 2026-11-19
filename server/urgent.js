@@ -198,19 +198,20 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
       const m = b.meta || {};
       if (!String(m.loc || '').trim()) throw err('Add where the job is.');
       if (Number(m.salMin) && Number(m.salMax) && Number(m.salMin) > Number(m.salMax)) throw err('The lowest pay can’t be higher than the highest pay.');
-      body = { kind: 'card', title, tpl: String(b.tpl || 'gen'), meta: m, expires, by: p.name, rules: rulesOf(b.rules) };
+      body = { kind: 'card', title, tpl: String(b.tpl || 'gen'), meta: m, expires, by: p.name, rules: rulesOf(b.rules), country: ctryOf(b.country || m.country) };
     } else {                                                   // classic: a flyer photo
       const m = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(String(b.image || ''));
       if (!m) throw err('Add the flyer or photo of the job.');
       const positions = (Array.isArray(b.positions) ? b.positions : String(b.positions || '').split('\n')).map(x => String(x).trim().slice(0, 60)).filter(Boolean).slice(0, 12);
-      body = { title, role: b.role, text: b.text, place: b.place, positions, expires, by: p.name, rules: rulesOf(b.rules), image: { mime: m[1], b64: m[2], w: b.w, h: b.h }, thumb: smallCopy(Buffer.from(m[2], 'base64')) || undefined };
+      body = { title, role: b.role, text: b.text, place: b.place, positions, expires, by: p.name, rules: rulesOf(b.rules), country: ctryOf(b.country), image: { mime: m[1], b64: m[2], w: b.w, h: b.h }, thumb: smallCopy(Buffer.from(m[2], 'base64')) || undefined };
     }
     const r = await remote('/api/hub/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json();
-    appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `published the urgent job “${title}” on the website${b.kind === 'card' ? ' (job card)' : ''} (ends ${new Date(expires).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })})` });
+    appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `published the urgent job “${title}” on the website${b.kind === 'card' ? ' (job card)' : ''}${body.country !== 'RW' ? ' — abroad, ' + body.country : ''} (ends ${new Date(expires).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })})` });
     broadcast({ type: 'urgent', kind: 'posts' });
     return j;
   }
+  const ctryOf = c => /^[A-Za-z]{2}$/.test(String(c || '')) ? String(c).toUpperCase() : 'RW';   // Rwanda, or the country abroad (the website checks the list)
   const rulesOf = r => { r = r || {}; return { cv: !!r.cv, dip: !!r.dip, gender: ['f', 'm'].includes(r.gender) ? r.gender : 'any' }; };
   // change a live post: end time, title, pay, place, text, and what applicants must send
   async function editPost(p, b) {
@@ -219,7 +220,8 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
     const body = {};
     if (b.title !== undefined) { body.title = String(b.title).trim().slice(0, 80); if (body.title.length < 3) throw err('Give the job a short title.'); }
     if (b.until) { body.expires = Date.parse(b.until); if (!(body.expires > Date.now() + 6e4)) throw err('Choose an end time in the future.'); }
-    if (b.meta) { const m = b.meta; if (Number(m.salMin) && Number(m.salMax) && Number(m.salMin) > Number(m.salMax)) throw err('The lowest pay can’t be higher than the highest pay.'); body.meta = { salMin: Number(m.salMin) || 0, salMax: Number(m.salMax) || 0, loc: String(m.loc || ''), desc: String(m.desc || '') }; }
+    if (b.meta) { const m = b.meta; if (Number(m.salMin) && Number(m.salMax) && Number(m.salMin) > Number(m.salMax)) throw err('The lowest pay can’t be higher than the highest pay.'); body.meta = { salMin: Number(m.salMin) || 0, salMax: Number(m.salMax) || 0, loc: String(m.loc || ''), desc: String(m.desc || ''), ...(m.cur ? { cur: String(m.cur).toUpperCase().slice(0, 3) } : {}) }; }
+    if (b.country !== undefined) body.country = ctryOf(b.country);
     if (b.place !== undefined) body.place = String(b.place); if (b.text !== undefined) body.text = String(b.text);
     if (b.rules) body.rules = rulesOf(b.rules);
     const r = await remote(`/api/hub/posts/${encodeURIComponent(id)}/edit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
