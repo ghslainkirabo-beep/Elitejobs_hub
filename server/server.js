@@ -209,6 +209,7 @@ const members = require('./members.js')({ DATA_DIR, urgent, rightsOf: p => vflow
 const cvpays = require('./cvpays.js')({ DATA_DIR, urgent, loadState: () => loadState(), appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
 const subs = require('./subs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), smsLast: () => appStatus.smsLast() });
 const clients = require('./clients.js')({ DATA_DIR, subsMoney: m => subs.monthMoney(m), rightsOf: p => vflow.rights(p), appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
+const reminders = require('./reminders.js')({ DATA_DIR, urgent, inquiries, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o) });
 const webjobs = require('./webjobs.js')({ DATA_DIR, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), need: (p, w) => urgent.need(p, w) });
 
 // ---- sign-in anomaly alerts ----
@@ -388,6 +389,15 @@ const server = http.createServer((req, res) => {
     // opening jobs are built into the website's code; the Hub only publishes urgent jobs
     if ((p === '/api/webjobs/save' || p === '/api/webjobs/close') && post) return json(res, 410, { error: 'Opening jobs are built into the website now. Publish urgent jobs from Urgent hiring.' });
     return send(res, 404, '');
+  }
+
+  // ---- Reminders that chase for you (identity = trusted device; each list shows only what that person may see) ----
+  if (p === '/api/reminders' || p === '/api/reminders/act') {
+    const me = whoFrom(req);
+    const run = fn => Promise.resolve().then(fn).then(r => json(res, 200, r)).catch(e => json(res, e.code >= 400 && e.code < 600 ? e.code : 400, { error: e.message || String(e) }));
+    if (p === '/api/reminders' && !post) return run(() => reminders.build(me));
+    if (p === '/api/reminders/act' && post) return readBody(req, 1e4, buf => run(() => reminders.act(me, JSON.parse(buf.toString() || '{}'))));
+    return send(res, 405, '');
   }
 
   // ---- Open jobs inquiry (website "Message us" → rooms → SMS reply). Identity = trusted device; rooms = Admin's grant per position ----
