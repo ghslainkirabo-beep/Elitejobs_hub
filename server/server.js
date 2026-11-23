@@ -481,6 +481,7 @@ const server = http.createServer((req, res) => {
     if (p === '/api/crm/archive') return body(b => clients.archive(me, b));
     if (p === '/api/crm/charge') return body(b => clients.charge(me, b));
     if (p === '/api/crm/agree') return body(b => clients.agree(me, b));
+    if (p === '/api/crm/ratings') return run(async () => { if (!clients.may(me).crm) throw Object.assign(new Error('Employers belong to Admin, the recruitment manager and HR.'), { code: 403 }); const r = await urgent.remote('/api/hub/ratings'); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'The website didn’t answer.'); return j; });
     if (p === '/api/crm/paid') return body(b => clients.paid(me, b));
     if (p === '/api/crm/uncharge') return body(b => clients.unCharge(me, b));
     return send(res, 404, '');

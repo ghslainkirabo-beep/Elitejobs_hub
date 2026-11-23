@@ -242,7 +242,7 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
     }
     (P.notes || []).forEach(n => ev.push({ t: n.t, k: 'note', text: n.text, by: n.by }));
     Object.entries(P.checks || {}).forEach(([k, v]) => ev.push({ t: v.t, k: 'check', text: `${CHECKS[k] || k} ✓`, by: v.by }));
-    (P.places || []).forEach(pl => { ev.push({ t: pl.t, k: 'placed', text: `Placed as ${pl.title} at ${pl.employer}${pl.start ? ', starting ' + pl.start : ''}`, by: pl.by }); if (pl.left) ev.push({ t: pl.left.t, k: 'left', text: `Left ${pl.employer}: ${pl.left.why}${pl.left.replace ? ' — replacement started' : ''}`, by: pl.left.by }); (pl.care || []).forEach(x => ev.push({ t: x.t, k: 'care', text: `Check-in (${x.at}): ${x.text}`, by: x.by })); });
+    (P.places || []).forEach(pl => { ev.push({ t: pl.t, k: 'placed', text: `Placed as ${pl.title} at ${pl.employer}${pl.start ? ', starting ' + pl.start : ''}`, by: pl.by }); if (pl.left) ev.push({ t: pl.left.t, k: 'left', text: `Left ${pl.employer}: ${pl.left.why}${pl.left.replace ? ' — replacement started' : ''}`, by: pl.left.by }); (pl.care || []).forEach(x => ev.push({ t: x.t, k: 'care', text: `Check-in (${x.at}): ${x.text}${x.stars ? ` · employer’s private rating ${'★'.repeat(x.stars)}` : ''}`, by: x.by })); });
     ev.sort((a, b) => (b.t || 0) - (a.t || 0));
     log(p, `opened the history of ${c.name}`);
     return { card: c, events: ev.slice(0, 200), dupes: L.filter(s => s.src !== 'c').length, checks: Object.entries(CHECKS).map(([k, label]) => ({ k, label, done: (P.checks || {})[k] || null })), consent: P.consent || null, places: P.places || [] };
@@ -255,17 +255,23 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
     if (b.consent) { P.consent = { t: Date.now(), by: p.name }; psave(d); log(p, `recorded ${card(key, L).name}’s consent to checks`); return history(p, key); }
     if (!CHECKS[b.item]) throw err('Unknown check.'); if (!P.consent) throw err('Record the person’s consent first.', 409);
     P.checks = P.checks || {}; if (b.on) P.checks[b.item] = { t: Date.now(), by: p.name }; else delete P.checks[b.item]; psave(d);
-    log(p, `${b.on ? 'checked' : 'unchecked'} “${CHECKS[b.item]}” for ${card(key, L).name}`); return history(p, key); }
+    log(p, `${b.on ? 'checked' : 'unchecked'} “${CHECKS[b.item]}” for ${card(key, L).name}`); pushBadges(key); return history(p, key); }
   // applicant → placed worker, without retyping; after-placement care and replacement
+  // earned badges go to the person's website account, only with their consent (fire and forget; the Hub keeps the record)
+  function pushBadges(key) {
+    try { const P = pdb().by[key] || {}, L = people().get(key); if (!L) return; const ph = ph9(card(key, L).phone); if (!ph || !urgent.remote) return;
+      const items = Object.entries(P.checks || {}).map(([k, v]) => ({ k, t: v.t })).concat((P.places || []).length ? [{ k: 'placed', t: P.places[P.places.length - 1].t }] : []);
+      urgent.remote('/api/hub/badges', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: ph, consent: !!P.consent, items }) }).catch(() => {}); } catch (e) {}
+  }
   const mayPlace = p => ['admin', 'hr', 'ops'].includes(p.role);
   function place(p, b) { need(p); if (!mayPlace(p)) throw err('Placements are recorded by Admin, HR or Operations.', 403);
     const key = String(b.key || ''), L = people().get(key); if (!L) throw err('This person isn’t in our records.', 404);
     const employer = ss(b.employer, 90), title = ss(b.title, 70); if (employer.length < 2 || title.length < 2) throw err('Write the employer and the job.');
     const d = pdb(), P = d.by[key] = d.by[key] || {}; const pl = { id: 'PL-' + Date.now().toString(36).toUpperCase(), t: Date.now(), by: p.name, employer, title, pay: ss(b.pay, 40), start: ss(b.start, 20), care: [] };
-    (P.places = P.places || []).push(pl); psave(d); log(p, `placed ${card(key, L).name} as ${title} at ${employer}`); return history(p, key); }
+    (P.places = P.places || []).push(pl); psave(d); log(p, `placed ${card(key, L).name} as ${title} at ${employer}`); if (P.consent) pushBadges(key); return history(p, key); }
   function care(p, b) { need(p); const key = String(b.key || ''), d = pdb(), P = d.by[key]; const pl = P && (P.places || []).find(x => x.id === b.id); if (!pl) throw err('That placement isn’t on record.', 404);
     if (b.left) { const why = ss(b.why, 200); if (why.length < 3) throw err('Say why they left.'); pl.left = { t: Date.now(), by: p.name, why, replace: !!b.replace }; }
-    else { const text = ss(b.text, 300); if (text.length < 2) throw err('Write how the check-in went.'); pl.care.push({ t: Date.now(), by: p.name, at: ss(b.at, 20) || 'call', text }); }
+    else { const text = ss(b.text, 300); if (text.length < 2) throw err('Write how the check-in went.'); const st = Math.round(Number(b.stars)); pl.care.push({ t: Date.now(), by: p.name, at: ss(b.at, 20) || 'call', text, stars: st >= 1 && st <= 5 ? st : null }); }
     psave(d); log(p, b.left ? `recorded that a placed worker left ${pl.employer}${b.replace ? ' and started a replacement' : ''}` : `logged a check-in with a worker placed at ${pl.employer}`); return history(p, key); }
   function placements() { const d = pdb(), out = []; for (const [key, P] of Object.entries(d.by)) for (const pl of P.places || []) out.push({ key, ...pl }); return out; }
   // bring in old lists (CSV saved from Excel): name, phone, position, place, email; same phone = same person, never a duplicate

@@ -564,7 +564,10 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     const db = load(), v = find(db, String(b.id || '')), C = Object.values((v.int && v.int.cands) || {}).filter(c => (b.apps || []).includes(c.app) && c.status === 'done');
     if (!C.length) throw err('Choose at least one person with a finished interview.');
     const short = n => { const w = String(n || '').trim().split(/\s+/); return w[0] + (w[1] ? ' ' + w[1][0] + '.' : ''); };
-    const people = C.map(c => ({ ref: c.app, name: short(c.name), mark: c.final, points: Object.values(c.rows).map(r => r.topic).filter(Boolean).slice(0, 4) }));
+    const PB = rj(path.join(DATA_DIR, 'people.json'), { by: {} }).by || {}, CK = { id: 'National ID seen', refs: 'References called', licence: 'Driving licence checked', diploma: 'Diploma checked', health: 'Health certificate seen' };
+    const ph9 = x => { const d = String(x || '').replace(/\D/g, '').slice(-9); return d.length === 9 ? d : ''; };
+    const people = C.map(c => { const P = PB['p' + ph9(c.phone)] || {}, ck = P.consent ? Object.keys(P.checks || {}).map(k => '✓ ' + (CK[k] || k)) : [];
+      return { ref: c.app, name: short(c.name), mark: c.final, points: ck.concat(Object.values(c.rows).map(r => r.topic).filter(Boolean)).slice(0, 5) }; });
     const r = await urgent.remote('/api/hub/shortlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: v.title, employer: v.employer || '', days: 7, people }) });
     const j = await r.json().catch(() => ({})); if (!r.ok) throw err(j.error || 'The website didn’t answer. Check the website connection.', 502);
     v.shortlists = (v.shortlists || []).concat({ id: j.id, url: j.url, t: Date.now(), by: who(p), n: people.length }); hist(v, p, `sent a shortlist of ${people.length} to the employer`); save(db);
