@@ -21,11 +21,12 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
   const OUTCOMES = { 'no-answer': 'Didn’t pick up', 'not-available': 'Not available', 'not-interested': 'Not interested in the job', 'coming': 'Coming on site' };
 
   // ---------------- permissions ----------------
+  let powerHook = null; const setPowerHook = f => { powerHook = f; };
   function rights(p) {
     if (!p) return { post: false, review: false, admin: false };
     if (p.role === 'admin' && !p.name.includes('@')) return { post: true, review: true, admin: true }; // only the one real Admin
-    const g = rj(GR, {})[p.id] || {};
-    return { post: !!g.post, review: !!g.review, admin: false };
+    const g = rj(GR, {})[p.id] || {}, x = powerHook ? powerHook(p) : {};   // powers given in Grant power count here too
+    return { post: !!g.post || !!x.post, review: !!g.review || !!x.review, admin: false };
   }
   function need(p, what) {
     if (!p) throw err('Sign in on this device first.', 401);
@@ -214,9 +215,11 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
       const positions = (Array.isArray(b.positions) ? b.positions : String(b.positions || '').split('\n')).map(x => String(x).trim().slice(0, 60)).filter(Boolean).slice(0, 12);
       body = { title, role: b.role, text: b.text, place: b.place, positions, expires, by: p.name, rules: rulesOf(b.rules), country: ctryOf(b.country), image: { mime: m[1], b64: m[2], w: b.w, h: b.h }, thumb: smallCopy(Buffer.from(m[2], 'base64')) || undefined };
     }
+    const cap = parseInt(b.cap, 10) || 0; if (b.cap !== undefined && b.cap !== '' && (cap < 1 || cap > 500)) throw err('The applicant limit must be between 1 and 500.');
+    if (cap) body.cap = cap;                                   // the website stops taking applications at this number
     const r = await remote('/api/hub/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json();
-    appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `published the urgent job “${title}” on the website${b.kind === 'card' ? ' (job card)' : ''}${body.country !== 'RW' ? ' — abroad, ' + body.country : ''} (ends ${new Date(expires).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })})` });
+    appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `published the urgent job “${title}” on the website${b.kind === 'card' ? ' (job card)' : ''}${cap ? ', limit ' + cap + ' applicants' : ''}${body.country !== 'RW' ? ' — abroad, ' + body.country : ''} (ends ${new Date(expires).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })})` });
     broadcast({ type: 'urgent', kind: 'posts' });
     return j;
   }
@@ -324,6 +327,6 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
     wj(ASKS, list.filter(x => x.id !== id)); appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `deleted the Abroad enquiry of ${a.name} (${a.country})` });
     broadcast({ type: 'abroad', kind: 'asks' }); return { ok: true };
   }
-  return { asks, askSet, askDel, rights, me, grantsView, setGrant, cfgView, setCfg, sync, posts, publish, removePost, editPost, doc, apps, photo, outcome, reopen, finish, report, need, remote,
+  return { setPowerHook, asks, askSet, askDel, rights, me, grantsView, setGrant, cfgView, setCfg, sync, posts, publish, removePost, editPost, doc, apps, photo, outcome, reopen, finish, report, need, remote,
     allApps: () => rj(APPS, []), filePath: n => path.join(PH, path.basename(String(n))) };
 };

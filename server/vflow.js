@@ -21,16 +21,27 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
 
   // ---------- rights (Admin decides; sensible defaults so HR can start on day one) ----------
   const isAdmin = p => p && p.role === 'admin' && !String(p.name).includes('@');
+  // Grant power: every step of the life cycle is a power Admin gives to people, whatever their position.
+  // Until Admin decides for someone, the job title gives the usual power (HR states and does the HR step, and so on).
+  const POWERS = ['start', 'post', 'cc', 'hr', 'int', 'rm', 'db'];
+  function powers(p) {                       // only what is written in the grants (used by Urgent hiring too)
+    if (!p) return {};
+    const u = rj(GR, { users: {} }).users[p.id] || {};
+    return { post: u.post === true, review: u.cc !== undefined ? !!u.cc : p.role === 'cc' && u.view !== false };
+  }
   function rights(p) {
     if (!p) return { view: false };
-    if (isAdmin(p)) return { admin: true, start: true, rm: true, view: true, db: true, post: true };
+    if (isAdmin(p)) return { admin: true, start: true, rm: true, view: true, db: true, post: true, review: true, cc: true, hr: true, int: true };
     const g = rj(GR, { users: {}, unlocked: {} }), u = g.users[p.id] || {};
-    const start = u.start !== undefined ? !!u.start : p.role === 'hr';
-    const rm = !!u.rm;
-    const view = start || rm || (u.view !== undefined ? !!u.view : ['hr', 'cc', 'int'].includes(p.role));
+    const off = u.view === false;                                  // an older “no access” stays respected
+    const pw = (k, def) => u[k] !== undefined ? !!u[k] : (!off && def);
+    const start = pw('start', p.role === 'hr'), cc = pw('cc', p.role === 'cc'), hr = pw('hr', p.role === 'hr'), int = pw('int', p.role === 'int'), rm = !!u.rm;
     const db = !!u.db || (g.unlocked[p.id] || 0) > Date.now();
     let post = false, review = false; try { const U = urgent.rights(p); post = !!U.post; review = !!U.review; } catch (e) {}
-    return { start, rm, view, db, post, review };
+    if (u.post !== undefined) post = !!u.post;
+    if (cc) review = true;
+    const view = start || rm || cc || hr || int || post || u.view === true;
+    return { start, post, cc, hr, int, rm, view, db, review };
   }
   const needAdmin = p => { if (!isAdmin(p)) throw err('Only Admin can change who takes part in vacancies.', 403); };
 
@@ -42,35 +53,49 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
   const applicantsOf = v => v.post && v.post.id ? urgent.allApps().filter(a => a.post === v.post.id) : [];
   const STAGES = ['post', 'call', 'hr', 'notice', 'upcoming', 'done'];
 
-  // what one person may see of one vacancy, and the one button (if any) that is theirs
+  // the applicant limit is reached (or the post has ended with people in it): the Call Center's step opens
+  const limitReached = (v, n) => n > 0 && ((v.post && v.post.cap ? n >= v.post.cap : true) || (v.post && v.post.ends && Date.now() >= v.post.ends));
+  const TURN = { post: 'the poster', call: 'the Call Center', hr: 'HR', notice: 'the interviewers' };
+  // what one person may see of one vacancy. Everyone in the life cycle sees the Approve button; it works only for whose turn it is.
   function shape(v, p, R) {
     const apps = applicantsOf(v), waiting = apps.filter(a => a.status !== 'done').length;
-    const me = { act: '', ready: false, why: '' };
+    const me = { act: 'wait', ready: false, why: `Waiting for ${TURN[v.stage] || 'the step before'}` };
     if (v.stage === 'post' && R.post) {
-      if (v.post && v.post.claimed && v.post.claimed.id !== p.id) me.why = `${v.post.claimed.name} is posting it now`;
-      else { me.act = 'post'; me.ready = true; }
-    } else if (v.stage === 'call' && p.role === 'cc' && R.view) {
-      me.act = 'call'; me.ready = apps.length > 0 && R.review; if (!apps.length) me.why = 'Waiting for the first person to apply'; else if (!R.review) me.why = 'Ask Admin to give you “Review” in Urgent hiring, to see the applicants';
-    } else if (v.stage === 'hr' && (p.role === 'hr' || R.rm || R.admin)) { me.act = 'complete'; me.ready = true; }
-    else if (v.stage === 'notice' && p.role === 'int' && R.view) { me.act = 'interview'; me.ready = true; }
-    else if (p.role === 'int' && R.view && STAGES.indexOf(v.stage) < STAGES.indexOf('notice')) me.why = 'Your step opens when HR completes the call list';
-    else if (p.role === 'cc' && R.view && v.stage === 'post') me.why = 'Waiting for the post';
-    return { ...v, applicants: apps.length, waiting, me };
+      if (v.post && v.post.claimed && v.post.claimed.id !== p.id && Date.now() - v.post.claimed.t < 2 * 36e5) me.why = `${v.post.claimed.name} is posting it now`;
+      else { me.act = 'post'; me.ready = true; me.why = ''; }
+    } else if (v.stage === 'call' && R.cc) {
+      me.act = 'call';
+      if (limitReached(v, apps.length)) { me.ready = true; me.why = ''; }
+      else me.why = v.post && v.post.cap ? `Opens at the limit: ${apps.length} of ${v.post.cap} have applied` : 'Waiting for the first person to apply';
+    } else if (v.stage === 'hr' && (R.hr || R.admin)) { me.act = 'complete'; me.ready = true; me.why = ''; }
+    else if (v.stage === 'notice' && R.int) { me.act = 'interview'; me.ready = true; me.why = ''; }
+    return { ...v, applicants: apps.length, cap: (v.post && v.post.cap) || 0, waiting, me, mineToDelete: v.starter.id === p.id };
   }
-  // my tasks: only the vacancies where I have a part still to play, plus the ones I'm waiting on (button greyed)
+  // my tasks: a vacancy stays with everyone whose step is now or still to come. When your part is finished, it leaves you.
+  const STEP_OF = { post: 'post', cc: 'call', hr: 'hr', int: 'notice' };
   function involved(v, p, R) {
     if (v.stage === 'done' || v.stage === 'upcoming') return false;
-    if (R.admin || R.rm) return true;
-    if (v.stage === 'post') return R.post || (R.view && ['cc', 'int'].includes(p.role));
-    if (v.stage === 'call') return R.view && ['cc', 'int'].includes(p.role);
-    if (v.stage === 'hr') return p.role === 'hr' || (R.view && p.role === 'int');
-    if (v.stage === 'notice') return R.view && p.role === 'int';
-    return false;
+    if (R.admin || R.rm || v.starter.id === p.id) return true;
+    const now = STAGES.indexOf(v.stage);
+    return Object.keys(STEP_OF).some(k => R[k] && STAGES.indexOf(STEP_OF[k]) >= now);
+  }
+  // only the person who stated a vacancy can delete it. It leaves everyone's tasks; the record is kept in the database.
+  async function remove(p, id) {
+    if (!p) throw err('Sign in first.', 401);
+    const db = load(), v = find(db, id);
+    if (v.starter.id !== p.id) throw err(`Only ${v.starter.name}, who stated it, can delete this vacancy.`, 403);
+    if (v.stage === 'upcoming' || v.stage === 'done') throw err('Interviews have started for this vacancy, so it can’t be deleted.', 409);
+    if (v.post && v.post.id && v.stage === 'call') { try { await urgent.remote(`/api/hub/posts/${encodeURIComponent(v.post.id)}/remove`, { method: 'POST' }); } catch (e) { /* already ended */ } }
+    hist(v, p, 'deleted the vacancy'); v.deleted = { ...who(p), t: Date.now(), stage: v.stage };
+    db.vacs = db.vacs.filter(x => x.id !== id); db.trash = (db.trash || []).concat(v).slice(-500); save(db);
+    log(p, `deleted the vacancy “${v.title}”${v.post && v.post.id ? ' (its job came down from the website)' : ''}`);
+    broadcast({ type: 'urgent', kind: 'posts' }); ping();
+    return { ok: true };
   }
   function mine(p) {
     if (!p) throw err('Sign in first.', 401);
     const R = rights(p), db = load(), live = db.vacs.filter(v => v.stage !== 'done');
-    if (!R.view && !R.post) return { rights: R, tasks: [], locked: live.length };
+    if (!R.view) return { rights: R, tasks: [], locked: live.length };
     return { rights: R, tasks: live.filter(v => involved(v, p, R)).map(v => shape(v, p, R)), locked: 0 };
   }
   function list(p, scope) {
@@ -103,17 +128,19 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     return { ok: true, vac: v };
   }
   // called by the server right after a publish that came from a vacancy
-  function posted(p, id, postId, title) {
+  function posted(p, id, postId, title, cap, ends) {
     const db = load(), v = db.vacs.find(x => x.id === id); if (!v || v.stage !== 'post') return;
-    v.post = { id: postId, title: s(title, 80), by: who(p), t: Date.now() }; v.stage = 'call';
-    hist(v, p, 'published it as an urgent job'); save(db);
-    log(p, `posted the vacancy “${v.title}” as an urgent job`); ping();
+    cap = Math.max(0, Math.min(500, parseInt(cap, 10) || 0));
+    v.post = { id: postId, title: s(title, 80), by: who(p), t: Date.now(), cap, ends: Number(ends) || 0 }; v.stage = 'call';
+    hist(v, p, `published it as an urgent job${cap ? ' — limit ' + cap + ' applicants' : ''}`); save(db);
+    log(p, `posted the vacancy “${v.title}” as an urgent job${cap ? ' (limit ' + cap + ')' : ''}`); ping();
   }
   // 3 · the call center approves when everyone who applied has been called. The post comes down, so no one applies late.
   async function callApprove(p, id) {
-    const R = rights(p); if (!(p.role === 'cc' && R.view) && !R.admin) throw err('This step belongs to the Call Center.', 403);
+    const R = rights(p); if (!R.cc && !R.admin) throw err('This step belongs to the Call Center.', 403);
     const db = load(), v = find(db, id); if (v.stage !== 'call') throw err('This vacancy isn’t at the calling step.', 409);
     const apps = applicantsOf(v); if (!apps.length) throw err('No one has applied yet.', 409);
+    if (!limitReached(v, apps.length)) throw err(`The Call Center’s step opens at the applicant limit: ${apps.length} of ${v.post.cap} have applied.`, 409);
     const left = apps.filter(a => a.status !== 'done'); if (left.length) throw err(`${left.length} ${left.length === 1 ? 'person hasn’t' : 'people haven’t'} been called yet.`, 409);
     try { await urgent.remote(`/api/hub/posts/${encodeURIComponent(v.post.id)}/remove`, { method: 'POST' }); } catch (e) { /* already ended on the website */ }
     v.call = { by: who(p), t: Date.now(), day: kDay(), list: apps.map(a => ({ app: a.id, name: s(a.data.name, 60), phone: s(a.data.phone, 30), wa: s(a.data.whatsapp, 30), email: s(a.data.email, 100), lives: s(a.data.lives, 80), gender: a.data.gender || '', outcome: a.outcome || '', note: s(a.note, 200), calledBy: a.reviewer || '' })) };
@@ -124,7 +151,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
   }
   // 4 · HR completes: only the people coming on site stay. The vacancy goes to Notices for the interview staff.
   function complete(p, id) {
-    const R = rights(p); if (!(p.role === 'hr' || R.rm || R.admin)) throw err('This step belongs to HR.', 403);
+    const R = rights(p); if (!(R.hr || R.admin)) throw err('This step belongs to HR.', 403);
     const db = load(), v = find(db, id); if (v.stage !== 'hr') throw err('This vacancy isn’t waiting for HR.', 409);
     const keep = v.call.list.filter(x => x.outcome === 'coming');
     v.hr = { by: who(p), t: Date.now(), keep, removed: v.call.list.length - keep.length }; v.stage = 'notice';
@@ -134,7 +161,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
   }
   // 5 · interview staff approve: the vacancy takes its place in Upcoming
   function intApprove(p, id) {
-    const R = rights(p); if (!(p.role === 'int' && R.view) && !R.admin) throw err('This step belongs to the interview staff.', 403);
+    const R = rights(p); if (!R.int && !R.admin) throw err('This step belongs to the interviewers.', 403);
     const db = load(), v = find(db, id); if (v.stage !== 'notice') throw err('This vacancy isn’t in Notices.', 409);
     v.int = { by: who(p), t: Date.now(), cands: {} }; v.stage = 'upcoming'; hist(v, p, 'approved it for interviews'); save(db);
     log(p, `approved “${v.title}” for interviews (${v.hr.keep.length} expected)`); ping();
@@ -142,18 +169,23 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
   }
 
   // ---------- Admin: grants ----------
+  // the Grant power room: one row per person, one switch per step. Every change is written in Activity.
+  const POWER_NAME = { start: 'State a vacancy', post: 'Post the vacancy', cc: 'Call Center step', hr: 'HR step', int: 'Interviewer', rm: 'Recruitment manager', db: 'Elitejobs database' };
   function grantsView(p) {
     needAdmin(p);
     const g = rj(GR, { users: {}, unlocked: {} });
-    return { staff: staffOf().filter(x => x.role !== 'admin').map(x => { const R = rights(x); return { id: x.id, name: x.name, role: x.role, start: R.start, rm: R.rm, view: R.view, db: !!(g.users[x.id] || {}).db, post: R.post }; }) };
+    return { powers: POWERS.map(k => ({ k, name: POWER_NAME[k] })), staff: staffOf().filter(x => !isAdmin(x) && x.on !== false).map(x => {
+      const R = rights(x), u = g.users[x.id] || {};
+      return { id: x.id, name: x.name, role: x.role, dept: x.dept || '', ...Object.fromEntries(POWERS.map(k => [k, k === 'db' ? !!u.db : !!R[k]])), set: Object.fromEntries(POWERS.map(k => [k, u[k] !== undefined])) };
+    }) };
   }
   function setGrant(p, b) {
     needAdmin(p);
-    const KEYS_OK = ['start', 'rm', 'view', 'db']; if (!KEYS_OK.includes(b.key)) throw err('Unknown right.');
+    const key = b.key === 'view' ? 'view' : b.key; if (!POWERS.includes(key) && key !== 'view') throw err('Unknown power.');
     const x = staffOf().find(y => y.id === b.uid); if (!x) throw err('That person isn’t in the system.', 404);
-    const g = rj(GR, { users: {}, unlocked: {} }); g.users[x.id] = { ...(g.users[x.id] || {}), [b.key]: !!b.on }; wj(GR, g);
-    const L = { start: 'state vacancies', rm: 'recruitment manager', view: 'vacancy viewer', db: 'Elitejobs database' }[b.key];
-    log(p, `${b.on ? 'granted' : 'removed'} “${L}” ${b.on ? 'to' : 'from'} ${x.name}`); ping();
+    const g = rj(GR, { users: {}, unlocked: {} }); g.users[x.id] = { ...(g.users[x.id] || {}), [key]: !!b.on }; wj(GR, g);
+    log(p, `${b.on ? 'gave' : 'took'} the power “${POWER_NAME[key] || 'vacancy viewer'}” ${b.on ? 'to' : 'from'} ${x.name}`); ping();
+    broadcast({ type: 'urgent', kind: 'grants' });
     return grantsView(p);
   }
 
@@ -194,7 +226,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
   const localDay = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   // interview officers on duty today: checked in and not out. If nobody uses attendance yet, every active interview officer.
   function officers() {
-    const all = staffOf().filter(x => x.role === 'int' && x.on !== false);
+    const all = staffOf().filter(x => x.on !== false && rights(x).int);
     const att = rj(F('attendance.json'), {}), day = att[localDay(Date.now())] || att[kDay()] || {};
     const here = all.filter(x => day[x.id] && !day[x.id].out);
     return (here.length ? here : all).map(x => ({ id: x.id, name: x.name }));
@@ -219,7 +251,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     const R = rights(p); if (!R.view) throw err('Admin hasn’t given you access to vacancies.', 403);
     return { officers: officers(), vacs: load().vacs.filter(v => v.stage === 'upcoming').sort((a, b) => b.int.t - a.int.t).map(v => upView(v, p)) };
   }
-  const needInt = (p, R) => { if (!((p.role === 'int' && R.view) || R.admin)) throw err('Only the interview staff can do this.', 403); };
+  const needInt = (p, R) => { if (!(R.int || R.admin)) throw err('Only the interview staff can do this.', 403); };
   function startInt(p, id) {
     const R = rights(p); needInt(p, R);
     const db = load(), v = find(db, id); if (v.stage !== 'upcoming') throw err('This vacancy isn’t in Upcoming.', 409);
@@ -280,11 +312,11 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     const day = /^\d{4}-\d{2}-\d{2}$/.test(q.day || '') ? q.day : kDay(), t = norm(q.q), min = Number(q.min) || 0;
     const all = finished(), days = [...new Set(all.map(c => c.day))].sort().reverse().slice(0, 60).map(d => ({ d, n: all.filter(c => c.day === d).length }));
     const L = all.filter(c => c.day === day && (!t || norm(c.vacTitle).includes(t)) && c.final >= min).sort((a, b) => b.final - a.final);
-    return { day, days, list: L, canPush: p.role === 'hr' || R.rm || R.admin };
+    return { day, days, list: L, canPush: R.hr || R.rm || R.admin };
   }
   // HR or the recruitment manager decides once: qualified ones go to the Call Center. The first decision locks it.
   function push(p, b) {
-    const R = rights(p); if (!(p.role === 'hr' || R.rm || R.admin)) throw err('Only HR or the recruitment manager can push.', 403);
+    const R = rights(p); if (!(R.hr || R.rm || R.admin)) throw err('Only HR or the recruitment manager can push.', 403);
     const db = load(), v = find(db, String(b.id || '')), c = v.int && v.int.cands && v.int.cands[b.app];
     if (!c || c.status !== 'done') throw err('This interview isn’t finished.', 409);
     if (c.push) throw err(`${c.push.by.name} already decided for ${c.name}.`, 409);
@@ -294,11 +326,11 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     return { ok: true };
   }
   function callList(p) {
-    const R = rights(p); if (!((p.role === 'cc' && R.view) || R.admin || R.rm)) return { list: [] };
+    const R = rights(p); if (!(R.cc || R.admin || R.rm)) return { list: [] };
     return { list: finished().filter(c => c.push && c.push.qualified && !c.called).sort((a, b) => a.push.t - b.push.t) };
   }
   function called(p, b) {
-    const R = rights(p); if (!((p.role === 'cc' && R.view) || R.admin)) throw err('This step belongs to the Call Center.', 403);
+    const R = rights(p); if (!(R.cc || R.admin)) throw err('This step belongs to the Call Center.', 403);
     const db = load(), v = find(db, String(b.id || '')), c = v.int && v.int.cands && v.int.cands[b.app];
     if (!c || !c.push || !c.push.qualified) throw err('This person wasn’t pushed to the Call Center.', 409);
     if (c.called) throw err(`${c.called.by.name} already called ${c.name}.`, 409);
@@ -379,7 +411,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
   const readIR = () => { try { return fs.readFileSync(IR, 'utf8').split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean); } catch (e) { return []; } };
   const TPL = ['aurora', 'paper', 'graphite'], TO = { rm: 'Recruitment manager', admin: 'Admin', hr: 'HR manager' };
   function intPreview(p, day) {
-    const R = rights(p); if (!((p.role === 'int' && R.view) || R.admin)) throw err('Interview reports are written by the interview staff.', 403);
+    const R = rights(p); if (!(R.int || R.admin)) throw err('Interview reports are written by the interviewers.', 403);
     const d = /^\d{4}-\d{2}-\d{2}$/.test(day || '') ? day : kDay(), st = dayStats(d);
     return { ...st, summary: summaryOf(st) };
   }
@@ -400,7 +432,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     return { ok: true, report: rec };
   }
   // who may read a report: Admin, the sender, and whoever it was sent to
-  function canRead(p, R, r) { return R.admin || r.by.id === p.id || (r.to.includes('hr') && p.role === 'hr') || (r.to.includes('rm') && R.rm); }
+  function canRead(p, R, r) { return R.admin || r.by.id === p.id || (r.to.includes('hr') && R.hr) || (r.to.includes('rm') && R.rm); }
   function intReports(p, q) {
     const R = rights(p), mine = readIR().filter(r => canRead(p, R, r));
     const day = /^\d{4}-\d{2}-\d{2}$/.test(q.day || '') ? q.day : kDay();
@@ -467,5 +499,5 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     return d;
   }
 
-  return { upcoming, startInt, addCand, score, absent, finish, results, push, callList, called, waiting, served, rights, mine, dailyTasks, dailyText, intPreview, intSend, intReports, irGet, dashboard, dbRoom, dbExport, list, create, claimPost, posted, callApprove, complete, intApprove, grantsView, setGrant, keysView, forge, revoke, unlock, dbList, kDay };
+  return { remove, powers, upcoming, startInt, addCand, score, absent, finish, results, push, callList, called, waiting, served, rights, mine, dailyTasks, dailyText, intPreview, intSend, intReports, irGet, dashboard, dbRoom, dbExport, list, create, claimPost, posted, callApprove, complete, intApprove, grantsView, setGrant, keysView, forge, revoke, unlock, dbList, kDay };
 };
