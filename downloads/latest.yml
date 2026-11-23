@@ -1,8 +1,8 @@
-version: 1.8.16
+version: 1.8.17
 files:
-  - url: Elitejobs-Hub-Setup-1.8.16.exe
-    sha512: avd7mW7L3B4GXu2Z+yyaPJCvf/XfSmIHGEmbzF3vy97intiLZlABS7Nu+F4JucPEU3r5bGLYAIdpDoLokpfoPg==
-    size: 81362061
-path: Elitejobs-Hub-Setup-1.8.16.exe
-sha512: avd7mW7L3B4GXu2Z+yyaPJCvf/XfSmIHGEmbzF3vy97intiLZlABS7Nu+F4JucPEU3r5bGLYAIdpDoLokpfoPg==
-releaseDate: '2026-11-23T16:14:03.456Z'
+  - url: Elitejobs-Hub-Setup-1.8.17.exe
+    sha512: HB7z9feNtPlWoAqumy43RSrrVqcAJeFaOAd8s+u/rJe7qzULqdSlBQIVKgJRwIc98Hs5jpT2jgXRF9uspvIf2Q==
+    size: 81364656
+path: Elitejobs-Hub-Setup-1.8.17.exe
+sha512: HB7z9feNtPlWoAqumy43RSrrVqcAJeFaOAd8s+u/rJe7qzULqdSlBQIVKgJRwIc98Hs5jpT2jgXRF9uspvIf2Q==
+releaseDate: '2026-11-23T16:22:37.137Z'
