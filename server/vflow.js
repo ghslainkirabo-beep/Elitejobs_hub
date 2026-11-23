@@ -500,8 +500,17 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
       applied: live.reduce((a, v) => a + applicantsOf(v).length, 0), toCall: live.filter(v => v.stage === 'call').reduce((a, v) => a + applicantsOf(v).filter(x => x.status !== 'done').length, 0),
       coming: live.filter(v => v.hr).reduce((a, v) => a + v.hr.keep.length, 0), interviewed: td.length, avg: marks.length ? r1(marks.reduce((a, b) => a + b, 0) / marks.length) : null,
       top: marks.filter(x => x >= 17).length, qualified: fin.filter(c => c.push && c.push.qualified && kDay(c.push.t) === today).length,
-      calledBack: fin.filter(c => c.called && c.called.day === today).length, served: fin.filter(c => c.served && c.served.v && kDay(c.served.t) === today).length,
+      calledBack: fin.filter(c => c.called && c.called.day === today).length, served: fin.filter(c => c.served && kDay(c.served.t) === today).length,
       filed: V.filter(v => v.stage === 'done').length };
+    // numbers that count themselves, over the last 90 days: how far people get, how long it takes, placements each month
+    const since = Date.now() - 90 * 864e5, R90 = V.filter(v => v.created >= since);
+    const nApplied = R90.reduce((a, v) => a + (v.call ? v.call.list.length : applicantsOf(v).length), 0), nComing = R90.reduce((a, v) => a + (v.hr ? v.hr.keep.length : 0), 0);
+    const C90 = R90.flatMap(v => Object.values((v.int && v.int.cands) || {}).map(c => ({ c, v }))), nInt = C90.filter(x => x.c.status === 'done').length, nQ = C90.filter(x => x.c.push && x.c.push.qualified).length;
+    const days = C90.filter(x => x.c.served && x.v.post).map(x => (x.c.served.t - x.v.post.t) / 864e5), month = {};
+    fin.filter(c => c.served).forEach(c => { const m = kDay(c.served.t).slice(0, 7); month[m] = (month[m] || 0) + 1; });
+    const pct = (a, b) => b ? Math.round(a / b * 100) : null;
+    const numbers = { applied: nApplied, coming: nComing, interviewed: nInt, qualified: nQ, toComing: pct(nComing, nApplied), toInterview: pct(nInt, nComing), toQualified: pct(nQ, nInt),
+      daysToServe: days.length ? r1(days.reduce((a, b) => a + b, 0) / days.length) : null, perMonth: Object.entries(month).sort().slice(-6).map(([m, n]) => ({ m, n })) };
     const rows = live.sort((a, b) => b.created - a.created).map(v => {
       const apps = applicantsOf(v), C = Object.values((v.int && v.int.cands) || {}), done = C.filter(c => c.status === 'done');
       const step = STAGES.indexOf(v.stage), pct = Math.round(((step + (v.stage === 'upcoming' && v.hr.keep.length ? done.length / v.hr.keep.length : 0)) / 5) * 100);
@@ -511,7 +520,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
         coming: v.hr ? v.hr.keep.length : v.call ? v.call.list.filter(x => x.outcome === 'coming').length : 0,
         interviewed: done.length, inRoom: C.length - done.length, best: done.length ? Math.max(...done.map(c => c.final)) : null };
     });
-    return { day: today, tiles, rows, people: Object.values(acts).map(o => ({ name: o.name, n: o.n, vacs: [...o.vacs] })).sort((a, b) => b.n - a.n) };
+    return { day: today, numbers, tiles, rows, people: Object.values(acts).map(o => ({ name: o.name, n: o.n, vacs: [...o.vacs] })).sort((a, b) => b.n - a.n) };
   }
 
   // Elitejobs database rooms — kept by date, searchable, never trimmed

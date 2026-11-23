@@ -67,6 +67,12 @@ module.exports = function ({ DATA_DIR, urgent, inquiries, appendActivity, broadc
         add(`inq:${r}:${kDay(now)}:${n}`, r === 'endover' ? 'now' : 'soon', `${n} ${n === 1 ? 'message' : 'messages'} from ${l} still not answered`, 'From the website’s “Message us”. Reply or record the call.', 'inq:' + r, old);
       }
     } catch (e) {}
+    // 6b. local placements: check in at 1 week, 1 month, 3 months; a worker who left needs a replacement
+    if (['admin', 'hr', 'ops'].includes(p.role)) for (const [key, P] of Object.entries(rj(F('people.json'), { by: {} }).by || {})) for (const pl of P.places || []) {
+      if (pl.left) { if (pl.left.replace && now - pl.left.t < 14 * DAY) add(`repl:${pl.id}`, 'now', `Find a replacement for ${pl.employer}`, `The ${pl.title} placed there left: ${pl.left.why}`, 'cvstudio', pl.left.t); continue; }
+      for (const [d, l] of [[7, '1 week'], [30, '1 month'], [90, '3 months']]) { const due = pl.t + d * DAY, done = (pl.care || []).some(c => c.t >= due);
+        if (!done && now >= due && now < due + 21 * DAY) add(`care:${pl.id}:${d}`, 'soon', `Check in: ${pl.title} at ${pl.employer}`, `Placed ${l} ago. Call the worker and the employer, then log it in their history.`, 'cvstudio', due); }
+    }
     // 7. Admin only: a charge in the private ledger unpaid for over 2 weeks (no amounts shown here)
     if (R.admin) {
       const L = rj(F('ledger.json'), { list: [] }), C = rj(F('clients.json'), { list: [] });

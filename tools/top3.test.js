@@ -27,3 +27,21 @@ const cvs=require(path.join(__dirname,'..','server','cvs.js'))({DATA_DIR:D,urgen
  const img=await cvs.drop({id:'u',role:'hr',name:'HR'},{name:'cv.jpg',b64:Buffer.from('xx').toString('base64')}); assert.equal(img.image,true);
  console.log('ALL PASS');
 })().catch(e=>{console.error('FAIL',e);process.exit(1)});
+// people: one history, checks with consent, placement + care reminders, CSV import with duplicates caught
+(async()=>{ await new Promise(r=>setTimeout(r,50));
+ const cvs=require(path.join(__dirname,'..','server','cvs.js'))({DATA_DIR:D,urgent:{allApps:()=>JSON.parse(fs.readFileSync(path.join(D,'urgent-apps.json')))},appendActivity:()=>{}});
+ const HR={id:'h',role:'hr',name:'Hana'};
+ const im=cvs.importCsv(HR,{csv:'Name,Phone,Position,District\nAline Uwase,0788000001,Driver,Gasabo\nNew Person,0788 999 888,Cleaner,Kicukiro\nbad row,,x\n',from:'old.xlsx'});
+ assert.deepEqual(im,{added:1,dup:1,bad:1});
+ const h=cvs.history(HR,'p788000001'); assert.ok(h.events.some(e=>e.k==='apply'));
+ await assert.rejects(async()=>cvs.verify(HR,{key:'p788000001',item:'id',on:true}),/consent/);
+ cvs.verify(HR,{key:'p788000001',consent:true}); const v=cvs.verify(HR,{key:'p788000001',item:'id',on:true}); assert.ok(v.checks.find(x=>x.k==='id').done);
+ const pl=cvs.place(HR,{key:'p788000001',employer:'Serena',title:'Driver',start:'1 Dec'}); assert.equal(pl.places.length,1);
+ const db=JSON.parse(fs.readFileSync(path.join(D,'people.json')));db.by.p788000001.places[0].t-=8*864e5;fs.writeFileSync(path.join(D,'people.json'),JSON.stringify(db));
+ const RM=require(path.join(__dirname,'..','server','reminders.js'))({DATA_DIR:D,urgent:{allApps:()=>[],rights:()=>({}),remote:async()=>({json:async()=>({posts:[]})})},inquiries:{me:()=>({rooms:{}})},appendActivity:()=>{},broadcast:()=>{}});
+ const L=await RM.build(HR); assert.ok(JSON.stringify(L).includes('Check in: Driver at Serena'), JSON.stringify(L).slice(0,300));
+ cvs.care(HR,{key:'p788000001',id:pl.places[0].id,left:true,why:'Moved to Huye',replace:true});
+ assert.ok(JSON.stringify(await RM.build(HR)).includes('Find a replacement for Serena'));
+ assert.ok(cvs.search(HR,'New Person').people.length===1);
+ console.log('PEOPLE PASS');
+})().catch(e=>{console.error('FAIL',e);process.exit(1)});
