@@ -2,7 +2,7 @@ const fs=require('fs'),os=require('os'),path=require('path'),assert=require('ass
 const D=fs.mkdtempSync(path.join(os.tmpdir(),'vf2-'));
 const staff=[{id:'A',name:'Admin',role:'admin'},{id:'H',name:'Hana HR',role:'hr'},{id:'C',name:'Claude CC',role:'cc'},{id:'I1',name:'Ines',role:'int'},{id:'I2',name:'Ivan',role:'int'},{id:'O',name:'Olivier Ops',role:'ops'},{id:'P',name:'Pacy Poster',role:'ops'}];
 let apps=[];const removed=[];const acts=[];
-const urgent={rights:p=>({post:p.id==='P',review:false}),allApps:()=>apps,remote:async(u)=>{removed.push(u);return{ok:true,json:async()=>({})}}};
+const urgent={rights:p=>({post:p.id==='P',review:false}),allApps:()=>apps,remote:async(u,o)=>{removed.push(u);if(u==='/api/hub/shortlist'){const b=JSON.parse(o.body);assert.ok(!JSON.stringify(b).includes('0788'),'no phones to the employer');return{ok:true,json:async()=>({id:'SL1',url:'https://x/s/#SL1'})}}if(u.startsWith('/api/hub/shortlist/'))return{ok:true,json:async()=>({until:1,people:[{i:0,ref:'a1',name:'A',pick:{v:'interview'}}]})};return{ok:true,json:async()=>({})}}};
 const vf=require(require('path').join(__dirname,'..','server','vflow.js'))({DATA_DIR:D,urgent,staffOf:()=>staff,stateOf:()=>({}),appendActivity:a=>acts.push(a.text),broadcast:()=>{},note:()=>{}});
 const S=id=>staff.find(x=>x.id===id);
 const T=(id,vid)=>vf.mine(S(id)).tasks.find(v=>v.id===vid);
@@ -70,6 +70,7 @@ const throws=async(f,re)=>{try{await f();assert.fail('should refuse')}catch(e){a
  vf.push(S('H'),{id:v.id,app:'a1',qualified:true});
  const q=vf.results(S('H'),{min:17}).list[0]; assert.equal(q.push.qualified,true); assert.ok(q.served);
  assert.equal(vf.callList(S('A')).list.length,0,'no more Call Center callback');
+ const sl=await vf.makeShortlist(S('H'),{id:v.id,apps:['a1']}); assert.equal(sl.id,'SL1'); assert.equal((await vf.shortlistAnswers(S('H'),v.id)).list[0].people[0].pick.v,'interview');
  // 17:30: a card still in Upcoming moves to results by itself
  { const z=vf.create(S('H'),{title:'Chef'}).vac; vf.posted(S('P'),z.id,'UJ-9','Chef',1,Date.now()+864e5); apps.push({id:'z1',post:'UJ-9',status:'done',outcome:'coming',data:{name:'Zed'}});
    await vf.callApprove(S('C'),z.id); vf.hrFilter(S('H'),z.id); vf.complete(S('H'),z.id); vf.intApprove(S('I1'),z.id); vf.addCand(S('I1'),z.id,'z1');

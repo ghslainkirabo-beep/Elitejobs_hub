@@ -357,7 +357,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     const day = /^\d{4}-\d{2}-\d{2}$/.test(q.day || '') ? q.day : kDay(), t = norm(q.q), min = Number(q.min) || 0;
     const all = finished(), days = [...new Set(all.map(c => c.day))].sort().reverse().slice(0, 60).map(d => ({ d, n: all.filter(c => c.day === d).length }));
     const L = all.filter(c => c.day === day && (!t || norm(c.vacTitle).includes(t)) && c.final >= min).sort((a, b) => b.final - a.final);
-    return { day, days, list: L, canPush: R.rm || R.admin };
+    return { day, days, list: L, canPush: R.rm || R.admin, canSl: !!(R.rm || R.hr || R.admin) };
   }
   // HR or the recruitment manager decides once: qualified ones go to the Call Center. The first decision locks it.
   function push(p, b) {
@@ -558,5 +558,24 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     return d;
   }
 
-  return { hrFilter, unscore, saveUp, pushUp, remove, powers, upcoming, startInt, addCand, score, absent, finish, results, push, callList, called, waiting, served, rights, mine, dailyTasks, dailyText, intPreview, intSend, intReports, irGet, dashboard, dbRoom, dbExport, list, create, claimPost, posted, callApprove, complete, intApprove, grantsView, setGrant, keysView, forge, revoke, unlock, dbList, kDay };
+  // employer shortlist: a private link on the website with first names and marks only; the employer taps Interview or Not this one
+  async function makeShortlist(p, b) {
+    const R = rights(p); if (!(R.rm || R.hr || R.admin)) throw err('Shortlists are sent by the recruitment manager or HR.', 403);
+    const db = load(), v = find(db, String(b.id || '')), C = Object.values((v.int && v.int.cands) || {}).filter(c => (b.apps || []).includes(c.app) && c.status === 'done');
+    if (!C.length) throw err('Choose at least one person with a finished interview.');
+    const short = n => { const w = String(n || '').trim().split(/\s+/); return w[0] + (w[1] ? ' ' + w[1][0] + '.' : ''); };
+    const people = C.map(c => ({ ref: c.app, name: short(c.name), mark: c.final, points: Object.values(c.rows).map(r => r.topic).filter(Boolean).slice(0, 4) }));
+    const r = await urgent.remote('/api/hub/shortlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: v.title, employer: v.employer || '', days: 7, people }) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw err(j.error || 'The website didn’t answer. Check the website connection.', 502);
+    v.shortlists = (v.shortlists || []).concat({ id: j.id, url: j.url, t: Date.now(), by: who(p), n: people.length }); hist(v, p, `sent a shortlist of ${people.length} to the employer`); save(db);
+    log(p, `sent a private shortlist of ${people.length} for “${v.title}” to the employer`); ping();
+    return { url: j.url, id: j.id };
+  }
+  async function shortlistAnswers(p, id) {
+    const R = rights(p); if (!(R.rm || R.hr || R.admin)) throw err('Shortlists are for the recruitment manager or HR.', 403);
+    const v = find(load(), id), out = [];
+    for (const s of v.shortlists || []) { try { const r = await urgent.remote('/api/hub/shortlist/' + encodeURIComponent(s.id)); const j = await r.json(); out.push({ ...s, until: j.until, people: j.people || [] }); } catch (e) { out.push({ ...s, err: 'Not reachable now' }); } }
+    return { list: out };
+  }
+  return { makeShortlist, shortlistAnswers, hrFilter, unscore, saveUp, pushUp, remove, powers, upcoming, startInt, addCand, score, absent, finish, results, push, callList, called, waiting, served, rights, mine, dailyTasks, dailyText, intPreview, intSend, intReports, irGet, dashboard, dbRoom, dbExport, list, create, claimPost, posted, callApprove, complete, intApprove, grantsView, setGrant, keysView, forge, revoke, unlock, dbList, kDay };
 };
