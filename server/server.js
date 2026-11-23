@@ -203,6 +203,7 @@ const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => bro
 const inquiries = require('./inquiries.js')({ DATA_DIR, broadcast: o => broadcast(o), appendActivity: a => appendActivity(a), urgent });
 const cvs = require('./cvs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a) });
 const vflow = require('./vflow.js')({ DATA_DIR, urgent, staffOf: () => (loadState().staff || []).filter(x => !x.left), stateOf: () => loadState() || {}, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), note: (r, t) => office.hubNote(r, t) });
+urgent.setPowerHook(p => vflow.powers(p));
 const appStatus = require('./status.js')({ DATA_DIR, urgent, sendSms: (to, t) => inquiries.sendSms(to, t), smsReady: () => inquiries.smsView().ready, appendActivity: a => appendActivity(a) });
 const smart = require('./match.js')({ DATA_DIR, rightsOf: p => vflow.rights(p) });
 const members = require('./members.js')({ DATA_DIR, urgent, rightsOf: p => vflow.rights(p), appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), readState: () => loadState() });
@@ -493,6 +494,7 @@ const server = http.createServer((req, res) => {
     if (p === '/api/vf/me') return run(() => vflow.mine(me));
     if (p === '/api/vf/list') return run(() => vflow.list(me, q.get('scope') || 'active'));
     if (p === '/api/vf/create' && post) return body(2e4, b => vflow.create(me, b));
+    if (p === '/api/vf/delete' && post) return body(1e4, b => vflow.remove(me, String(b.id || '')));
     if (p === '/api/vf/claim' && post) return body(1e4, b => vflow.claimPost(me, String(b.id || '')));
     if (p === '/api/vf/call' && post) return body(1e4, b => vflow.callApprove(me, String(b.id || '')));
     if (p === '/api/vf/complete' && post) return body(1e4, b => vflow.complete(me, String(b.id || '')));
@@ -555,7 +557,7 @@ const server = http.createServer((req, res) => {
     if (p === '/api/urgent/asks' && !post) return run(() => urgent.asks(me));
     if (p === '/api/urgent/asks/set' && post) return readBody(req, 1e4, buf => run(() => urgent.askSet(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/urgent/asks/remove' && post) return readBody(req, 1e4, buf => run(() => urgent.askDel(me, JSON.parse(buf.toString() || '{}').id)));
-    if (p === '/api/urgent/posts' && post) return readBody(req, 12e6, buf => run(async () => { const b = JSON.parse(buf.toString() || '{}'), j = await urgent.publish(me, b); if (b.vac && j && j.id) vflow.posted(me, String(b.vac), j.id, b.title); return j; }));
+    if (p === '/api/urgent/posts' && post) return readBody(req, 12e6, buf => run(async () => { const b = JSON.parse(buf.toString() || '{}'), j = await urgent.publish(me, b); if (b.vac && j && j.id) vflow.posted(me, String(b.vac), j.id, b.title, b.cap, b.until ? Date.parse(b.until) : Date.now() + (Number(b.hours) || 0) * 36e5); return j; }));
     if (p === '/api/urgent/posts/edit' && post) return readBody(req, 2e4, buf => run(() => urgent.editPost(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/urgent/doc') { try { const f = urgent.doc(me, q.get('app'), q.get('k')); return fs.readFile(f.file, (e, d) => e ? send(res, 404, '') : (res.setHeader('Content-Disposition', `inline; filename="${f.name}"`), send(res, 200, d, f.type))); } catch (e) { return send(res, e.code || 400, e.message); } }
     if (p === '/api/urgent/posts/remove' && post) return readBody(req, 1e4, buf => run(() => urgent.removePost(me, JSON.parse(buf.toString() || '{}').id)));
