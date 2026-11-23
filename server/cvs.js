@@ -195,6 +195,28 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
     return { image: true, why: 'This is a photo of the CV, so there are no words to read. Open it and type what you need.' };
   }
 
+  // ---------- drop a CV: the words are read on this Hub (nothing leaves it), the form is filled, a person checks it ----------
+  const PH = /(?:\+?250[\s.-]?)?0?7[2389]\d[\s.-]?\d{3}[\s.-]?\d{3}/;
+  function guessName(lines) {
+    for (const l of lines.slice(0, 8)) { const t = l.replace(/^(name|names|full name)\s*[:\-]\s*/i, '').trim();
+      if (/@|\d|curriculum|resume|cv\b|profile/i.test(t)) continue; const w = t.split(/\s+/); if (w.length >= 2 && w.length <= 4 && w.every(x => /^[A-Za-zÀ-ÿ'’.-]{2,}$/.test(x))) return t.replace(/\b([a-zà-ÿ])/g, m => m.toUpperCase()).replace(/\b([A-ZÀ-Ý])([A-ZÀ-Ý]+)\b/g, (m, a, b) => a + b.toLowerCase()); }
+    return '';
+  }
+  async function drop(p, b) {
+    need(p);
+    const name = String(b.name || 'CV').slice(0, 120), ext = (name.match(/\.([a-z0-9]+)$/i) || ['', ''])[1].toLowerCase();
+    const buf = Buffer.from(String(b.b64 || ''), 'base64'); if (!buf.length) throw err('The file didn’t arrive. Try again.'); if (buf.length > 8e6) throw err('The file is too large (8 MB at most).');
+    let text = '';
+    if (ext === 'pdf') text = await pdfText(buf).catch(() => '');
+    else if (ext === 'docx') text = docxText(buf);
+    else if (ext === 'txt') text = buf.toString('utf8');
+    else return { image: true, why: ext === 'doc' ? 'Old Word files (.doc) can’t be read here. Save it as .docx or PDF, then drop it again.' : 'This is a picture of a CV, so there are no words to read. Drop a PDF or Word file, or type it in.' };
+    if (text.replace(/\s/g, '').length < 40) return { image: true, why: 'This PDF is a scan (a picture of paper), so there are no words to read. Type it in instead.' };
+    const r = shape(text), ph = (String(text).match(PH) || [''])[0].replace(/[\s.-]/g, '');
+    log(p, `filled a CV in the CV studio from a dropped file (${ext.toUpperCase()})`);
+    return { ...r, name: guessName(r.lines), phone: ph, file: name };
+  }
+
   // ---------- saving the CVs we make ----------
   const TPLS = new Set(['horizon', 'sand', 'bento', 'halo', 'stone', 'dune', 'ink']), FIN = new Set(['starlight', 'midnight', 'titanium', 'sage']);
   const s = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
@@ -235,5 +257,5 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
     log(p, `removed the CV of ${c.data.name}`);
     return { ok: true };
   }
-  return { search, person, raw, read, save, remove, ROLES };
+  return { drop, search, person, raw, read, save, remove, ROLES };
 };

@@ -539,6 +539,7 @@ const server = http.createServer((req, res) => {
     if (p === '/api/cv/search') return run(() => cvs.search(me, q.get('q') || ''));
     if (p === '/api/cv/person') return run(() => cvs.person(me, q.get('key') || ''));
     if (p === '/api/cv/read') return run(() => cvs.read(me, q.get('ref') || ''));
+    if (p === '/api/cv/drop' && post) return readBody(req, 12e6, buf => run(() => cvs.drop(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/cv/file') { try { const f = cvs.raw(me, q.get('ref') || ''); return fs.readFile(f.file, (e, d) => e ? send(res, 404, '') : send(res, 200, d, f.type)); } catch (e) { return send(res, e.code || 400, e.message); } }
     if (p === '/api/cv/save' && post) return readBody(req, 4e5, buf => run(() => cvs.save(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/cv/remove' && post) return readBody(req, 1e4, buf => run(() => cvs.remove(me, String(JSON.parse(buf.toString() || '{}').id || ''))));
