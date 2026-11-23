@@ -501,7 +501,11 @@ const server = http.createServer((req, res) => {
     if (p === '/api/vf/interview' && post) return body(1e4, b => vflow.intApprove(me, String(b.id || '')));
     if (p === '/api/vf/upcoming') return run(() => vflow.upcoming(me));
     if (p === '/api/vf/start' && post) return body(1e4, b => vflow.startInt(me, String(b.id || '')));
-    if (p === '/api/vf/cand' && post) return body(1e4, b => vflow.addCand(me, String(b.id || ''), String(b.app || '')));
+    if (p === '/api/vf/cand' && post) return body(1e4, b => vflow.addCand(me, String(b.id || ''), String(b.app || ''), b.walk && typeof b.walk === 'object' ? b.walk : null));
+    if (p === '/api/vf/unscore' && post) return body(1e4, b => vflow.unscore(me, b));
+    if (p === '/api/vf/save' && post) return body(1e4, b => vflow.saveUp(me, String(b.id || '')));
+    if (p === '/api/vf/pushup' && post) return body(1e4, b => vflow.pushUp(me, String(b.id || '')));
+    if (p === '/api/vf/hrfilter' && post) return body(1e4, b => vflow.hrFilter(me, String(b.id || '')));
     if (p === '/api/vf/score' && post) return body(1e4, b => vflow.score(me, b));
     if (p === '/api/vf/absent' && post) return body(1e4, b => vflow.absent(me, b));
     if (p === '/api/vf/finish' && post) return body(1e4, b => vflow.finish(me, b));
