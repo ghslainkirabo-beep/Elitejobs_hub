@@ -40,6 +40,9 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
       out.push({ src: 'i', id: x.id, t: x.created || x.got, key: keyOf(x.phone, x.email, 'i:' + x.id), name: x.name, phone: x.phone, email: x.email, gender: x.gender,
         born: x.born, place: x.live ? [x.live.s, x.live.d].filter(Boolean).join(', ') : '', position: x.title, rec: x });
     }
+    for (const x of rj(F('people-import.json'), [])) {         // lists brought in from Excel / old notebooks
+      out.push({ src: 'x', id: x.id, t: x.t, key: keyOf(x.phone, x.email, 'x:' + x.id), name: x.name, phone: x.phone, email: x.email, gender: x.gender, place: x.place, position: x.position, rec: x });
+    }
     for (const c of rj(CVS, { cvs: [] }).cvs) {
       out.push({ src: 'c', id: c.id, t: c.updated, key: c.key, name: c.data && c.data.name, phone: c.data && c.data.phone, email: c.data && c.data.email, place: c.data && c.data.location, position: c.data && c.data.title, rec: c });
     }
@@ -66,13 +69,14 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
   }
 
   // ---------- search: by name, email or phone ----------
+  const W = require('./words.js');
   function search(p, q) {
     need(p);
     const t = norm(q), d = digits(q);
     if (t.length < 2) return { people: [] };
     const out = [];
     for (const [key, L] of people()) {
-      const hit = L.some(s => norm(s.name).includes(t) || (t.includes('@') ? low(s.email) === t || low(s.email).startsWith(t) : low(s.email).includes(t)) || (d.length >= 4 && digits(s.phone).includes(d.replace(/^0/, '').replace(/^250/, ''))));
+      const hit = L.some(s => norm(s.name).includes(t) || (t.length > 2 && s.position && W.overlap(W.toks(q), W.toks(s.position)) >= 0.5) || (t.includes('@') ? low(s.email) === t || low(s.email).startsWith(t) : low(s.email).includes(t)) || (d.length >= 4 && digits(s.phone).includes(d.replace(/^0/, '').replace(/^250/, ''))));
       if (hit) out.push(card(key, L));
     }
     out.sort((a, b) => { const sa = norm(a.name).startsWith(t) ? 1 : 0, sb = norm(b.name).startsWith(t) ? 1 : 0; return sb - sa || b.last - a.last; });
@@ -84,7 +88,7 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
     need(p);
     const L = people().get(String(key || ''));
     if (!L) throw err('This person isn’t in our records any more.', 404);
-    const c = card(key, L), apps = L.filter(s => s.src !== 'c').sort((a, b) => (b.t || 0) - (a.t || 0));
+    const c = card(key, L), apps = L.filter(s => s.src !== 'c' && s.src !== 'x').sort((a, b) => (b.t || 0) - (a.t || 0));
     const exp = [], seen = new Set(), add = e => { const k = norm(e.org) + '|' + norm(e.role); if (!e.org || seen.has(k)) return; seen.add(k); exp.push(e); };
     const edu = [], langs = new Set(); let summary = '', title = '';
     for (const s of apps) {
@@ -217,6 +221,70 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
     return { ...r, name: guessName(r.lines), phone: ph, file: name };
   }
 
+  // ---------- one history per person (same phone = same person): applications, calls, interviews, notes, checks, placement ----------
+  const PP = F('people.json');
+  const pdb = () => rj(PP, { by: {} }), psave = d => wj(PP, d);
+  const ss = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  const CHECKS = { id: 'National ID seen', refs: 'References called', licence: 'Driving licence checked', diploma: 'Diploma checked', health: 'Health certificate seen' };
+  function history(p, key) {
+    need(p);
+    const L = people().get(String(key || '')); if (!L) throw err('This person isn’t in our records any more.', 404);
+    const c = card(key, L), ph = ph9(c.phone), P = pdb().by[key] || {}, ev = [];
+    for (const s of L) {
+      if (s.src === 'u') { ev.push({ t: s.t, k: 'apply', text: `Applied for ${s.position || 'an urgent job'} (urgent job)` }); const r = s.rec; if (r.outcome) ev.push({ t: r.doneAt || r.updated || s.t, k: 'call', text: `Called: ${({ coming: 'coming on site', 'no-answer': 'no answer', unavailable: 'not available', declined: 'not interested', placed: 'placed' })[r.outcome] || r.outcome}${r.doneBy ? ' — by ' + r.doneBy : ''}` }); }
+      if (s.src === 'i') ev.push({ t: s.t, k: 'apply', text: `Applied for ${s.position || 'an open job'} (website)` });
+      if (s.src === 'x') ev.push({ t: s.t, k: 'import', text: `Brought in from an old list${s.rec.from ? ' (' + s.rec.from + ')' : ''}` });
+      if (s.src === 'c') ev.push({ t: s.t, k: 'cv', text: 'CV made in the CV studio' });
+    }
+    if (ph) for (const v of rj(F('vflow.json'), { vacs: [] }).vacs || []) for (const x of Object.values((v.int && v.int.cands) || {})) if (ph9(x.phone) === ph) {
+      if (x.status === 'done') ev.push({ t: (x.finished && x.finished.t) || v.created, k: 'interview', text: `Interviewed for ${v.title}${v.employer ? ' at ' + v.employer : ''}: ${Math.round((x.final || 0) * 10) / 10}/20${x.unfinished ? ' (not finished)' : ''}` });
+      if (x.push) ev.push({ t: x.push.t, k: 'decision', text: `${x.push.qualified ? 'Qualified & served' : 'Disqualified'} by ${x.push.by.name}` });
+    }
+    (P.notes || []).forEach(n => ev.push({ t: n.t, k: 'note', text: n.text, by: n.by }));
+    Object.entries(P.checks || {}).forEach(([k, v]) => ev.push({ t: v.t, k: 'check', text: `${CHECKS[k] || k} ✓`, by: v.by }));
+    (P.places || []).forEach(pl => { ev.push({ t: pl.t, k: 'placed', text: `Placed as ${pl.title} at ${pl.employer}${pl.start ? ', starting ' + pl.start : ''}`, by: pl.by }); if (pl.left) ev.push({ t: pl.left.t, k: 'left', text: `Left ${pl.employer}: ${pl.left.why}${pl.left.replace ? ' — replacement started' : ''}`, by: pl.left.by }); (pl.care || []).forEach(x => ev.push({ t: x.t, k: 'care', text: `Check-in (${x.at}): ${x.text}`, by: x.by })); });
+    ev.sort((a, b) => (b.t || 0) - (a.t || 0));
+    log(p, `opened the history of ${c.name}`);
+    return { card: c, events: ev.slice(0, 200), dupes: L.filter(s => s.src !== 'c').length, checks: Object.entries(CHECKS).map(([k, label]) => ({ k, label, done: (P.checks || {})[k] || null })), consent: P.consent || null, places: P.places || [] };
+  }
+  function note(p, b) { need(p); const key = String(b.key || ''); if (!people().get(key)) throw err('This person isn’t in our records.', 404); const text = ss(b.text, 600); if (text.length < 2) throw err('Write the note first.');
+    const d = pdb(), P = d.by[key] = d.by[key] || {}; (P.notes = P.notes || []).push({ t: Date.now(), by: p.name, text }); psave(d); log(p, 'added a note to a person’s history'); return history(p, key); }
+  // Verified badge: what was checked and when, only with the person's consent
+  function verify(p, b) { need(p); const key = String(b.key || ''), L = people().get(key); if (!L) throw err('This person isn’t in our records.', 404);
+    const d = pdb(), P = d.by[key] = d.by[key] || {};
+    if (b.consent) { P.consent = { t: Date.now(), by: p.name }; psave(d); log(p, `recorded ${card(key, L).name}’s consent to checks`); return history(p, key); }
+    if (!CHECKS[b.item]) throw err('Unknown check.'); if (!P.consent) throw err('Record the person’s consent first.', 409);
+    P.checks = P.checks || {}; if (b.on) P.checks[b.item] = { t: Date.now(), by: p.name }; else delete P.checks[b.item]; psave(d);
+    log(p, `${b.on ? 'checked' : 'unchecked'} “${CHECKS[b.item]}” for ${card(key, L).name}`); return history(p, key); }
+  // applicant → placed worker, without retyping; after-placement care and replacement
+  const mayPlace = p => ['admin', 'hr', 'ops'].includes(p.role);
+  function place(p, b) { need(p); if (!mayPlace(p)) throw err('Placements are recorded by Admin, HR or Operations.', 403);
+    const key = String(b.key || ''), L = people().get(key); if (!L) throw err('This person isn’t in our records.', 404);
+    const employer = ss(b.employer, 90), title = ss(b.title, 70); if (employer.length < 2 || title.length < 2) throw err('Write the employer and the job.');
+    const d = pdb(), P = d.by[key] = d.by[key] || {}; const pl = { id: 'PL-' + Date.now().toString(36).toUpperCase(), t: Date.now(), by: p.name, employer, title, pay: ss(b.pay, 40), start: ss(b.start, 20), care: [] };
+    (P.places = P.places || []).push(pl); psave(d); log(p, `placed ${card(key, L).name} as ${title} at ${employer}`); return history(p, key); }
+  function care(p, b) { need(p); const key = String(b.key || ''), d = pdb(), P = d.by[key]; const pl = P && (P.places || []).find(x => x.id === b.id); if (!pl) throw err('That placement isn’t on record.', 404);
+    if (b.left) { const why = ss(b.why, 200); if (why.length < 3) throw err('Say why they left.'); pl.left = { t: Date.now(), by: p.name, why, replace: !!b.replace }; }
+    else { const text = ss(b.text, 300); if (text.length < 2) throw err('Write how the check-in went.'); pl.care.push({ t: Date.now(), by: p.name, at: ss(b.at, 20) || 'call', text }); }
+    psave(d); log(p, b.left ? `recorded that a placed worker left ${pl.employer}${b.replace ? ' and started a replacement' : ''}` : `logged a check-in with a worker placed at ${pl.employer}`); return history(p, key); }
+  function placements() { const d = pdb(), out = []; for (const [key, P] of Object.entries(d.by)) for (const pl of P.places || []) out.push({ key, ...pl }); return out; }
+  // bring in old lists (CSV saved from Excel): name, phone, position, place, email; same phone = same person, never a duplicate
+  function importCsv(p, b) { need(p); if (!['admin', 'hr', 'it', 'ops'].includes(p.role)) throw err('Imports are done by Admin, HR, IT or Operations.', 403);
+    const rows = String(b.csv || '').replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim()).map(l => { const o = [], re = /("([^"]|"")*"|[^,;\t]*)([,;\t]|$)/g; let m; while ((m = re.exec(l)) && m[0] !== '') { o.push(m[1].replace(/^"|"$/g, '').replace(/""/g, '"').trim()); if (!m[3]) break; } return o; });
+    if (rows.length < 2) throw err('The file needs a header row and at least one person.');
+    const H = rows[0].map(h => h.toLowerCase()), col = re => H.findIndex(h => re.test(h));
+    const ci = { name: col(/name|amazina/), phone: col(/phone|tel|mobile|telefone/), position: col(/position|job|akazi|poste/), place: col(/place|location|lives|district|aho/), email: col(/mail/), gender: col(/gender|sex|igitsina/) };
+    if (ci.name < 0 || ci.phone < 0) throw err('The header row needs at least “name” and “phone” columns.');
+    const known = new Set([...people().keys()]), list = rj(F('people-import.json'), []), from = ss(b.from, 60);
+    let added = 0, dup = 0, bad = 0;
+    for (const r of rows.slice(1, 5001)) { const name = ss(r[ci.name], 60), phone = ss(r[ci.phone], 20); if (name.length < 2 || !ph9(phone)) { bad++; continue; }
+      const k = 'p' + ph9(phone); if (known.has(k)) { dup++; continue; } known.add(k);
+      const g = ci.gender >= 0 ? String(r[ci.gender] || '').toLowerCase() : '';
+      list.push({ id: 'X-' + Date.now().toString(36) + added, t: Date.now(), name, phone, email: ci.email >= 0 ? ss(r[ci.email], 100) : '', position: ci.position >= 0 ? ss(r[ci.position], 70) : '', place: ci.place >= 0 ? ss(r[ci.place], 70) : '', gender: /^f|gore|femme/.test(g) ? 'f' : /^m|gabo|homme/.test(g) ? 'm' : '', from }); added++; }
+    wj(F('people-import.json'), list); log(p, `imported ${added} people from an old list${from ? ' (' + from + ')' : ''}; ${dup} already known, ${bad} rows skipped`);
+    return { added, dup, bad };
+  }
+
   // ---------- saving the CVs we make ----------
   const TPLS = new Set(['horizon', 'sand', 'bento', 'halo', 'stone', 'dune', 'ink']), FIN = new Set(['starlight', 'midnight', 'titanium', 'sage']);
   const s = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
@@ -257,5 +325,5 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
     log(p, `removed the CV of ${c.data.name}`);
     return { ok: true };
   }
-  return { drop, search, person, raw, read, save, remove, ROLES };
+  return { history, note, verify, place, care, placements, importCsv, drop, search, person, raw, read, save, remove, ROLES };
 };

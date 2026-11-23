@@ -90,7 +90,7 @@ module.exports = function ({ DATA_DIR, subsMoney, rightsOf, appendActivity, broa
     if (M.money) {
       const L = ledger(), mine = L.list.filter(e => e.client === c.id).sort((a, b) => b.date.localeCompare(a.date));
       const charged = new Set(mine.filter(e => e.link).map(e => e.link.vac + '|' + e.link.app));
-      o.ledger = { list: mine, owed: owed(L, c.id), paid: mine.filter(e => e.paid).reduce((a, e) => a + e.amount, 0), unbilled: f.placed.filter(x => !charged.has(x.vac + '|' + x.app)).length };
+      o.ledger = { agree: (L.agree || {})[c.id] || null, list: mine, owed: owed(L, c.id), paid: mine.filter(e => e.paid).reduce((a, e) => a + e.amount, 0), unbilled: f.placed.filter(x => !charged.has(x.vac + '|' + x.app)).length };
       o.facts.placed = f.placed.map(x => ({ ...x, charged: charged.has(x.vac + '|' + x.app) }));
     }
     return o;
@@ -136,6 +136,13 @@ module.exports = function ({ DATA_DIR, subsMoney, rightsOf, appendActivity, broa
 
   // ---------- the private ledger (real Admin only) ----------
   const amt = v => { const n = Math.round(Number(String(v).replace(/[\s,]/g, ''))); if (!(n > 0 && n < 1e10)) throw err('Write the amount in RWF.'); return n; };
+  // the agreement with an employer (Admin only, kept in the private ledger file): fee model, payment terms, replacement guarantee
+  function agree(p, b) {
+    needMoney(p); const db = load(), c = find(db, String(b.client || '')), L = ledger();
+    const model = ['fixed', 'percent', 'monthly', 'other'].includes(b.model) ? b.model : 'other';
+    L.agree = L.agree || {}; L.agree[c.id] = { model, fee: s(b.fee, 60), terms: Math.max(0, Math.min(180, parseInt(b.terms, 10) || 0)), guarantee: Math.max(0, Math.min(365, parseInt(b.guarantee, 10) || 0)), signed: /^\d{4}-\d{2}-\d{2}$/.test(b.signed || '') ? b.signed : '', note: s(b.note, 300), t: Date.now() };
+    wj(LG, L); log(p, 'changed an agreement in the private ledger'); return one(p, c.id);
+  }
   function charge(p, b) {
     needMoney(p); const db = load(), c = find(db, String(b.client || '')), L = ledger();
     const date = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : kDay();
@@ -173,5 +180,5 @@ module.exports = function ({ DATA_DIR, subsMoney, rightsOf, appendActivity, broa
       top: Object.entries(per).map(([id, v]) => ({ id, name: byId[id] || '—', v })).sort((a, b) => b.v - a.v).slice(0, 6), unbilled: unbilled.sort((a, b) => b.t - a.t).slice(0, 40) };
   }
 
-  return { may, list, one, upsert, note, follow, archive, names, charge, paid, unCharge, money };
+  return { agree, may, list, one, upsert, note, follow, archive, names, charge, paid, unCharge, money };
 };

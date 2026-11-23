@@ -480,6 +480,7 @@ const server = http.createServer((req, res) => {
     if (p === '/api/crm/follow') return body(b => clients.follow(me, b));
     if (p === '/api/crm/archive') return body(b => clients.archive(me, b));
     if (p === '/api/crm/charge') return body(b => clients.charge(me, b));
+    if (p === '/api/crm/agree') return body(b => clients.agree(me, b));
     if (p === '/api/crm/paid') return body(b => clients.paid(me, b));
     if (p === '/api/crm/uncharge') return body(b => clients.unCharge(me, b));
     return send(res, 404, '');
@@ -539,6 +540,12 @@ const server = http.createServer((req, res) => {
     if (p === '/api/cv/search') return run(() => cvs.search(me, q.get('q') || ''));
     if (p === '/api/cv/person') return run(() => cvs.person(me, q.get('key') || ''));
     if (p === '/api/cv/read') return run(() => cvs.read(me, q.get('ref') || ''));
+    if (p === '/api/cv/history') return run(() => cvs.history(me, q.get('key') || ''));
+    if (p === '/api/cv/note' && post) return readBody(req, 2e4, buf => run(() => cvs.note(me, JSON.parse(buf.toString() || '{}'))));
+    if (p === '/api/cv/verify' && post) return readBody(req, 2e4, buf => run(() => cvs.verify(me, JSON.parse(buf.toString() || '{}'))));
+    if (p === '/api/cv/place' && post) return readBody(req, 2e4, buf => run(() => cvs.place(me, JSON.parse(buf.toString() || '{}'))));
+    if (p === '/api/cv/care' && post) return readBody(req, 2e4, buf => run(() => cvs.care(me, JSON.parse(buf.toString() || '{}'))));
+    if (p === '/api/cv/import' && post) return readBody(req, 3e6, buf => run(() => cvs.importCsv(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/cv/drop' && post) return readBody(req, 12e6, buf => run(() => cvs.drop(me, JSON.parse(buf.toString() || '{}'))));
     if (p === '/api/cv/file') { try { const f = cvs.raw(me, q.get('ref') || ''); return fs.readFile(f.file, (e, d) => e ? send(res, 404, '') : send(res, 200, d, f.type)); } catch (e) { return send(res, e.code || 400, e.message); } }
     if (p === '/api/cv/save' && post) return readBody(req, 4e5, buf => run(() => cvs.save(me, JSON.parse(buf.toString() || '{}'))));
