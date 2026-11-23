@@ -506,6 +506,8 @@ const server = http.createServer((req, res) => {
     if (p === '/api/vf/unscore' && post) return body(1e4, b => vflow.unscore(me, b));
     if (p === '/api/vf/save' && post) return body(1e4, b => vflow.saveUp(me, String(b.id || '')));
     if (p === '/api/vf/pushup' && post) return body(1e4, b => vflow.pushUp(me, String(b.id || '')));
+    if (p === '/api/vf/shortlist' && post) return body(2e4, b => vflow.makeShortlist(me, b));
+    if (p === '/api/vf/shortlist') return run(() => vflow.shortlistAnswers(me, q.get('id') || ''));
     if (p === '/api/vf/hrfilter' && post) return body(1e4, b => vflow.hrFilter(me, String(b.id || '')));
     if (p === '/api/vf/score' && post) return body(1e4, b => vflow.score(me, b));
     if (p === '/api/vf/absent' && post) return body(1e4, b => vflow.absent(me, b));
