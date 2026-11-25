@@ -1,6 +1,6 @@
 {
   "name": "elitejobs-hub",
-  "version": "1.8.24",
+  "version": "1.8.25",
   "description": "Elitejobs Rwanda workspaces: one app for every position, live across the whole office.",
   "main": "electron-main.js",
   "scripts": {

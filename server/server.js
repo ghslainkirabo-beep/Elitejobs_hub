@@ -296,7 +296,10 @@ const isLocked = req => (fails.get(realIp(req)) || []).filter(t => Date.now() - 
 setInterval(() => { const now = Date.now(); for (const [k, v] of fails) if (!v.some(t => now - t < 15 * 6e4)) fails.delete(k); }, 10 * 6e4).unref();
 
 // ---- UI versions (live updates) -------------------------------------------------
-const activeUiDir = () => fs.existsSync(path.join(LIVE_UI, 'index.html')) ? LIVE_UI : BUNDLED_UI;
+// A deployed update is used only while it is newer than the screens that came with this engine:
+// when the engine itself is updated (new installer, or the cloud's automatic update), its newer screens win.
+const mtime = f => { try { return fs.statSync(f).mtimeMs; } catch (e) { return 0; } };
+const activeUiDir = () => { const l = mtime(path.join(LIVE_UI, 'index.html')); return l && l >= mtime(path.join(BUNDLED_UI, 'index.html')) ? LIVE_UI : BUNDLED_UI; };
 const hashOf = buf => crypto.createHash('sha1').update(buf).digest('hex').slice(0, 10);
 const activeHtml = () => fs.readFileSync(path.join(activeUiDir(), 'index.html'), 'utf8');
 function uiVersion() { try { return hashOf(fs.readFileSync(path.join(activeUiDir(), 'index.html'))); } catch (e) { return 'none'; } }
