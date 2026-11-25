@@ -702,6 +702,7 @@ const server = http.createServer((req, res) => {
 
   // ---- IT only: AI settings, update source, THE HUB UPDATE ----
   if (p.startsWith('/api/it/') && !hasIT(req)) return send(res, 401, 'IT key required');
+  if (p === '/api/it/office-passcode' && !post) return json(res, 200, { code: OFFICE_KEY, url: CLOUD ? (process.env.HUB_PUBLIC_URL || 'https://hub.elitejobsrwanda.com') : '' });
   if (p === '/api/it/rehub' && !post) { try { return json(res, 200, rehubView(rehubWho(req))); } catch (e) { return json(res, e.status || 400, { error: e.message }); } }
   if (p === '/api/it/rehub' && post) return jsonBody(req, res, 1e4, b => rehubRun(rehubWho(req), b));
   if (p === '/api/it/rehub/restore' && post) return jsonBody(req, res, 1e4, b => rehubRestore(rehubWho(req), String(b.id || '')));
