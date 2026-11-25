@@ -57,31 +57,47 @@ module.exports = function makeMigrate({ DATA_DIR, loadState, appendActivity, CLO
       r.on('timeout', () => r.destroy()); r.on('error', () => resolve(null));
     });
   }
-  function push(target, code, who) {
-    const files = list();
+  // Sent in small parts (Cloudflare's free plan refuses any single upload over 100 MB):
+  // every part is its own request, sent in order and retried if the internet drops.
+  const PART = 8 * 1024 * 1024; // about 8 MB of files per request (a big file is split across parts)
+  function* lines(files) {
+    for (const rel of files) {
+      const buf = fs.readFileSync(path.join(DATA_DIR, rel));
+      const h = crypto.createHash('sha256').update(buf).digest('hex');
+      const n = Math.max(1, Math.ceil(buf.length / PART));
+      for (let k = 0; k < n; k++) { const d = buf.subarray(k * PART, (k + 1) * PART); yield { size: d.length, line: JSON.stringify({ p: rel, k, n, at: k * PART, d: d.toString('base64'), h: k === n - 1 ? h : undefined }) + '\n' }; }
+    }
+  }
+  function postPart(target, code, sess, i, last, body) {
     return new Promise((resolve, reject) => {
-      const u = new URL(target + '/api/restore');
-      const lib = u.protocol === 'https:' ? https : http;
-      const req = lib.request(u, { method: 'POST', headers: { 'Content-Type': 'application/x-ndjson', 'Content-Encoding': 'gzip', 'X-Restore-Code': code, 'X-Restore-Files': String(files.length) }, timeout: 15 * 60000 }, res => {
-        let body = ''; res.on('data', d => body += d); res.on('end', () => {
-          let j = {}; try { j = JSON.parse(body); } catch (e) {}
-          if (res.statusCode !== 200) return reject(Object.assign(new Error(j.error || ('The cloud Hub answered ' + res.statusCode)), { status: 502 }));
-          fs.writeFileSync(MOVED, JSON.stringify({ to: target, at: Date.now(), by: who || '' }));
-          appendActivity({ t: Date.now(), who: who || 'IT', what: 'Moved the Hub to ' + target + ' (' + files.length + ' files). This office PC now only points everyone there.' });
-          resolve({ ok: true, files: files.length, movedTo: target });
-        });
+      const u = new URL(target + '/api/restore'), lib = u.protocol === 'https:' ? https : http;
+      const req = lib.request(u, { method: 'POST', headers: { 'Content-Type': 'application/x-ndjson', 'Content-Encoding': 'gzip', 'Content-Length': body.length, 'X-Restore-Code': code, 'X-Restore-Session': sess, 'X-Restore-Part': String(i), 'X-Restore-Last': last ? '1' : '0' }, timeout: 5 * 60000 }, res => {
+        let t = ''; res.on('data', d => t += d); res.on('end', () => { let j = {}; try { j = JSON.parse(t); } catch (e) {} if (res.statusCode === 200) return resolve(j); reject(Object.assign(new Error(j.error || ('The cloud Hub answered ' + res.statusCode)), { status: 502, final: res.statusCode >= 400 && res.statusCode < 500 && res.statusCode !== 408 && res.statusCode !== 429 })); });
       });
       req.on('timeout', () => req.destroy(new Error('The cloud Hub took too long to answer.')));
       req.on('error', e => reject(Object.assign(new Error('Could not reach the cloud Hub: ' + e.message), { status: 502 })));
-      const gz = zlib.createGzip(); gz.pipe(req);
-      (async () => {
-        for (const rel of files) {
-          const buf = fs.readFileSync(path.join(DATA_DIR, rel));
-          if (!gz.write(JSON.stringify({ p: rel, d: buf.toString('base64'), h: crypto.createHash('sha256').update(buf).digest('hex') }) + '\n')) await new Promise(r => gz.once('drain', r));
-        }
-        gz.write(JSON.stringify({ end: files.length }) + '\n'); gz.end();
-      })().catch(e => req.destroy(e));
+      req.end(body);
     });
+  }
+  async function push(target, code, who) {
+    const files = list(), sess = crypto.randomBytes(12).toString('hex');
+    const send1 = async (i, last, text) => {
+      const body = zlib.gzipSync(Buffer.from(text, 'utf8'));
+      for (let tryN = 1; ; tryN++) {
+        try { return await postPart(target, code, sess, i, last, body); }
+        catch (e) { if (e.final || tryN >= 5) throw e; await new Promise(r => setTimeout(r, 3000 * tryN)); }
+      }
+    };
+    let buf = [], size = 0, i = 0;
+    for (const x of lines(files)) {
+      if (size && size + x.size > PART) { await send1(i++, false, buf.join('')); buf = []; size = 0; }
+      buf.push(x.line); size += x.size;
+    }
+    buf.push(JSON.stringify({ end: files.length }) + '\n');
+    await send1(i, true, buf.join(''));
+    fs.writeFileSync(MOVED, JSON.stringify({ to: target, at: Date.now(), by: who || '' }));
+    appendActivity({ t: Date.now(), who: who || 'IT', what: 'Moved the Hub to ' + target + ' (' + files.length + ' files, ' + (i + 1) + ' parts). This office PC now only points everyone there.' });
+    return { ok: true, files: files.length, movedTo: target };
   }
 
   // ---------- cloud server: say whether a move is expected (no secrets, no data) ----------
@@ -94,38 +110,54 @@ module.exports = function makeMigrate({ DATA_DIR, loadState, appendActivity, CLO
   // ---------- cloud server: receive once ----------
   const safeRel = rel => typeof rel === 'string' && rel.length < 300 && !rel.includes('..') && !path.isAbsolute(rel) && !rel.includes('\\') &&
     (FILES.includes(rel) || isUrgentFile(rel) || DIRS.some(d => rel.startsWith(d + '/')));
-  let busy = false;
+  let S = null; // the move in progress: { id, tmp, next, n, t }
   function receive(req, res, ip) {
-    const fail = (code, msg) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: msg })); };
+    const fail = (code, msg) => { if (S && code === 400) { try { fs.rmSync(S.tmp, { recursive: true, force: true }); } catch (e) {} S = null; } res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: msg })); };
     const want = process.env.HUB_RESTORE_CODE || '';
     const got = String(req.headers['x-restore-code'] || '');
     if (!want) return fail(404, 'This Hub is not waiting for a move.');
     if (fs.existsSync(DONE)) return fail(409, 'This cloud Hub already received the office data.');
     const s = loadState(); if (s && s.staff && s.staff.length) return fail(409, 'This cloud Hub already has people in it.');
     if (got.length !== want.length || !crypto.timingSafeEqual(Buffer.from(got), Buffer.from(want))) return fail(401, 'Wrong move code.');
-    if (busy) return fail(409, 'A move is already running.');
-    busy = true;
-    const tmp = path.join(DATA_DIR, '.restore-' + Date.now());
-    fs.mkdirSync(tmp, { recursive: true });
-    let rest = '', n = 0, ended = false, bad = null;
+    // older office Hubs send everything as one part without these headers
+    const id = String(req.headers['x-restore-session'] || 'single'), part = +(req.headers['x-restore-part'] || 0), last = req.headers['x-restore-session'] ? req.headers['x-restore-last'] === '1' : true;
+    if (S && S.id !== id && Date.now() - S.t > 30 * 60000) { try { fs.rmSync(S.tmp, { recursive: true, force: true }); } catch (e) {} S = null; } // a move that stopped half-way
+    if (part === 0 && (!S || S.id !== id)) {
+      if (S) return fail(409, 'A move is already running.');
+      S = { id, tmp: path.join(DATA_DIR, '.restore-' + Date.now()), next: 0, done: new Set(), t: Date.now(), busy: false };
+      fs.mkdirSync(S.tmp, { recursive: true });
+    }
+    if (!S || S.id !== id) return fail(409, 'This move was interrupted. Start it again from the office Hub.');
+    if (S.busy) { res.writeHead(503, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ error: 'That part is still being saved.' })); }
+    if (part === S.next - 1 && !last) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ ok: true, part, again: true })); } // a retry of a part we already have
+    if (part !== S.next) return fail(400, 'A part of the move arrived out of order. Start it again from the office Hub.');
+    S.busy = true; S.t = Date.now();
+    const M = S;
+    let rest = '', ended = false, bad = null;
     const handle = line => {
       if (!line || bad) return;
       let o; try { o = JSON.parse(line); } catch (e) { bad = 'Damaged data.'; return; }
-      if (o.end !== undefined) { ended = o.end === n; if (!ended) bad = 'Some files went missing on the way.'; return; }
+      if (o.end !== undefined) { ended = o.end === M.done.size; if (!ended) bad = 'Some files went missing on the way.'; return; }
       if (!safeRel(o.p)) { bad = 'Unexpected file ' + String(o.p).slice(0, 60); return; }
-      const buf = Buffer.from(String(o.d || ''), 'base64');
-      if (crypto.createHash('sha256').update(buf).digest('hex') !== o.h) { bad = 'A file was damaged on the way: ' + o.p; return; }
-      const abs = path.join(tmp, o.p); fs.mkdirSync(path.dirname(abs), { recursive: true }); fs.writeFileSync(abs, buf); n++;
+      const k = +o.k || 0, n = +o.n || 1, abs = path.join(M.tmp, o.p), buf = Buffer.from(String(o.d || ''), 'base64');
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      // written at its place in the file, so a part sent again after a dropped connection does no harm
+      if (k === 0) fs.writeFileSync(abs, buf); else { const fd = fs.openSync(abs, 'r+'); try { fs.writeSync(fd, buf, 0, buf.length, +o.at || 0); } finally { fs.closeSync(fd); } }
+      if (k === n - 1) { if (crypto.createHash('sha256').update(fs.readFileSync(abs)).digest('hex') !== o.h) { bad = 'A file was damaged on the way: ' + o.p; return; } M.done.add(o.p); }
     };
     const gun = zlib.createGunzip();
-    let size = 0;
+    let size = 0, over = false;
     req.on('data', c => { size += c.length; if (size > 4e9) { bad = 'Too big.'; req.destroy(); } });
+    req.on('close', () => { if (!over) M.busy = false; }); // the connection dropped: the office sends this part again
     req.pipe(gun);
     gun.on('data', chunk => { rest += chunk.toString('utf8'); let i; while ((i = rest.indexOf('\n')) >= 0) { handle(rest.slice(0, i)); rest = rest.slice(i + 1); } });
     gun.on('error', () => { bad = bad || 'Damaged data.'; });
     gun.on('end', () => {
-      busy = false;
-      if (bad || !ended) { fs.rmSync(tmp, { recursive: true, force: true }); return fail(400, bad || 'The move did not finish. Try again.'); }
+      over = true; M.busy = false;
+      if (bad) return fail(400, bad);
+      if (!last) { M.next++; res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ ok: true, part })); }
+      if (!ended) return fail(400, 'The move did not finish. Try again.');
+      const tmp = M.tmp, n = M.done.size; S = null;
       // swap the received files in (the fresh server's own keys are replaced by the office's — so every PC and phone keeps working)
       const walk = rel => { for (const nme of fs.readdirSync(path.join(tmp, rel))) { const r = rel ? rel + '/' + nme : nme, abs = path.join(tmp, r); if (fs.statSync(abs).isDirectory()) walk(r); else { const dst = path.join(DATA_DIR, r); fs.mkdirSync(path.dirname(dst), { recursive: true }); fs.renameSync(abs, dst); } } };
       walk('');
