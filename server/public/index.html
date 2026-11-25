@@ -3225,6 +3225,21 @@ function smLoad(){const q=SM.vac?'vac='+encodeURIComponent(SM.vac):'title='+enco
  return api('/api/smatch?'+q).then(r=>{SM.d=r;refreshSm()}).catch(e=>{SM.d={err:e.message,vacs:(SM.d&&SM.d.vacs)||[]};refreshSm()})}
 const refreshSm=()=>{const e=flat(ui.r)[ui.v];if(e&&e.b=='smatch')refreshMain()};
 if(!STATIC.includes('smatch'))STATIC.push('smatch');LOADERS.smatch=()=>smLoad();
+/* ---- Powers follow Admin's Grant power both ways: a room appears the moment a power is given,
+   and disappears the moment it is taken back (no reload needed). ---- */
+const UG_BASE=new Set(UG_POS);
+const VF_GATE={'form|vfnew':R0=>R0.start,'vfdash|':R0=>R0.view,'smatch|':R0=>R0.view,'vacs|active':R0=>R0.view,'vacs|notices':R0=>R0.view,
+ 'vacs|upcoming':R0=>R0.int||R0.admin||R0.rm,'vfirep|':R0=>R0.admin||R0.rm||ui.me.r=='hr'||ui.me.r=='int'};
+const pwVfNav=vfNav;vfNav=function(){pwVfNav();const Rt=vfRights(),r=R[ui.r];if(!r||!VF.me)return;
+ const cur=flat(ui.r)[ui.v];let ch=false;
+ const g=r.nav.find(x=>x[0]=='Recruitment');
+ if(g){const keep=g[1].filter(e=>{const f=VF_GATE[e.b+'|'+(e.g||'')];return !f||f(Rt)});if(keep.length!=g[1].length){g[1]=keep;ch=true}
+  if(!g[1].length){r.nav=r.nav.filter(x=>x!==g);ch=true}}
+ // publishing or reviewing urgent jobs needs the Urgent hiring room, whatever the position
+ const hasUg=r.nav.some(x=>x[1].some(e=>e.b=='urgent'));
+ if((Rt.post||Rt.review)&&!hasUg){const i=r.nav.findIndex(x=>x[0]=='Me');r.nav.splice(i<0?1:i,0,['Hiring',[{l:'Urgent hiring',i:'⚡',b:'urgent'}]]);ch=true}
+ if(!(Rt.post||Rt.review)&&hasUg&&!UG_BASE.has(ui.r)){r.nav=r.nav.filter(x=>!(x[0]=='Hiring'&&x[1].every(e=>e.b=='urgent')));ch=true}
+ if(ch){const L=flat(ui.r),i=cur?L.findIndex(e=>e.b==cur.b&&(e.g||'')==(cur.g||'')):-1;ui.v=i<0?0:i;if(i<0&&cur)toast('That room was closed by Admin');render(true)}};
 /* ---- Rehub: start fresh sign-ins (IT only). Every account except yours is removed; all records stay. ---- */
 if(!STATIC.includes('rehub'))STATIC.push('rehub');
 function rhLoad(){api('/api/it/rehub').then(d=>{ui.rh=Object.assign({},ui.rh||{},{d,err:null});refreshMain()}).catch(e=>{ui.rh=Object.assign({},ui.rh||{},{err:e.message});refreshMain()})}
