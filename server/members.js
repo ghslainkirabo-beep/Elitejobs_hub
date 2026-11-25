@@ -15,7 +15,7 @@ module.exports = function ({ DATA_DIR, urgent, rightsOf, appendActivity, broadca
   const nine = ph => { const d = String(ph || '').replace(/\D/g, ''); return d.length >= 9 ? d.slice(-9) : ''; };
   const norm = t => String(t || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
   const realAdmin = p => !!(p && p.role === 'admin' && !String(p.name).includes('@'));
-  const may = p => { if (!p) return false; if (realAdmin(p) || ['hr', 'front', 'rec'].includes(p.role)) return true; const R = rightsOf(p) || {}; return !!(R.db || R.rm || R.admin); };
+  const may = p => { if (!p) return false; if (realAdmin(p) || ['hr', 'front', 'rec', 'rcm', 'recr'].includes(p.role)) return true; const R = rightsOf(p) || {}; return !!(R.db || R.rm || R.admin); };
   const need = p => { if (!may(p)) throw err('Website members are for Admin, HR, Front Desk, Reception and the recruitment team.', 403); };
 
   // ---------- reading the accounts from the website ----------

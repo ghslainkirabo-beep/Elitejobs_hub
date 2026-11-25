@@ -21,7 +21,7 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity, broadcast, smsLas
   const hashOf = k => crypto.createHash('sha256').update('ejq:' + k).digest('hex').slice(0, 24); // the website computes the same
 
   const realAdmin = p => !!(p && p.role === 'admin' && !String(p.name).includes('@'));
-  const desk = p => !!p && (realAdmin(p) || ['front', 'rec'].includes(p.role));
+  const desk = p => !!p && (realAdmin(p) || ['front', 'rec', 'cash'].includes(p.role));
   const needDesk = p => { if (!desk(p)) throw err('Subscriptions are for Admin, Front Desk and Reception.', 403); };
   const needAdmin = p => { if (!realAdmin(p)) throw err('Only Admin can change this.', 403); };
 

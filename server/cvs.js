@@ -13,7 +13,7 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
   const wj = (f, v) => { const t = f + '.tmp'; fs.writeFileSync(t, JSON.stringify(v)); fs.renameSync(t, f); };
   const err = (m, code = 400) => Object.assign(new Error(m), { code });
   // HQ people who serve applicants, and IT (asked for by the office). Social media doesn't open applicants' CVs. Every open is logged.
-  const ROLES = new Set(['front', 'rec', 'hr', 'admin', 'ops', 'cc', 'int', 'it']);
+  const ROLES = new Set(['front', 'rec', 'hr', 'admin', 'ops', 'cc', 'int', 'it', 'rcm', 'recr', 'abr', 'cro', 'trn']);
   const need = p => { if (!p) throw err('Sign in first.', 401); if (!ROLES.has(p.role)) throw err('The CV studio is for the people who serve applicants.', 403); };
   const log = (p, text) => appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text });
 
@@ -263,7 +263,7 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
       const items = Object.entries(P.checks || {}).map(([k, v]) => ({ k, t: v.t })).concat((P.places || []).length ? [{ k: 'placed', t: P.places[P.places.length - 1].t }] : []);
       urgent.remote('/api/hub/badges', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: ph, consent: !!P.consent, items }) }).catch(() => {}); } catch (e) {}
   }
-  const mayPlace = p => ['admin', 'hr', 'ops'].includes(p.role);
+  const mayPlace = p => ['admin', 'hr', 'ops', 'rcm', 'recr', 'cro'].includes(p.role);
   function place(p, b) { need(p); if (!mayPlace(p)) throw err('Placements are recorded by Admin, HR or Operations.', 403);
     const key = String(b.key || ''), L = people().get(key); if (!L) throw err('This person isn’t in our records.', 404);
     const employer = ss(b.employer, 90), title = ss(b.title, 70); if (employer.length < 2 || title.length < 2) throw err('Write the employer and the job.');
@@ -275,7 +275,7 @@ module.exports = function ({ DATA_DIR, urgent, appendActivity }) {
     psave(d); log(p, b.left ? `recorded that a placed worker left ${pl.employer}${b.replace ? ' and started a replacement' : ''}` : `logged a check-in with a worker placed at ${pl.employer}`); return history(p, key); }
   function placements() { const d = pdb(), out = []; for (const [key, P] of Object.entries(d.by)) for (const pl of P.places || []) out.push({ key, ...pl }); return out; }
   // bring in old lists (CSV saved from Excel): name, phone, position, place, email; same phone = same person, never a duplicate
-  function importCsv(p, b) { need(p); if (!['admin', 'hr', 'it', 'ops'].includes(p.role)) throw err('Imports are done by Admin, HR, IT or Operations.', 403);
+  function importCsv(p, b) { need(p); if (!['admin', 'hr', 'it', 'ops', 'rcm'].includes(p.role)) throw err('Imports are done by Admin, HR, IT, Operations or the Recruiting Manager.', 403);
     const rows = String(b.csv || '').replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim()).map(l => { const o = [], re = /("([^"]|"")*"|[^,;\t]*)([,;\t]|$)/g; let m; while ((m = re.exec(l)) && m[0] !== '') { o.push(m[1].replace(/^"|"$/g, '').replace(/""/g, '"').trim()); if (!m[3]) break; } return o; });
     if (rows.length < 2) throw err('The file needs a header row and at least one person.');
     const H = rows[0].map(h => h.toLowerCase()), col = re => H.findIndex(h => re.test(h));

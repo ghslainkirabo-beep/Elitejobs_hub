@@ -61,7 +61,7 @@ const hasOffice = req => req.headers['x-office-key'] === OFFICE_KEY;
 const hasIT = req => req.headers['x-it-key'] === IT_KEY;
 
 // ---- state + safe merging ---------------------------------------------------
-const POSITIONS = { admin: 'Admin', it: 'IT Support', hr: 'HR Manager', ops: 'Operations', int: 'Interview Officer', front: 'Front Desk', rec: 'Receptionist', cc: 'Call Center', sm: 'Social Media Manager' };
+const POSITIONS = { admin: 'Admin', it: 'IT Support', hr: 'HR Manager', ops: 'Operations', int: 'Interview Officer', front: 'Front Desk', rec: 'Receptionist', cc: 'Call Center', sm: 'Social Media Manager', rcm: 'Recruiting Manager', recr: 'Recruitment Officer', abr: 'Abroad Placement Officer', cro: 'Client Relations Officer', salesm: 'Sales Manager', sales: 'Sales Officer', mktm: 'Marketing Manager', mkt: 'Marketing Officer', fin: 'Finance Manager', acct: 'Accountant', cash: 'Cashier', trn: 'Training & CV Coach', legal: 'Legal & Compliance Officer', asst: 'Office Assistant' };
 function blankState() { return { n: 200, virgin: true, empSeq: 0, staff: [], tickets: [], calls: [], cands: [], ints: [], leaves: [], visitors: [], rooms: [], svc: [], msgs: [], notifs: [], log: [], disabled: {} }; }
 let STATE = null;
 function loadState() {

@@ -35,7 +35,7 @@ module.exports = function ({ DATA_DIR, urgent, staffOf, stateOf, appendActivity,
     const g = rj(GR, { users: {}, unlocked: {} }), u = g.users[p.id] || {};
     const off = u.view === false;                                  // an older “no access” stays respected
     const pw = (k, def) => u[k] !== undefined ? !!u[k] : (!off && def);
-    const start = pw('start', p.role === 'hr'), cc = pw('cc', p.role === 'cc'), hr = pw('hr', p.role === 'hr'), int = pw('int', p.role === 'int'), rm = !!u.rm;
+    const start = pw('start', p.role === 'hr' || p.role === 'rcm'), cc = pw('cc', p.role === 'cc'), hr = pw('hr', p.role === 'hr'), int = pw('int', p.role === 'int'), rm = pw('rm', p.role === 'rcm');
     const db = !!u.db || (g.unlocked[p.id] || 0) > Date.now();
     let post = false, review = false; try { const U = urgent.rights(p); post = !!U.post; review = !!U.review; } catch (e) {}
     if (u.post !== undefined) post = !!u.post;

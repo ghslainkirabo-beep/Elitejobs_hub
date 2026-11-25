@@ -68,7 +68,7 @@ module.exports = function ({ DATA_DIR, urgent, inquiries, appendActivity, broadc
       }
     } catch (e) {}
     // 6b. local placements: check in at 1 week, 1 month, 3 months; a worker who left needs a replacement
-    if (['admin', 'hr', 'ops'].includes(p.role)) for (const [key, P] of Object.entries(rj(F('people.json'), { by: {} }).by || {})) for (const pl of P.places || []) {
+    if (['admin', 'hr', 'ops', 'rcm', 'recr', 'cro'].includes(p.role)) for (const [key, P] of Object.entries(rj(F('people.json'), { by: {} }).by || {})) for (const pl of P.places || []) {
       if (pl.left) { if (pl.left.replace && now - pl.left.t < 14 * DAY) add(`repl:${pl.id}`, 'now', `Find a replacement for ${pl.employer}`, `The ${pl.title} placed there left: ${pl.left.why}`, 'cvstudio', pl.left.t); continue; }
       for (const [d, l] of [[7, '1 week'], [30, '1 month'], [90, '3 months']]) { const due = pl.t + d * DAY, done = (pl.care || []).some(c => c.t >= due);
         if (!done && now >= due && now < due + 21 * DAY) add(`care:${pl.id}:${d}`, 'soon', `Check in: ${pl.title} at ${pl.employer}`, `Placed ${l} ago. Call the worker and the employer, then log it in their history.`, 'cvstudio', due); }
