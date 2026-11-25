@@ -51,7 +51,7 @@ fi
 
 say "Settings"
 if [ ! -f "$ENVF" ]; then
-  CODE=$(tr -dc 'A-HJ-NP-Z2-9' </dev/urandom | head -c 16)
+  CODE=$(head -c 4096 /dev/urandom | LC_ALL=C tr -dc 'A-HJ-NP-Z2-9' | cut -c1-16)   # no early pipe close, so pipefail can't stop us
   cat > "$ENVF" <<EOT
 HUB_CLOUD=1
 HUB_DATA_DIR=$DATA
@@ -121,11 +121,9 @@ systemctl enable --now elitejobs-hub elitejobs-hub-update.timer >/dev/null
 systemctl restart elitejobs-hub
 
 say "Connecting to Cloudflare"
-if systemctl list-unit-files | grep -q '^cloudflared.service'; then
-  echo "Tunnel already installed."
-else
-  cloudflared service install "$TOKEN"
-fi
+# (Re)install with the token given now, so a refreshed Cloudflare token works by running this again.
+if systemctl cat cloudflared >/dev/null 2>&1; then cloudflared service uninstall >/dev/null 2>&1 || true; fi
+cloudflared service install "$TOKEN"
 
 say "Firewall: only SSH (for you); the Hub is reached only through Cloudflare"
 ufw default deny incoming >/dev/null; ufw default allow outgoing >/dev/null; ufw allow OpenSSH >/dev/null; ufw --force enable >/dev/null
