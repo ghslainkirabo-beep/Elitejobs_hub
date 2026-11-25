@@ -2242,8 +2242,8 @@ V.devices=function(){const d=ui.dv;if(!d)return'<h1>Devices</h1><div class=empty
 // Approve button only works when it is their turn. The server decides who may see what (Admin's grants), so people
 // without access get blurred cards and nothing else.
 const VF={me:null,list:{},busy:false,err:''};
-const VF_STEPS=[['start','Stated','📝'],['post','Posted','📣'],['call','Called','📞'],['hr','Completed','🧑‍💼'],['notice','Interviews','🎤']];
-const VF_ORDER=['post','call','hr','notice','upcoming','done'];
+const VF_STEPS=[['start','Stated','📝'],['post','Posted','📣'],['call','Called','📞'],['hr','HR','🧑‍💼'],['notice','Interviews','🎤'],['remarks','Remarks','🗒️'],['done','Decided','🏁']];
+const VF_ORDER=['post','call','hr','notice','upcoming','remarks','done'];
 const UGL_VF={coming:'Coming on site','not-available':'Not available','not-interested':'Not interested','no-answer':'Didn’t pick up'};
 function vfLoad(){if(VF.busy)return;VF.busy=true;api('/api/vf/me').then(r=>{VF.me=r;VF.err='';vfNav();vfRefresh()}).catch(e=>{VF.err=e.message}).finally(()=>{VF.busy=false;vfBadges()})}
 function vfList(scope){return api('/api/vf/list?scope='+scope).then(r=>{VF.list[scope]=r.vacs;vfRefresh()}).catch(e=>{VF.list[scope]={err:e.message};vfRefresh()})}
@@ -2277,19 +2277,19 @@ VF_VIEWS.forEach(b=>{if(!STATIC.includes(b))STATIC.push(b)});
 
 // ---------- pieces ----------
 function vfTrack(v){const i=VF_ORDER.indexOf(v.stage);const done=k=>k=='start'||VF_ORDER.indexOf(k)<i||(k=='notice'&&i>VF_ORDER.indexOf('notice'));
- const who={start:v.starter&&v.starter.name,post:v.post&&(v.post.by||v.post.claimed||{}).name,call:v.call&&v.call.by.name,hr:v.hr&&v.hr.by.name,notice:v.int&&v.int.by.name};
+ const who={start:v.starter&&v.starter.name,post:v.post&&(v.post.by||v.post.claimed||{}).name,call:v.call&&v.call.by.name,hr:v.hr&&v.hr.by.name,notice:v.int&&v.int.by.name,remarks:v.remarks&&v.remarks.by,done:v.rm&&v.rm.name};
  return`<ol class=vftrack>${VF_STEPS.map(([k,l,ic])=>{const st=done(k)?'is-done':VF_ORDER[i]==k?'is-now':'';return`<li class="${st}"><i>${st=='is-done'?'✓':ic}</i><b>${l}</b><small title="${esc(who[k]||'')}">${esc(who[k]?String(who[k]).split(' ')[0]:(st=='is-now'?'now':''))}</small></li>`}).join('')}</ol>`}
 function vfFacts(v){return`<div class=vffacts>${v.employer?`<span>🏢 ${esc(v.employer)}</span>`:''}${v.loc?`<span>📍 ${esc(v.loc)}</span>`:''}<span>👥 ${v.need} needed</span>${v.salMin||v.salMax?`<span>💰 ${[v.salMin,v.salMax].filter(Boolean).map(n=>(+n).toLocaleString('en-US')).join(' – ')} RWF</span>`:''}${v.rules&&(v.rules.cv||v.rules.dip||v.rules.gender!='any')?`<span>📄 ${esc(ugRulesLine(v.rules))}</span>`:''}</div>`}
-const VF_BTN={post:'Approve — open the job form',call:'Approve — open the applicants',complete:'Approve — open the applicants',interview:'Approve — add to my Upcoming'};
-function vfCard(v){const m=v.me||{},btn=m.act?`<button class="vfgo${m.ready?'':' is-wait'}" ${m.ready?`data-a="vf${m.act}|${v.id}"`:'disabled aria-disabled=true'}>${m.ready?VF_BTN[m.act]:`<span class=vfapl>Approve</span> <small>${esc(m.why||'Waiting for the step before')}</small>`}</button>`:m.why?`<span class=vfwait>${esc(m.why)}</span>`:'';
+const VF_BTN={post:'Approve — open the job form',call:'Approve — open Vacancy on call',complete:'Approve — open the applicants',interview:'Approve — add to my Upcoming',decide:'Approve — open Interview results'};
+function vfCard(v){const m=v.me||{},btn=m.act?`<button class="vfgo${m.ready?'':' is-wait'}" ${m.ready?`data-a="vf${({complete:'hrgo'})[m.act]||m.act}|${v.id}"`:'disabled aria-disabled=true'}>${m.ready?VF_BTN[m.act]:`<span class=vfapl>Approve</span> <small>${esc(m.why||'Waiting for the step before')}</small>`}</button>`:m.why?`<span class=vfwait>${esc(m.why)}</span>`:'';
  const cnt=v.stage=='call'?`<span class="vfcnt${v.cap&&v.applicants>=v.cap?' is-full':''}" title="Applied on the website"><b>${v.applicants}</b>${v.cap?` of <b>${v.cap}</b>`:''} applied${v.cap&&v.applicants>=v.cap?' · full':''}${v.waiting?` · <b>${v.waiting}</b> to call`:''}</span>`:'';
- const del=v.mineToDelete?`<button class=vfdel data-a="vfdel|${v.id}" title="Only you can delete it, because you stated it">Delete</button>`:'';
- return`<article class="vfcard s-${v.stage}"><header><div><h3>${esc(v.title)}</h3><small>Stated by ${esc(v.starter.name)} · ${agoT(v.created)}</small></div>${cnt}</header>${vfFacts(v)}${vfTrack(v)}<footer>${btn}${del}</footer></article>`}
+ const del=(v.canEdit?`<button class=vfdel data-a="vfedit|${v.id}" title="Change the limit, pay, place or end time — the website changes too">Edit</button>`:'')+(v.mineToDelete?`<button class=vfdel data-a="vfdel|${v.id}" title="Only you can delete it, because you stated it">Delete</button>`:'');
+ return`<article class="vfcard s-${v.stage}${v.achieved?' is-ach':''}"><header><div><h3>${esc(v.title)}</h3><small>Stated by ${esc(v.starter.name)} · ${agoT(v.created)}</small></div>${v.achieved?'<span class=vfach>✓ Achieved</span>':cnt}</header>${vfFacts(v)}${vfTrack(v)}${ui.vfedit==v.id?vfEditSheet(v):''}<footer>${btn}${del}</footer></article>`}
 function vfLocked(n){return`<div class=vflock><div class=vfblur>${'<div class=vfghost><i></i><i></i><i></i></div>'.repeat(Math.min(3,Math.max(1,n)))}</div><div class=vflockm><b>🔒 ${n} vacanc${n==1?'y is':'ies are'} in progress</b><small>Admin hasn’t given you access to vacancies.</small></div></div>`}
 
 // ---------- My tasks ----------
 V.tasks=function(){if(!VF.me)return`<h1>My tasks</h1><div class=sub>${VF.err?'<span class=bad>'+esc(VF.err)+'</span>':'Opening your tasks…'}</div>`;
- const T=vfMine(),hr=T.filter(v=>v.me&&v.me.act=='complete'),rest=T.filter(v=>!(v.me&&v.me.act=='complete')),act=rest.filter(v=>v.me&&v.me.act&&v.me.ready),wait=rest.filter(v=>!(v.me&&v.me.act&&v.me.ready));
+ const T=vfMine(),hr=[],rest=T,act=rest.filter(v=>v.me&&v.me.act&&v.me.ready),wait=rest.filter(v=>!(v.me&&v.me.act&&v.me.ready));
  if(ui.vfday){const L=hr.filter(v=>v.call&&v.call.day==ui.vfday);if(L.length)return vfDay(ui.vfday,L);ui.vfday=null}
  const days=[...new Set(hr.map(v=>v.call.day))].sort().reverse();
  return`<h1>My tasks</h1><div class=sub>Your part in each vacancy. A button works only when it’s your turn — the step before you has to finish first.</div>
@@ -2373,7 +2373,7 @@ Object.assign(A,{
  vfslclear(){VF.slSel=[];refreshMain()},
  vfslcopy(){(navigator.clipboard?navigator.clipboard.writeText(VF.slOut.url):Promise.reject()).then(()=>toast('✔ Copied')).catch(()=>toast('Select the link and copy it'))},
  vfslans(vac){api('/api/vf/shortlist?id='+encodeURIComponent(vac)).then(r=>{VF.slAns=r;refreshMain()}).catch(e=>toast('✖ '+e.message))},
- vfhrf(id){api('/api/vf/hrfilter',{id}).then(r=>{haptic('success');toast('✔ Filtered — '+r.kept+' coming on site kept');vfLoad()}).catch(e=>{haptic('error');toast('✖ '+e.message)})},
+ vfhrf(id){api('/api/vf/hrfilter',{id}).then(r=>{haptic('success');toast('✔ Fetched — '+r.kept+' coming on site');vfLoad()}).catch(e=>{haptic('error');toast('✖ '+e.message)})},
  vfcomplete(id){const v=vfMine().find(x=>x.id==id);if(!v)return;
   api('/api/vf/complete',{id}).then(()=>{haptic('success');toast('✔ Pushed — the interviewers can approve it now');vfLoad()}).catch(e=>{haptic('error');toast('✖ '+e.message)})},
  vfdel(id){const v=vfMine().find(x=>x.id==id);if(!v)return;if(VF.delAsk!==id){VF.delAsk=id;clearTimeout(VF.delT);VF.delT=setTimeout(()=>{VF.delAsk=null;vfRefresh()},5000);haptic('warning');toast('Tap Delete again to delete “'+v.title+'” for everyone');const b=document.querySelector('[data-a="vfdel|'+id+'"]');if(b){b.textContent='Tap again to delete';b.classList.add('is-ask')}return}
@@ -2404,11 +2404,11 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .vfcard h3,.vfhr h3{margin:0;font-size:18px;letter-spacing:-.02em}.vfcard header small,.vfhr header small{color:var(--mu);font-size:12.5px}
 .vfcnt{flex:none;font-size:12.5px;color:var(--mu);background:var(--s2);border-radius:99px;padding:5px 11px;white-space:nowrap}.vfcnt b{color:var(--tx)}
 .vffacts{display:flex;flex-wrap:wrap;gap:6px}.vffacts span{font-size:12.5px;background:var(--bg);border:1px solid var(--bd);border-radius:99px;padding:4px 10px}
-.vftrack{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);position:relative}
-.vftrack:before{content:"";position:absolute;left:10%;right:10%;top:15px;height:2px;background:var(--bd)}
+.vftrack{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));position:relative}
+.vftrack:before{content:"";position:absolute;left:7%;right:7%;top:13px;height:2px;background:var(--bd)}
 .vftrack li{position:relative;display:grid;justify-items:center;gap:3px;text-align:center}
-.vftrack i{font-style:normal;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:14px;background:var(--s2);border:2px solid var(--s1);box-shadow:0 0 0 1px var(--bd);position:relative}
-.vftrack b{font-size:11.5px}.vftrack small{font-size:10.5px;color:var(--mu);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vftrack i{font-style:normal;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:14px;background:var(--s2);border:2px solid var(--s1);box-shadow:0 0 0 1px var(--bd);position:relative}
+.vftrack b{font-size:10.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vftrack small{font-size:10.5px;color:var(--mu);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vftrack .is-done i{background:#2ecc8f;color:#fff;box-shadow:none;font-weight:800}
 .vftrack .is-now i{background:var(--ac);color:#fff;box-shadow:0 0 0 4px color-mix(in srgb,var(--ac) 25%,transparent);animation:vfPulse 2s ease-in-out infinite}
 @keyframes vfPulse{50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--ac) 10%,transparent)}}
@@ -2482,7 +2482,8 @@ function vfUpcoming(){const U=VF.up;if(!U){vfUpLoad();return'<h1>Upcoming</h1><d
   <footer><span class=vfclock data-vfclock="${v.closesAt}">⏱ ${vfLeft(v.closesAt)} until 17:30</span>${v.int.saved?'<span class=vfopen>Saved for everyone</span>':''}</footer></button>`}).join('')}</div>`:'<div class=vfempty><b>Nothing upcoming</b><small>A vacancy arrives here when you tap Approve on it in My tasks.</small></div>'}`}
 function vfUpDetail(v){const isInt=vfRights().int||vfRights().admin,C=v.cands,K=v.hr.keep,free=K.filter(x=>!C.some(c=>c.app==x.app));
  return`<button class=ugback data-a=vfuopen|>← Upcoming</button><div class=vfhead><div><h1>${esc(v.title)}</h1><div class=sub>${esc(v.employer||'')}${v.employer?' · ':''}${K.length} coming on site · <span class=vfclock data-vfclock="${v.closesAt}">⏱ ${vfLeft(v.closesAt)} until 17:30</span></div></div>
- ${isInt?`<div class=vfupbtns>${btn('＋ Recipient','vfrcp|'+v.id,'p')}${C.length?btn(v.int.saved?'Saved ✓':'Save','vfsave|'+v.id):''}${C.length?btn('Push to results','vfpushup|'+v.id):''}</div>`:''}</div>
+ ${isInt?`<div class=vfupbtns>${v.int.session?btn('＋ Add recipient','vfrcp|'+v.id,'p'):''}${C.length?btn(v.int.saved?'Saved ✓':'Save','vfsave|'+v.id):''}${C.length?btn('Finish → Interview remarks','vfpushup|'+v.id):''}</div>`:''}</div>
+ ${isInt?vfSession(v):''}
  ${ui.vfrcp==v.id?vfRcpSheet(v,free):''}
  ${C.length?`<h2 class=vfh>Recipients</h2><div class=vfcands>${C.map(c=>{const rows=Object.values(c.rows),m=rows.filter(r=>r.scores).length,turn=c.order.find(id=>c.rows[id]&&!c.rows[id].scores&&!c.rows[id].absent);return`<button class="vfcand is-${c.status}" data-a="vfcopen|${c.app}"><span class=vfav>${esc(cvIni(c.name))}</span><span><b>${esc(c.name)}</b><small>${c.status=='done'?'Finished · '+vfR1(c.final)+'/20':m+' of '+rows.length+' interviewers marked'}</small></span>${c.status=='open'&&turn==ui.me.id?'<em class=vfflag>1</em>':''}</button>`}).join('')}</div>`:'<div class=vfempty><b>No recipient yet</b><small>Tap ＋ Recipient when the first person sits down for the interview.</small></div>'}`}
 function vfRcpSheet(v,free){const w=VF.walk||(VF.walk={});
@@ -2500,12 +2501,12 @@ function vfForm(v,c,O){const me=ui.me.id,mine=c.rows[me],open=c.status=='open',r
  return`<button class=ugback data-a=vfcopen|>← ${esc(v.title)}</button><div class=vfform>
  <header class=vffh><span class="vfav lg">${esc(cvIni(c.name))}</span><div><h1>${esc(c.name)}</h1><div class=sub>Interview for ${esc(c.position)} · ${esc(v.employer||'')}</div></div><div class=vffin><small>Final mark</small><b>${avg.length?vfR1(open?fin:c.final):'—'}<i>/20</i></b><small>${avg.length} of ${rows.length} interviewer${rows.length==1?'':'s'}</small></div></header>
  <dl class=vfdl>${F.map(([k,x])=>`<div><dt>${k}</dt><dd>${esc(x)}</dd></div>`).join('')}</dl>
- ${rows.map((r,i)=>r.uid==me&&open&&!r.scores&&turn==me?vfMyRow(v,c,r,i):`<section class="vfrowc ${r.scores?'is-done':r.absent?'is-absent':''}"><header><span class=vfnum>${i+1}</span><b>${esc(r.name)}</b>${r.scores?`<em>${vfR1(r.s20)}<i>/20</i></em>`:r.absent?'<em class=vfab>Not here</em>':`<span class=vfwait>${r.uid==turn?(r.uid==me?'Your turn':'Their turn now'):r.uid==me?'Your turn comes after '+esc(((c.rows[turn]||{}).name||'').split(' ')[0]):'Waiting'}</span>${open&&r.uid==turn&&(ui.me.r=='int'||vfRights().admin)?`<button class=cvlk data-a="vfabsent|${v.id}|${c.app}|${r.uid}">Not here</button>`:''}`}</header>
+ ${rows.map((r,i)=>r.uid==me&&open&&!r.scores&&(c.mode=='hand'||turn==me)?vfMyRow(v,c,r,i):`<section class="vfrowc ${r.scores?'is-done':r.absent?'is-absent':c.mode=='hand'?'is-blur':''}"><header><span class=vfnum>${i+1}</span><b>${esc(r.name)}</b>${r.scores?`<em>${vfR1(r.s20)}<i>/20</i></em>`:r.absent?'<em class=vfab>Not here</em>':`<span class=vfwait>${c.mode=='hand'?'Marks their own row':r.uid==turn?(r.uid==me?'Your turn':'Their turn now'):r.uid==me?'Your turn comes after '+esc(((c.rows[turn]||{}).name||'').split(' ')[0]):'Waiting'}</span>${open&&r.uid==turn&&(ui.me.r=='int'||vfRights().admin)?`<button class=cvlk data-a="vfabsent|${v.id}|${c.app}|${r.uid}">Not here</button>`:''}`}</header>
   ${r.scores?`<p class=vftopic>${esc(r.topic)}</p><div class=vfsc>${r.scores.map((x,j)=>`<span><small>Q${j+1}</small><b>${x}</b></span>`).join('')}</div>`:''}</section>`).join('')}
- <div class=vfnext>${open?`<small>${allIn?(canFin?'Everyone has marked. Finish sends this person to Interview results.':'Everyone has marked. The last interviewer, '+esc((c.rows[last]||{}).name||'')+', presses Finish.'):'Finish turns on for the last interviewer when every row is marked.'}</small><button class="vfgo vfgreen" ${allIn&&anyDone&&canFin?`data-a="vffinish|${v.id}|${c.app}"`:'disabled'}>Finish</button>`:`<span class=vfopen>✓ Finished by ${esc(c.finished.by.name)} · ${agoT(c.finished.t)}</span>`}</div></div>`}
+ <div class=vfnext>${open&&c.mode=='hand'?`<small>Handover: each interviewer marks their own row. When the last row is marked, the Hub works out the final mark by itself.</small>`:open?`<small>${allIn?(canFin?'Everyone has marked. Finish sends this person to Interview results.':'Everyone has marked. The last interviewer, '+esc((c.rows[last]||{}).name||'')+', presses Finish.'):'Finish turns on for the last interviewer when every row is marked.'}</small><button class="vfgo vfgreen" ${allIn&&anyDone&&canFin?`data-a="vffinish|${v.id}|${c.app}"`:'disabled'}>Finish</button>`:`<span class=vfopen>✓ Finished by ${esc(c.finished.by.name)} · ${agoT(c.finished.t)}</span>`}</div></div>`}
 function vfMyRow(v,c,r,i){const k=v.id+'|'+c.app,d=VF.draft[k]||(VF.draft[k]={n:5,topic:'',sc:[]}),n=d.n,sum=d.sc.slice(0,n).reduce((a,b)=>a+(+b||0),0),filled=d.sc.slice(0,n).filter(x=>x!==''&&x!=null).length;
- return`<section class="vfrowc is-mine" data-vfrow="${esc(k)}"><header><span class=vfnum>${i+1}</span><b>${esc(r.name)} · your row</b><em id=vfmy>${filled?vfR1(sum/(n*5)*20):'—'}<i>/20</i></em></header>
- <div class=vfrq><label>Questions<select data-vfn>${Array.from({length:20},(_,j)=>`<option ${j+1==n?'selected':''}>${j+1}</option>`).join('')}</select></label><label class=vftop>Topic <small>(optional)</small><input data-vftopic maxlength=120 value="${esc(d.topic)}" placeholder="e.g. Customer service and hotel software"></label></div>
+ return`<section class="vfrowc is-mine" data-vfrow="${esc(k)}"><header><span class=vfnum>${i+1}</span><b>${esc(r.name)} · your row</b>${c.mode=='hand'?'<small class=vfmode>Handover</small>':''}<em id=vfmy>${filled?vfR1(sum/(n*5)*20):'—'}<i>/20</i></em></header>
+ <div class=vfrq><label>Questions<select data-vfn>${Array.from({length:20},(_,j)=>`<option ${j+1==n?'selected':''}>${j+1}</option>`).join('')}</select></label><label class=vftop>Topic of your questions<input data-vftopic maxlength=120 value="${esc(d.topic)}" placeholder="e.g. Customer service and hotel software"></label></div>
  <div class=vfqs>${Array.from({length:n},(_,j)=>`<div class=vfq><small>Q${j+1}</small><div class=vfseg role=radiogroup aria-label="Question ${j+1} out of 5">${[0,1,2,3,4,5].map(x=>`<button type=button role=radio aria-checked=${d.sc[j]===x} class="${d.sc[j]===x?'on':''}" data-vfsc="${j}|${x}">${x}</button>`).join('')}</div></div>`).join('')}</div>
  <footer><small>Each question is out of 5. The Hub turns your marks into a mark out of 20.</small><button class=vfgo data-a="vfscore|${v.id}|${c.app}">Done</button></footer></section>`}
 // marks typed on this device are kept here until Done, so a refresh or a power cut loses nothing
@@ -2526,8 +2527,8 @@ V.vfres=function(){const D=VF.res,q=VF.rq;if(!D)return'<h1>Interview results</h1
  ${VF.slOut?`<div class=vfslout><b>Private link ready (7 days)</b><input readonly value="${esc(VF.slOut.url)}" onclick="this.select()"><button class=b data-a=vfslcopy>Copy</button><button class=cvlk data-a="vfslans|${VF.slOut.vac}">See the employer’s answers</button></div>`:''}
  ${VF.slAns?`<div class=vfslout><b>Employer’s answers</b>${VF.slAns.list.map(x=>`<div><small>Sent ${agoT(x.t)} by ${esc(x.by.name)}${x.err?' · '+esc(x.err):''}</small>${(x.people||[]).map(p=>`<div>${esc(p.name)} — <b>${p.pick?p.pick.v=='interview'?'✓ Interview':'✕ Not this one':'no answer yet'}</b></div>`).join('')}</div>`).join('')||'<small>No shortlist sent yet.</small>'}</div>`:''}
  ${D.list.length?[...by.entries()].map(([t,L])=>`<section class=vfres><header><h3>${esc(t)}</h3><small>${L.length} ${q.min?'at '+esc(q.min)+'/20 or more':'interviewed'} · best ${vfR1(L[0].final)}/20</small></header>
- ${L.map(c=>`<div class=vfrr>${D.canSl&&!c.unfinished?`<label class=vfslck title="Add to the employer shortlist"><input type=checkbox data-vfsl="${c.app}" ${(VF.slSel||[]).includes(c.app)?'checked':''}></label>`:''}<span class=vfmark style="--m:${c.final/20}"><b>${vfR1(c.final)}</b><i>/20</i></span><span class=vfrrn><b>${esc(c.name)}</b>${c.unfinished?` <i class=vfunf>Not finished · ${c.marked||0} of ${Object.keys(c.rows).length} marked</i>`:''}<small>${esc(c.phone)}${c.email?' · '+esc(c.email):''}${c.lives?' · '+esc(c.lives):''}</small><small>${Object.values(c.rows).filter(r=>r.scores).map(r=>esc(r.name.split(' ')[0])+' '+vfR1(r.s20)).join(' · ')}</small></span>
-  <span class=vfdec>${c.push?`<span class="vfdone ${c.push.qualified?'ok':'no'}">${c.push.qualified?'✓ Qualified & served':'✕ Disqualified'}<small>by ${esc(c.push.by.name)} · ${agoT(c.push.t)}${c.called?' · called by '+esc(c.called.by.name):''}</small></span>`:D.canPush?`<span class=vfseg2 role=radiogroup aria-label="Decision"><button class="${VF.draft['q|'+c.app]===true?'on':''}" data-a="vfq|${c.app}|1">Qualified & served</button><button class="${VF.draft['q|'+c.app]===false?'on no':''}" data-a="vfq|${c.app}|0">Disqualified</button></span><button class=vfgo ${VF.draft['q|'+c.app]===undefined?'disabled':`data-a="vfpush|${c.vac}|${c.app}"`}>Save</button>`:'<span class=vfwait>Waiting for the recruitment manager</span>'}</span></div>`).join('')}</section>`).join(''):`<div class=vfempty><b>No results${q.q||q.min?' match this search':' on this date'}</b><small>${q.q||q.min?'Try a lower mark or another position.':'Finished interviews appear here by themselves.'}</small></div>`}`};
+ ${L.map(c=>`<div class="vfrr b-${c.band||''}">${D.canSl&&!c.unfinished?`<label class=vfslck title="Add to the employer shortlist"><input type=checkbox data-vfsl="${c.app}" ${(VF.slSel||[]).includes(c.app)?'checked':''}></label>`:''}<span class=vfmark style="--m:${c.final/20}"><b>${vfR1(c.final)}</b><i>/20</i></span><span class=vfrrn><b>${esc(c.name)}</b>${c.unfinished?` <i class=vfunf>Not finished · ${c.marked||0} of ${Object.keys(c.rows).length} marked</i>`:''}<small>${esc(c.phone)}${c.email?' · '+esc(c.email):''}${c.lives?' · '+esc(c.lives):''}</small><small>${Object.values(c.rows).filter(r=>r.scores).map(r=>esc(r.name.split(' ')[0])+' '+vfR1(r.s20)).join(' · ')}</small></span>
+  <span class=vfdec>${vfDecide(c,D)}</span></div>`).join('')}</section>`).join(''):`<div class=vfempty><b>No results${q.q||q.min?' match this search':' on this date'}</b><small>${q.q||q.min?'Try a lower mark or another position.':'Finished interviews appear here by themselves.'}</small></div>`}`};
 
 // ---------- Waiting list (recruitment manager) ----------
 V.vfwait=function(){const D=VF.wait;if(!D)return'<h1>Waiting list</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Waiting list</h1><p class=bad>${esc(D.err)}</p>`;
@@ -2547,7 +2548,7 @@ Object.assign(A,{
  vfcopen(app){ui.vfc=app||null;haptic('soft');refreshMain();$('#main').scrollTop=0},
  vfustart(id){vfAct('/api/vf/start',{id},'✔ Interviews started').then(vfUpLoad).catch(()=>{})},
  vfcadd(id,app){vfAct('/api/vf/cand',{id,app},'✔ Added — the form is open').then(()=>{ui.vfrcp=null;return vfUpLoad().then(()=>{ui.vfc=app;refreshMain()})}).catch(()=>{})},
- vfscore(id,app){const k=id+'|'+app,d=VF.draft[k]||{},sc=(d.sc||[]).slice(0,d.n);
+ vfscore(id,app){const k=id+'|'+app,d=VF.draft[k]||{},sc=(d.sc||[]).slice(0,d.n);if(!String(d.topic||'').trim())return toast('✖ Write the topic of your questions first');
   if(sc.length<d.n||sc.some(x=>x===''||x==null))return toast('✖ Mark every question (0 to 5)');
   vfAct('/api/vf/score',{id,app,topic:d.topic,scores:sc}).then(()=>{delete VF.draft[k];vfDraftSave();ui.vfc=null;vfUpLoad();vfUndoBar(id,app)}).catch(()=>{})},
  vfundo(id,app){clearTimeout(VF.undoT);document.querySelectorAll('.vfundo').forEach(x=>x.remove());vfAct('/api/vf/unscore',{id,app},'↩ Your marks are back to edit').then(()=>vfUpLoad().then(()=>{ui.vfu=id;ui.vfc=app;refreshMain()})).catch(()=>{})},
@@ -2555,12 +2556,12 @@ Object.assign(A,{
  vfwalk(id){const f=$('#vfwf');if(!f)return;const d=Object.fromEntries(new FormData(f).entries());d.wa=!!d.wa;VF.walk=d;
   vfAct('/api/vf/cand',{id,walk:d},'✔ Added — the form is open').then(()=>{VF.walk={};ui.vfrcp=null;return vfUpLoad().then(()=>{const v=VF.up.vacs.find(x=>x.id==id),c=v&&v.cands[v.cands.length-1];ui.vfc=c&&c.app;refreshMain()})}).catch(()=>{})},
  vfsave(id){vfAct('/api/vf/save',{id},'✔ Saved — it’s in every interviewer’s Upcoming').then(vfUpLoad).catch(()=>{})},
- vfpushup(id){if(!sure('pushup'+id,'Push this vacancy to Interview results now? It leaves everyone’s Upcoming, finished or not'))return;vfAct('/api/vf/pushup',{id},'✔ Pushed — it’s in Interview results').then(()=>{ui.vfu=null;vfUpLoad()}).catch(()=>{})},
+ vfpushup(id){if(!sure('pushup'+id,'Finish this vacancy card? It goes to Interview remarks for everyone, finished or not — you can rewind it for latecomers'))return;vfAct('/api/vf/pushup',{id},'✔ Finished — it’s in Interview remarks').then(()=>{ui.vfu=null;vfUpLoad()}).catch(()=>{})},
  vfabsent(id,app,uid){if(!sure('absent'+id+app+uid,'Mark this interviewer as not here? Their row will be skipped'))return;vfAct('/api/vf/absent',{id,app,uid}).then(vfUpLoad).catch(()=>{})},
- vffinish(id,app){vfAct('/api/vf/finish',{id,app}).then(r=>{toast('✔ Finished — '+vfR1(r.final)+'/20. It’s in Interview results');ui.vfc=null;vfUpLoad()}).catch(()=>{})},
+ vffinish(id,app){vfAct('/api/vf/finish',{id,app}).then(r=>{toast('✔ Finished — '+vfR1(r.final)+'/20');ui.vfc=null;vfUpLoad()}).catch(()=>{})},
  vfrday(d){VF.rq.day=d;vfResLoad()},vfwday(d){VF.wq.day=d;vfWaitLoad()},
  vfq(app,v){VF.draft['q|'+app]=v=='1';haptic('tick');refreshMain()},
- vfpush(id,app){const q=VF.draft['q|'+app];vfAct('/api/vf/push',{id,app,qualified:q},q?'✔ Qualified & served — the database is updated':'✔ Saved as disqualified').then(()=>{delete VF.draft['q|'+app];vfResLoad()}).catch(()=>vfResLoad())},
+ vfpush(id,app){const q=VF.draft['q|'+app],contact=VF.draft['k|'+app]||'';vfAct('/api/vf/push',{id,app,qualified:q,contact},q?(contact=='coming'?'✔ Qualified — they’re in your Draft until the employer meets them':'✔ Qualified — saved'):'✔ Saved as not qualified').then(()=>{delete VF.draft['q|'+app];vfResLoad()}).catch(()=>vfResLoad())},
  vfcalled(id,app){vfAct('/api/vf/called',{id,app},'✔ Done — they’re on the Waiting list').then(vfCallsLoad).catch(()=>{})},
  vfserved(id,app,v){vfAct('/api/vf/served',{id,app,v:v=='1'}).then(vfWaitLoad).catch(()=>{})}});
 // the marking row: questions, topic and 0–5 per question, kept while typing (nothing re-renders under your fingers)
@@ -3225,21 +3226,6 @@ function smLoad(){const q=SM.vac?'vac='+encodeURIComponent(SM.vac):'title='+enco
  return api('/api/smatch?'+q).then(r=>{SM.d=r;refreshSm()}).catch(e=>{SM.d={err:e.message,vacs:(SM.d&&SM.d.vacs)||[]};refreshSm()})}
 const refreshSm=()=>{const e=flat(ui.r)[ui.v];if(e&&e.b=='smatch')refreshMain()};
 if(!STATIC.includes('smatch'))STATIC.push('smatch');LOADERS.smatch=()=>smLoad();
-/* ---- Powers follow Admin's Grant power both ways: a room appears the moment a power is given,
-   and disappears the moment it is taken back (no reload needed). ---- */
-const UG_BASE=new Set(UG_POS);
-const VF_GATE={'form|vfnew':R0=>R0.start,'vfdash|':R0=>R0.view,'smatch|':R0=>R0.view,'vacs|active':R0=>R0.view,'vacs|notices':R0=>R0.view,
- 'vacs|upcoming':R0=>R0.int||R0.admin||R0.rm,'vfirep|':R0=>R0.admin||R0.rm||R0.int||ui.me.r=='hr'||ui.me.r=='int','vfres|':R0=>R0.view,'vfwait|':R0=>R0.rm||R0.admin};
-const pwVfNav=vfNav;vfNav=function(){pwVfNav();const Rt=vfRights(),r=R[ui.r];if(!r||!VF.me)return;
- const cur=flat(ui.r)[ui.v];let ch=false;
- const g=r.nav.find(x=>x[0]=='Recruitment');
- if(g){const keep=g[1].filter(e=>{const f=VF_GATE[e.b+'|'+(e.g||'')];return !f||f(Rt)});if(keep.length!=g[1].length){g[1]=keep;ch=true}
-  if(!g[1].length){r.nav=r.nav.filter(x=>x!==g);ch=true}}
- // publishing or reviewing urgent jobs needs the Urgent hiring room, whatever the position
- const hasUg=r.nav.some(x=>x[1].some(e=>e.b=='urgent'));
- if((Rt.post||Rt.review)&&!hasUg){const i=r.nav.findIndex(x=>x[0]=='Me');r.nav.splice(i<0?1:i,0,['Hiring',[{l:'Urgent hiring',i:'⚡',b:'urgent'}]]);ch=true}
- if(!(Rt.post||Rt.review)&&hasUg&&!UG_BASE.has(ui.r)){r.nav=r.nav.filter(x=>!(x[0]=='Hiring'&&x[1].every(e=>e.b=='urgent')));ch=true}
- if(ch){const L=flat(ui.r),i=cur?L.findIndex(e=>e.b==cur.b&&(e.g||'')==(cur.g||'')):-1;ui.v=i<0?0:i;if(i<0&&cur)toast('That room was closed by Admin');render(true)}};
 /* ---- Rehub: start fresh sign-ins (IT only). Every account except yours is removed; all records stay. ---- */
 if(!STATIC.includes('rehub'))STATIC.push('rehub');
 function rhLoad(){api('/api/it/rehub').then(d=>{ui.rh=Object.assign({},ui.rh||{},{d,err:null});refreshMain()}).catch(e=>{ui.rh=Object.assign({},ui.rh||{},{err:e.message});refreshMain()})}
@@ -3440,4 +3426,208 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .aqcall textarea{padding:10px 12px;border-radius:12px;border:1px solid var(--bd);background:transparent;color:inherit;font:inherit}
 @media(max-width:700px){.aqr{grid-template-columns:auto 1fr}.aqa{grid-column:1/-1;justify-content:flex-start}}
 </style>`);
+
+/* ================= Vacancy life cycle v3 =================
+   Vacancy on call (callers lock the person they call), HR's Fetch/filter/download/Push, Sequence or Handover interviews,
+   Interview remarks with Rewind, the recruiter's decisions and Draft, the vacancy report, editing a posted vacancy,
+   and the rooms each power gets (and loses) live. */
+document.head.insertAdjacentHTML('beforeend',`<style>
+.vfach{background:#16a34a;color:#fff;border-radius:99px;padding:4px 10px;font-size:12px;font-weight:700}.vfcard.is-ach{border-color:#16a34a;box-shadow:0 0 0 1px #16a34a33 inset}
+.vfoc{border:1px solid var(--bd);border-radius:18px;padding:14px;margin:12px 0;background:var(--card)}.vfoc header{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.vfoc h3{margin:0}.vfocl{display:grid;gap:8px;margin:12px 0}.vfocr{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--bd);border-radius:14px;padding:10px 12px;background:var(--bg);transition:filter .2s,opacity .2s}
+.vfocr.is-busy{pointer-events:none;background:var(--card)}.vfocr.is-busy>:not(.vfbusy){filter:blur(2px);opacity:.5}.vfocr.is-busy .vfbusy{font-weight:700}.vfocr.is-mine{border-color:#2ecc8f;box-shadow:0 0 0 2px #2ecc8f33}.vfocr small{display:block;color:var(--mu)}
+.vfbusy{grid-column:1/-1;font-size:12px;color:#f59e0b;filter:none}.vfouts{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}.vfouts button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
+.vfouts button.on{background:#2ecc8f;border-color:#2ecc8f;color:#04140d;font-weight:700}.vfocr textarea{grid-column:1/-1;width:100%;min-height:44px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:8px;font:inherit}
+.vfoctabs{display:flex;gap:6px;margin:8px 0}.vfdraftb{font-size:11px;background:#f59e0b22;color:#f59e0b;border-radius:99px;padding:3px 9px;font-weight:700}
+.vfrowc.is-blur{filter:blur(.6px);opacity:.75}.vfmode{margin-left:8px;color:#a78bfa}
+.vfsess{border:1px dashed var(--bd);border-radius:16px;padding:14px;margin:10px 0}.vfsess h3{margin:0 0 6px}.vfsessl{display:grid;gap:6px;margin:10px 0}.vfsessl label{display:grid!important;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid var(--bd);border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;font-weight:400}.vfsessl label b{font-size:14px}.vfsessl label small{display:block}.vfsessl input[type=checkbox]{width:18px!important;height:18px;margin:0;padding:0;accent-color:#6366f1}.vfsess select{width:auto!important;min-width:70px}.vfsess .vfsn{display:flex!important;gap:10px;align-items:center;margin-top:10px}
+.vfsessl label.off{opacity:.5}.vfsesss{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.vfsesss b{font-size:14px}
+.vfrr.b-excellent .vfmark{background:#16a34a22;color:#16a34a}.vfrr.b-good .vfmark{background:#f59e0b22;color:#d97706}.vfrr.b-failed .vfmark{background:#ef444422;color:#ef4444}
+.vfbands{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}.vfbands span{font-size:12px;border-radius:99px;padding:4px 10px;background:var(--bg)}
+.vfdec2{display:grid;gap:6px;justify-items:end}.vfdec2 select{border-radius:10px;padding:6px 8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
+.vfrep{border:1px solid var(--bd);border-radius:18px;padding:16px;margin:12px 0;background:var(--card)}.vfrep.is-ach{border-color:#16a34a}.vfrep header{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.vfbar{height:8px;border-radius:99px;background:var(--bg);overflow:hidden;margin:10px 0}.vfbar i{display:block;height:100%;background:linear-gradient(90deg,#6366f1,#2ecc8f)}.vfrep.is-ach .vfbar i{background:#16a34a}
+.vfrepg{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:16px;align-items:center}@media(max-width:700px){.vfrepg{grid-template-columns:1fr}}
+.vfnums{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}.vfnums div{background:var(--bg);border-radius:12px;padding:8px 10px}.vfnums b{display:block;font-size:20px}.vfnums small{color:var(--mu)}
+.vfsteps{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.vfsteps span{font-size:12px;border-radius:99px;padding:4px 10px;background:var(--bg);color:var(--mu)}.vfsteps span.d{background:#2ecc8f22;color:#16a34a}
+.vfdaily{margin-top:8px}.vfdaily details{border-top:1px solid var(--bd);padding:8px 0}.vfdaily li{font-size:13px;margin:3px 0}.vfdaily time{color:var(--mu);margin-right:6px}
+.vfeds{border:1px solid var(--bd);border-radius:14px;padding:12px;margin:10px 0;display:grid;gap:8px}.vfeds .ug2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.vfeds label{display:grid;gap:4px;font-size:12px;color:var(--mu)}
+.vfeds input,.vfeds textarea{border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);padding:8px;font:inherit}
+.vfdatachk{border:1px solid var(--bd);border-radius:14px;padding:10px 14px;margin:8px 0 4px;display:grid;gap:2px}.vfdatachk small{color:var(--mu)}.vfhrbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0}.vfhrbar .sp{flex:1}
+</style>`);
+const VF_OUT={coming:'Coming on site',member:'Already a member','not-available':'Not available','not-interested':'Not engaged','no-answer':'Didn’t pick up','not-called':'Not called'};
+Object.assign(UGL_VF,VF_OUT);
+const vfR=()=>vfRights();
+
+// ---------- the rooms each power gets (added the moment Admin gives the power, removed the moment it is taken) ----------
+const VF_ROOMS=[['State a vacancy','📝','form','vfnew',R0=>R0.start],['Vacancies','📋','vacs','active',R0=>R0.view],['Notices','📌','vacs','notices',R0=>R0.int||R0.admin],
+ ['Upcoming','📅','vacs','upcoming',R0=>R0.int||R0.admin||R0.rm],['Vacancy on call','📞','vfoc','',R0=>R0.cc||R0.admin],['Interview remarks','🗒️','vfrem','',R0=>R0.int||R0.rm||R0.admin],
+ ['Interview results','🏁','vfres','',R0=>R0.rm||R0.hr||R0.admin],['Recruiter draft','🗂️','vfdraft','',R0=>R0.rm||R0.admin],['Interview reports','📑','vfirep','',R0=>R0.admin||R0.rm||R0.int||ui.me.r=='hr'||ui.me.r=='int'],
+ ['Smart match','🎯','smatch','',R0=>R0.rm||R0.hr||R0.int||R0.admin],['Vacancy dashboard','📊','vfdash','',R0=>R0.admin||R0.rm||R0.start||R0.hr],['Vacancy report','📈','vfrep','',R0=>R0.admin||R0.rm||R0.start||R0.hr],
+ ['Waiting list','🪑','vfwait','',()=>false]];
+const UG_BASE=new Set(UG_POS);
+['vfoc','vfrem','vfdraft','vfrep'].forEach(b=>{if(!STATIC.includes(b))STATIC.push(b);if(!VF_VIEWS.includes(b))VF_VIEWS.push(b)});
+const v3Nav=vfNav;vfNav=function(){const r=R[ui.r];if(!r)return;const cur=flat(ui.r)[ui.v],before=JSON.stringify(r.nav);
+ // the older room code may add rooms and redraw: let it run silently, then draw once with the right room still open
+ const r0=render;render=()=>{};try{v3Nav()}finally{render=r0}
+ const Rt=vfRights();if(!VF.me){if(JSON.stringify(r.nav)!=before){const L=flat(ui.r),i=cur?L.findIndex(e=>e.b==cur.b&&(e.g||'')==(cur.g||'')):-1;if(i>=0)ui.v=i;render(true)}return}
+ const key=e=>e.b+'|'+(e.g||'');let ch=JSON.stringify(r.nav)!=before,g=r.nav.find(x=>x[0]=='Recruitment');
+ const want=VF_ROOMS.filter(x=>x[4](Rt));
+ if(want.length&&!g){g=['Recruitment',[]];const i=r.nav.findIndex(x=>x[0]=='Me');r.nav.splice(i<0?1:i+1,0,g);ch=true}
+ if(g){const gate=Object.fromEntries(VF_ROOMS.map(x=>[x[2]+'|'+x[3],x[4]]));
+  const keep=g[1].filter(e=>{const f=gate[key(e)];return !f||f(Rt)});if(keep.length!=g[1].length){g[1]=keep;ch=true}
+  want.forEach(([l,i,b,gg])=>{if(!g[1].some(e=>key(e)==b+'|'+gg)){g[1].push(gg?{l,i,b,g:gg}:{l,i,b});ch=true}});
+  if(!g[1].length){r.nav=r.nav.filter(x=>x!==g);ch=true}}
+ const hasUg=r.nav.some(x=>x[1].some(e=>e.b=='urgent'));
+ if((Rt.post||Rt.review)&&!hasUg){const i=r.nav.findIndex(x=>x[0]=='Me');r.nav.splice(i<0?1:i,0,['Hiring',[{l:'Urgent hiring',i:'⚡',b:'urgent'}]]);ch=true}
+ if(!(Rt.post||Rt.review)&&hasUg&&!UG_BASE.has(ui.r)){r.nav=r.nav.filter(x=>!(x[0]=='Hiring'&&x[1].every(e=>e.b=='urgent')));ch=true}
+ if(ch||JSON.stringify(r.nav)!=before){const L=flat(ui.r),i=cur?L.findIndex(e=>e.b==cur.b&&(e.g||'')==(cur.g||'')):-1;ui.v=i<0?0:i;if(i<0&&cur&&cur.b!='dash')toast('That room was closed by Admin');render(true)}};
+
+// ---------- loading and live refresh ----------
+VF.oc=null;VF.rem=null;VF.dr=null;VF.rep=null;VF.ocTab='live';VF.hrF='';VF.rb='';
+function vfOcLoad(){return api('/api/vf/oc').then(r=>{VF.oc=r;vfRefresh()}).catch(e=>{VF.oc={err:e.message};vfRefresh()})}
+function vfRemLoad(){return api('/api/vf/remarks').then(r=>{VF.rem=r;vfRefresh()}).catch(e=>{VF.rem={err:e.message};vfRefresh()})}
+function vfDrLoad(){return api('/api/vf/draft').then(r=>{VF.dr=r;vfRefresh()}).catch(e=>{VF.dr={err:e.message};vfRefresh()})}
+function vfRepLoad(){api('/api/vf/health').then(h=>{VF.hl=h;vfRefresh()}).catch(()=>{});return api('/api/vf/report').then(r=>{VF.rep=r;vfRefresh()}).catch(e=>{VF.rep={err:e.message};vfRefresh()})}
+LOADERS.vfoc=()=>{vfLoad0();vfOcLoad()};LOADERS.vfrem=()=>{vfLoad0();vfRemLoad()};LOADERS.vfdraft=()=>{vfLoad0();vfDrLoad()};LOADERS.vfrep=()=>{vfLoad0();vfRepLoad()};
+const v3Load=vfLoad;vfLoad=function(){v3Load();const e=flat(ui.r)[ui.v];if(!e)return;({vfoc:vfOcLoad,vfrem:vfRemLoad,vfdraft:vfDrLoad,vfrep:vfRepLoad}[e.b]||(()=>{}))()};
+setInterval(()=>{const e=flat(ui.r)[ui.v];if(e&&e.b=='vfoc'&&!document.querySelector('.vfocr.is-mine textarea:focus'))vfOcLoad()},20000);
+
+// ---------- Vacancy on call ----------
+V.vfoc=function(){const D=VF.oc;if(!D)return'<h1>Vacancy on call</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Vacancy on call</h1><p class=bad>${esc(D.err)}</p>`;
+ const L=D.list.filter(v=>VF.ocTab=='draft'?v.draft:!v.draft),nd=D.list.filter(v=>v.draft).length;
+ return`<h1>Vacancy on call</h1><div class=sub>Tap <b>Call</b> on a person: everyone else sees them blurred while you call. Choose what happened and press <b>Done</b> — they leave every caller’s list and your name is written on them. <b>Finish</b> closes the vacancy for all callers and sends it to HR (it works when nobody is on a call). A vacancy you don’t finish waits in <b>Draft</b>.</div>
+ <div class=vfoctabs><button class="ugoc ${VF.ocTab!='draft'?'on':''}" data-a=vfoctab|live>On call · ${D.list.length-nd}</button><button class="ugoc ${VF.ocTab=='draft'?'on':''}" data-a=vfoctab|draft>Draft · ${nd}</button></div>
+ ${L.length?L.map(v=>vfOcCard(v,D.outcomes)).join(''):`<div class=vfempty><b>${VF.ocTab=='draft'?'No drafts':'No vacancy on call'}</b><small>${VF.ocTab=='draft'?'A vacancy left without Finish for a while waits here.':'Tap Approve on a vacancy in My tasks when its applicant limit is reached.'}</small></div>`}`};
+function vfOcCard(v,OUT){const busy=v.busy.length,mine=v.mineNow.length;
+ return`<section class=vfoc id="oc-${esc(v.id)}"><header><div><h3>${esc(v.title)}</h3><small class=sub>${esc(v.employer||'')}${v.employer?' · ':''}${esc(v.loc||'')} · opened by ${esc(v.opened.name)} ${agoT(v.opened.t)}</small></div><div>${v.draft?'<span class=vfdraftb>Draft</span> ':''}<span class=vfcnt><b>${v.left.length}</b> to call · <b>${v.done.length}</b> done</span></div></header>
+ <div class=vfocl>${v.left.map(x=>{const c=x.calling,isMine=c&&c.mine,k=v.id+'|'+x.app,d=VF.draft['oc|'+k]||{};
+  return`<div class="vfocr ${c&&!c.mine?'is-busy':''} ${isMine?'is-mine':''}"><span class=vfav>${esc(cvIni(x.name))}</span><span><b>${esc(x.name)}</b><small>${esc(x.phone)}${x.wa&&x.wa!=x.phone?' · WA '+esc(x.wa):''}${x.lives?' · '+esc(x.lives):''}${x.email?' · '+esc(x.email):''}</small></span>
+  ${isMine?`<a class=cvlk href="tel:${esc(String(x.phone).replace(/[^\d+]/g,''))}">📞 Call</a>`:c?'':`<button class=vfgo data-a="vfocclaim|${v.id}|${x.app}">Call</button>`}
+  ${c&&!c.mine?`<span class=vfbusy>🔒 ${esc(c.name)} is calling now</span>`:''}
+  ${isMine?`<div class=vfouts role=radiogroup aria-label="What happened">${Object.entries(OUT).map(([o,l])=>`<button class="${d.o==o?'on':''}" data-a="vfocout|${k}|${o}">${esc(l)}</button>`).join('')}</div><textarea data-ocnote="${esc(k)}" maxlength=300 placeholder="Note (optional): what they said, when they can come">${esc(d.n||'')}</textarea>
+   <span style="grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end"><button class=cvlk data-a="vfocfree|${v.id}|${x.app}">Leave this person</button><button class=vfgo ${d.o?`data-a="vfocdone|${v.id}|${x.app}"`:'disabled'}>Done</button></span>`:''}</div>`}).join('')||'<p class=sub>✓ Everyone on this vacancy has been called.</p>'}</div>
+ ${v.done.length?`<details><summary>Called · ${v.done.length}</summary><div class=vftw><table class=vft><thead><tr><th>Name</th><th>Phone</th><th>Result</th><th>Called by</th></tr></thead><tbody>${v.done.map(x=>`<tr><td><b>${esc(x.name)}</b>${x.note?`<small>${esc(x.note)}</small>`:''}</td><td>${esc(x.phone)}</td><td><span class="ugout o-${esc(x.outcome)}">${esc(OUT[x.outcome]||x.outcome)}</span></td><td>${esc(x.calledBy||'—')}</td></tr>`).join('')}</tbody></table></div></details>`:''}
+ <footer style="display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:10px"><small class=sub>${busy?`🔒 ${esc(v.busy.join(', '))} ${busy==1?'is':'are'} still calling — Finish waits for them.`:mine?'Save or leave the person you are calling first.':v.left.length?`${v.left.length} not called yet — Finish keeps them as “not called”.`:'Everyone is called.'}</small><button class="vfgo vfgreen" ${busy||mine||!v.done.length?'disabled':`data-a="vfocfin|${v.id}"`}>Finish</button></footer></section>`}
+document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.ocnote;if(!k)return;const d=VF.draft['oc|'+k]||(VF.draft['oc|'+k]={});d.n=e.target.value});
+
+// ---------- HR: Fetch, filter, download, Push ----------
+const vfHrRows=v=>{const C=v.call.list;return C.filter(x=>(!v.hrf||x.outcome=='coming')&&(!VF.hrF||x.outcome==VF.hrF))};
+function vfHrCard(v){const C=v.call.list,coming=C.filter(x=>x.outcome=='coming').length,rows=vfHrRows(v),cnt=o=>C.filter(x=>x.outcome==o).length;
+ return`<button class=ugback data-a=vfhrgo|>← My tasks</button><h1>${esc(v.title)}</h1><div class=sub>${esc(v.employer||'')}${v.employer?' · ':''}${C.length} applicants called by the Call Center. <b>Fetch</b> keeps the people coming on site; download the list if you need it, then <b>Push</b> sends them to the interviewers.</div>
+ <dl class=vfwho><div><dt>Stated by</dt><dd>${esc(v.starter.name)}<small>${vfWhen(v.starter.t)}</small></dd></div><div><dt>Posted by</dt><dd>${esc(v.post.by.name)}<small>${vfWhen(v.post.t)}</small></dd></div><div><dt>Calls finished by</dt><dd>${esc(v.call.by.name)}<small>${vfWhen(v.call.t)}</small></dd></div></dl>
+ <div class=vfhrbar>${v.hrf?`<span class=vfopen>✓ Fetched by ${esc(v.hrf.by.name)}: ${coming} coming on site</span>`:`<button class=vfgo data-a="vfhrf|${v.id}">Fetch — ${coming} coming on site</button>`}
+  ${v.hrf?'':`<span class=vfdates><button class="ugoc ${!VF.hrF?'on':''}" data-a="vfhrfil|">All · ${C.length}</button>${Object.keys(VF_OUT).filter(o=>cnt(o)).map(o=>`<button class="ugoc ${VF.hrF==o?'on':''}" data-a="vfhrfil|${o}">${esc(VF_OUT[o])} · ${cnt(o)}</button>`).join('')}</span>`}
+  <span class=sp></span><button class=b data-a="vfhrdl|${v.id}|csv">CSV</button><button class=b data-a="vfhrdl|${v.id}|txt">TXT</button><button class=b data-a="vfhrdl|${v.id}|pdf">PDF</button></div>
+ <div class=vftw><table class=vft><thead><tr><th>Name</th><th>Phone / WhatsApp</th><th>Email</th><th>Location</th><th>Result</th><th>Called by</th></tr></thead><tbody>${rows.map(x=>`<tr class="${x.outcome=='coming'?'is-keep':''}"><td><b>${esc(x.name)}</b>${x.note?`<small>${esc(x.note)}</small>`:''}</td><td>${esc(x.phone)}${x.wa&&x.wa!=x.phone?`<small>WA ${esc(x.wa)}</small>`:''}</td><td>${esc(x.email||'—')}</td><td>${esc(x.lives||'—')}</td><td><span class="ugout o-${esc(x.outcome)}">${esc(VF_OUT[x.outcome]||x.outcome||'—')}</span></td><td>${esc(x.calledBy||'—')}</td></tr>`).join('')||'<tr><td colspan=6>No one with this result.</td></tr>'}</tbody></table></div>
+ <footer style="display:flex;justify-content:flex-end;gap:10px;align-items:center;margin-top:12px"><small class=sub>${v.hrf?'Push sends the '+coming+' coming on site to the interviewers. The others stay in Elitejobs database.':'Fetch first, then Push.'}</small><button class=vfgo ${v.hrf&&coming?`data-a="vfcomplete|${v.id}"`:'disabled'}>Push to the interviewers</button></footer>`}
+const vfT3=V.tasks;V.tasks=function(){if(ui.vfhr){const v=vfMine().find(x=>x.id==ui.vfhr&&x.stage=='hr');if(v)return vfHrCard(v);ui.vfhr=null}return vfT3()};
+function vfFile(name,type,text){const b=new Blob([text],{type}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+
+// ---------- Upcoming: who is interviewing today, and how ----------
+function vfSession(v){const S=v.int.session,O=(VF.up&&VF.up.officers)||[],ed=VF.sess&&VF.sess.id==v.id;
+ if(S&&!ed)return`<div class=vfsess><div class=vfsesss><b>${S.mode=='seq'?'🔁 Sequence':'🤝 Handover'}</b><span>${S.ids.map(x=>esc(((O.find(o=>o.id==x)||{}).name)||x)).join(S.mode=='seq'?' → ':' · ')}</span><small class=sub>set by ${esc(S.by.name)}</small><button class=cvlk data-a="vfsess|${v.id}">Change</button></div></div>`;
+ const st=ed?VF.sess:(VF.sess={id:v.id,mode:(S&&S.mode)||'seq',n:S?S.ids.length:Math.min(2,O.length)||1,ids:S?S.ids.slice():[]});
+ return`<div class=vfsess><h3>How are you interviewing today?</h3><div class=sub>Choose before adding the first recipient. Only the interviewers you choose get a row.</div>
+ <div class=vfoctabs><button class="ugoc ${st.mode=='seq'?'on':''}" data-a="vfsmode|seq">🔁 Sequence</button><button class="ugoc ${st.mode=='hand'?'on':''}" data-a="vfsmode|hand">🤝 Handover</button></div>
+ <small class=sub>${st.mode=='seq'?'The form passes from one interviewer to the next, in the order you give. The last one presses Finish.':'Each interviewer marks their own row whenever they are free. When every row is marked, the Hub adds it up by itself.'}</small>
+ <label class=vfsn>How many interviewers today<select data-vfsn>${O.map((_,i)=>`<option ${i+1==st.n?'selected':''}>${i+1}</option>`).join('')}</select></label>
+ <div class=vfsessl>${O.map(o=>{const on=st.ids.includes(o.id),pos=st.ids.indexOf(o.id)+1;return`<label class="${!on&&st.ids.length>=st.n?'off':''}"><input type=checkbox data-vfsid="${o.id}" ${on?'checked':''} ${!on&&st.ids.length>=st.n?'disabled':''}><span><b>${esc(o.name)}</b><small class=sub>${esc(o.id)}${o.here?' · checked in today':''}</small></span>${st.mode=='seq'&&on?`<span class=vfnum title="Order">${pos}</span>`:'<span></span>'}</label>`}).join('')||'<p class=bad>No interviewer is registered.</p>'}</div>
+ ${st.mode=='seq'?'<small class=sub>Tick them in the order they sit: 1 marks first, then 2, and so on.</small>':''}
+ <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">${S?btn('Cancel','vfsess|'):''}<button class=vfgo ${st.ids.length==st.n?`data-a="vfssave|${v.id}"`:'disabled'}>Start with ${st.ids.length} of ${st.n}</button></div></div>`}
+document.addEventListener('change',e=>{const t=e.target;if(!VF.sess)return;
+ if(t.matches&&t.matches('[data-vfsn]')){VF.sess.n=+t.value;VF.sess.ids=VF.sess.ids.slice(0,VF.sess.n);refreshMain()}
+ if(t.dataset&&t.dataset.vfsid){const id=t.dataset.vfsid;VF.sess.ids=t.checked?VF.sess.ids.concat(id).slice(0,VF.sess.n):VF.sess.ids.filter(x=>x!=id);haptic('tick');refreshMain()}});
+
+// ---------- Interview remarks ----------
+const vfBand=m=>m>=18?'excellent':m>=15?'good':'failed';
+V.vfrem=function(){const D=VF.rem;if(!D)return'<h1>Interview remarks</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Interview remarks</h1><p class=bad>${esc(D.err)}</p>`;
+ return`<h1>Interview remarks</h1><div class=sub>Vacancy cards the interviewers finished (or that moved here at 17:30). <b>Rewind</b> brings a card back to Upcoming to add people who came late. The recruiter’s <b>Approve</b> opens Interview results.</div>
+ <div class=vfbands><span style="color:#16a34a">18 and above · excellent</span><span style="color:#d97706">15 to 17.9 · good</span><span style="color:#ef4444">under 15 · failed</span></div>
+ ${D.vacs.length?D.vacs.map(v=>`<section class=vfres><header><h3>${esc(v.title)}</h3><small>${esc(v.employer||'')}${v.employer?' · ':''}${v.cands.length} of ${v.expected} interviewed · ${esc(v.remarks.why||'')} · ${agoT(v.remarks.t)}${v.session?' · '+(v.session.mode=='seq'?'Sequence':'Handover'):''}</small></header>
+  ${v.cands.map(c=>`<div class="vfrr b-${vfBand(c.final||0)}"><span class=vfmark style="--m:${(c.final||0)/20}"><b>${vfR1(c.final||0)}</b><i>/20</i></span><span class=vfrrn><b>${esc(c.name)}</b>${c.unfinished?` <i class=vfunf>Not finished · ${c.marked||0} marked</i>`:''}<small>${Object.values(c.rows).filter(r=>r.scores).map(r=>esc(r.name.split(' ')[0])+' '+vfR1(r.s20)+(r.topic?' ('+esc(r.topic)+')':'')).join(' · ')}</small></span></div>`).join('')||'<p class=sub>No recipient.</p>'}
+  <footer style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">${v.canRewind?btn('↩ Rewind to Upcoming','vfrewind|'+v.id):''}${v.canApprove?`<button class=vfgo data-a="vfdecide|${v.id}">Approve — open Interview results</button>`:''}</footer></section>`).join(''):'<div class=vfempty><b>Nothing in Interview remarks</b><small>A vacancy card arrives here when the interviewers press Finish on it.</small></div>'}`};
+
+// ---------- Interview results: the recruiter's decision ----------
+function vfDecide(c,D){const CT={coming:'Coming on site','no-answer':'Didn’t pick up','not-available':'Not available','not-interested':'Not engaged'};
+ const done=c.served&&c.served.v!==undefined,q=VF.draft['q|'+c.app],k=VF.draft['k|'+c.app]||(c.push&&c.push.contact)||'';
+ if(done)return`<span class="vfdone ${c.served.v?'ok':'no'}">${c.served.v?'✓ Served':'✕ Not served'}<small>by ${esc(c.served.by.name)} · ${agoT(c.served.t)}</small></span>`;
+ if(c.push&&VF.redo!==c.app)return`<span class="vfdone ${c.push.qualified?'ok':'no'}">${c.push.qualified?'✓ Qualified':'✕ Not qualified'}${c.push.contact?' · '+esc(CT[c.push.contact]):''}<small>by ${esc(c.push.by.name)} · ${agoT(c.push.t)}</small></span>${D.canPush?`<button class=cvlk data-a="vfredo|${c.app}">Change</button>`:''}`;
+ if(!D.canPush)return'<span class=vfwait>Waiting for the recruiter</span>';
+ return`<span class=vfdec2><span class=vfseg2 role=radiogroup aria-label="Decision"><button class="${q===true?'on':''}" data-a="vfq|${c.app}|1">Qualified</button><button class="${q===false?'on no':''}" data-a="vfq|${c.app}|0">Not qualified</button></span>
+ ${q===true?`<select data-vfk="${c.app}" aria-label="What happened on the call"><option value="">What happened on the call?</option>${Object.entries(CT).map(([o,l])=>`<option value="${o}" ${k==o?'selected':''}>${l}</option>`).join('')}</select>`:''}
+ <button class=vfgo ${q===undefined||(q===true&&!k)?'disabled':`data-a="vfpush|${c.vac}|${c.app}"`}>Save</button></span>`}
+document.addEventListener('change',e=>{const a=e.target.dataset&&e.target.dataset.vfk;if(!a)return;VF.draft['k|'+a]=e.target.value;refreshMain()});
+const vfRes3=V.vfres;V.vfres=function(){const h=vfRes3();if(!VF.res||VF.res.err)return h;
+ return h.replace('</div>\n','</div>\n<div class=vfbands><span style="color:#16a34a">18 and above · excellent</span><span style="color:#d97706">15 to 17.9 · good</span><span style="color:#ef4444">under 15 · failed</span>'+(VF.res.canPush?'<button class=cvlk style="margin-left:auto" data-a=vfgodraft>🗂️ Draft</button>':'')+'</div>\n')};
+
+// ---------- Recruiter draft: qualified people coming on site, then Served or Not served ----------
+V.vfdraft=function(){const D=VF.dr;if(!D)return'<h1>Recruiter draft</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Recruiter draft</h1><p class=bad>${esc(D.err)}</p>`;
+ const row=(c,act)=>`<tr><td><b>${esc(c.name)}</b><small>${esc(c.phone)}${c.email?' · '+esc(c.email):''}</small></td><td>${esc(c.vacTitle)}<small>${esc(c.employer||'')}</small></td><td><b>${vfR1(c.final)}</b>/20</td><td>${esc(D.contact[c.push.contact]||'—')}<small>${agoT(c.push.t)}</small></td><td>${act}</td></tr>`;
+ const head='<thead><tr><th>Name</th><th>Position</th><th>Mark</th><th>Call</th><th></th></tr></thead>';
+ return`<h1>Recruiter draft</h1><div class=sub>Qualified people you called. When they have come and the employer has met them, mark each one <b>Served</b> or <b>Not served</b> — their record and the vacancy update straight away.</div>
+ <h2 class=vfh>Coming on site · ${D.waiting.length}</h2>${D.waiting.length?`<div class=vftw><table class=vft>${head}<tbody>${D.waiting.map(c=>row(c,`<span class=vfseg2><button data-a="vfserved|${c.vac}|${c.app}|1">Served</button><button data-a="vfserved|${c.vac}|${c.app}|0">Not served</button></span>`)).join('')}</tbody></table></div>`:'<div class=vfempty><b>Nobody waiting</b><small>Qualified people coming on site appear here.</small></div>'}
+ ${D.recall.length?`<h2 class=vfh>Call again · ${D.recall.length}</h2><div class=vftw><table class=vft>${head}<tbody>${D.recall.map(c=>row(c,`<button class=b data-a="vfcoming|${c.vac}|${c.app}">Now coming on site</button>`)).join('')}</tbody></table></div>`:''}
+ ${D.done.length?`<details><summary>Answered · ${D.done.length}</summary><div class=vftw><table class=vft>${head}<tbody>${D.done.map(c=>row(c,`<span class="vfdone ${c.served.v?'ok':'no'}">${c.served.v?'✓ Served':'✕ Not served'}</span>`)).join('')}</tbody></table></div></details>`:''}`};
+
+// ---------- Vacancy report ----------
+function vfRadar(m){const K=[['applied','Applied'],['called','Called'],['coming','Coming'],['interviewed','Interviewed'],['qualified','Qualified'],['served','Served']],mx=Math.max(1,m.applied),R0=70,c=90;
+ const pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/K.length;return[c+r*Math.cos(a),c+r*Math.sin(a)]};
+ const ring=f=>K.map((_,i)=>pt(i,R0*f).join(',')).join(' '),poly=K.map(([k],i)=>pt(i,R0*Math.min(1,(m[k]||0)/mx)).join(',')).join(' ');
+ return`<svg viewBox="0 0 180 180" width="100%" style="max-width:220px" role=img aria-label="How far the applicants went"><g fill=none stroke="currentColor" opacity=.15>${[.33,.66,1].map(f=>`<polygon points="${ring(f)}"/>`).join('')}</g>
+ <polygon points="${poly}" fill="#6366f155" stroke="#6366f1" stroke-width=2 />${K.map(([k,l],i)=>{const[x,y]=pt(i,R0+14);return`<text x="${x}" y="${y}" font-size=8 text-anchor=middle fill="currentColor" opacity=.7>${l} ${m[k]||0}</text>`}).join('')}</svg>`}
+V.vfrep=function(){const D=VF.rep;if(!D)return'<h1>Vacancy report</h1><div class=sub>Opening…</div>';if(D.err)return`<h1>Vacancy report</h1><p class=bad>${esc(D.err)}</p>`;
+ const f=VF.repF||'all',L=D.vacs.filter(v=>f=='all'||(f=='ach'?v.achieved:!v.achieved)),na=D.vacs.filter(v=>v.achieved).length;
+ const SN={post:'Posting',call:'Calling',hr:'With HR',notice:'Notices',upcoming:'Interviews',remarks:'Interview remarks',done:'Decisions'};
+ return`<h1>Vacancy report</h1><div class=sub>Every vacancy stated, where it stands and how far the applicants went. The Hub writes a report for each day from what really happened, until the recruiter’s last decision. Achieved vacancies turn green.</div>
+ ${VF.hl?`<div class=vfdatachk>${VF.hl.issues.length?`<b class=bad>⚠ Data check: ${VF.hl.issues.length} of ${VF.hl.checked} vacancy record${VF.hl.checked==1?'':'s'} need attention</b>${VF.hl.issues.slice(0,5).map(x=>`<small>${esc(x.title||x.id)}: ${esc(x.bad.join(', '))}</small>`).join('')}`:`<b>🛡️ Data check: all ${VF.hl.checked} vacancy record${VF.hl.checked==1?'':'s'} are complete and valid</b><small>Every record is tested against the same rules: required fields, a valid step, marks 0–5, marks out of 20, phone numbers and call results.</small>`}</div>`:''}
+ <div class=vfoctabs><button class="ugoc ${f=='live'?'on':''}" data-a=vfrepf|live>In progress · ${D.vacs.length-na}</button><button class="ugoc ${f=='ach'?'on':''}" data-a=vfrepf|ach>Achieved · ${na}</button><button class="ugoc ${f=='all'?'on':''}" data-a=vfrepf|all>All · ${D.vacs.length}</button></div>
+ ${L.map(v=>`<section class="vfrep${v.achieved?' is-ach':''}"><header><div><h3 style="margin:0">${esc(v.title)}</h3><small class=sub>${esc(v.employer||'')}${v.employer?' · ':''}${v.need} needed · stated by ${esc(v.starter)} ${agoT(v.created)}</small></div>${v.achieved?`<span class=vfach>✓ Achieved · ${v.achieved.served} served</span>`:`<span class=vfcnt>${esc(SN[v.stage]||v.stage)} · ${v.pct}%</span>`}</header>
+  <div class=vfbar><i style="width:${v.pct}%"></i></div>
+  <div class=vfsteps>${v.steps.map(x=>`<span class="${x.t?'d':''}">${x.t?'✓ ':''}${esc(x.l)}${x.by?' · '+esc(String(x.by).split(' ')[0]):''}</span>`).join('')}</div>
+  <div class=vfrepg>${vfRadar(v.m)}<div class=vfnums>${[['applied','Applied'],['called','Called'],['coming','Coming on site'],['fetched','Sent to interviews'],['interviewed','Interviewed'],['excellent','18 and above'],['good','15 to 17.9'],['failed','Under 15'],['qualified','Qualified'],['served','Served']].map(([k,l])=>`<div><b>${v.m[k]}</b><small>${l}</small></div>`).join('')}</div></div>
+  <div class=vfdaily>${v.daily.map((d,i)=>`<details ${i==0&&!v.achieved?'open':''}><summary><b>Daily report · ${esc(vfDate(d.day))}</b> <small class=sub>${d.items.length} thing${d.items.length==1?'':'s'} done</small></summary><ul>${d.items.map(x=>`<li><time>${new Date(x.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</time><b>${esc(x.by)}</b> ${esc(x.text)}</li>`).join('')}</ul></details>`).join('')}</div></section>`).join('')||'<div class=vfempty><b>Nothing here</b></div>'}`};
+
+// ---------- editing a posted vacancy ----------
+function vfEditSheet(v){return`<form class=vfeds id=vfeditf autocomplete=off data-id="${esc(v.id)}"><b>Edit the posted vacancy</b><small class=sub>Saving changes the job on elitejobsrwanda.com straight away.</small>
+ <label>Position<input name=title maxlength=80 value="${esc(v.title)}"></label>
+ <div class=ug2><label>Applicant limit<input name=cap type=number min=1 max=500 value="${esc(v.cap||'')}"></label><label>How many people needed<input name=need type=number min=1 max=200 value="${esc(v.need)}"></label></div>
+ <div class=ug2><label>Pay from (RWF)<input name=salMin inputmode=numeric value="${esc(v.salMin||'')}"></label><label>Pay up to (RWF)<input name=salMax inputmode=numeric value="${esc(v.salMax||'')}"></label></div>
+ <div class=ug2><label>Where<input name=loc maxlength=80 value="${esc(v.loc||'')}"></label><label>New end time (optional)<input name=until type=datetime-local></label></div>
+ <label>What the job is<textarea name=desc maxlength=600 rows=3>${esc(v.desc||'')}</textarea></label><label>Requirements<textarea name=reqs maxlength=600 rows=3>${esc(v.reqs||'')}</textarea></label>
+ <div style="display:flex;gap:8px;justify-content:flex-end"><button type=button class=b data-a=vfedit|>Cancel</button><button class=vfgo>Save — update the website</button></div></form>`}
+document.addEventListener('submit',e=>{if(e.target.id!='vfeditf')return;e.preventDefault();e.stopImmediatePropagation();const f=e.target,d=Object.fromEntries(new FormData(f).entries());d.id=f.dataset.id;if(!d.until)delete d.until;
+ api('/api/vf/edit',d).then(()=>{haptic('success');toast('✔ Saved — the website shows the change');ui.vfedit=null;vfLoad();vfList('active')}).catch(er=>{haptic('error');toast('✖ '+er.message)})},true);
+
+// ---------- actions ----------
+Object.assign(A,{
+ vfcall(id){api('/api/vf/oc/open',{id}).then(()=>{haptic('success');VF.ocTab='live';vfGo('vfoc');setTimeout(()=>{const n=document.getElementById('oc-'+id);n&&n.scrollIntoView({behavior:'smooth',block:'start'})},500)}).catch(e=>{haptic('error');toast('✖ '+e.message)})},
+ vfoctab(t){VF.ocTab=t;refreshMain()},
+ vfocclaim(id,app){vfAct('/api/vf/oc/claim',{id,app,on:true}).then(vfOcLoad).catch(()=>vfOcLoad())},
+ vfocfree(id,app){vfAct('/api/vf/oc/claim',{id,app,on:false}).then(vfOcLoad).catch(()=>{})},
+ vfocout(id,app,o){const k=id+'|'+app,d=VF.draft['oc|'+k]||(VF.draft['oc|'+k]={});d.o=o;haptic('tick');refreshMain()},
+ vfocdone(id,app){const d=VF.draft['oc|'+id+'|'+app]||{};vfAct('/api/vf/oc/result',{id,app,outcome:d.o,note:d.n||''},'✔ Done — they left every caller’s list').then(()=>{delete VF.draft['oc|'+id+'|'+app];vfOcLoad()}).catch(()=>vfOcLoad())},
+ vfocfin(id){if(!sure('ocfin'+id,'Finish the calls for this vacancy? It leaves every caller’s room and goes to HR. The job comes down from the website'))return;vfAct('/api/vf/call',{id},'✔ Finished — it’s with HR now').then(vfOcLoad).catch(()=>{})},
+ vfhrgo(id){if(!id){ui.vfhr=null;refreshMain();return}api('/api/vf/hropen',{id}).then(()=>{ui.vfhr=id;VF.hrF='';vfLoad();refreshMain();$('#main').scrollTop=0}).catch(e=>toast('✖ '+e.message))},
+ vfhrfil(o){VF.hrF=o||'';refreshMain()},
+ vfhrdl(id,kind){const v=vfMine().find(x=>x.id==id);if(!v)return;const L=vfHrRows(v),H=['Name','Phone','WhatsApp','Email','Location','Gender','Result','Called by','Note'];
+  const row=x=>[x.name,x.phone,x.wa,x.email,x.lives,x.gender,VF_OUT[x.outcome]||x.outcome,x.calledBy,x.note];const fn=(v.title+' '+new Date().toISOString().slice(0,10)).replace(/[^\w -]/g,'');
+  if(kind=='csv')vfFile(fn+'.csv','text/csv',[H].concat(L.map(row)).map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\r\n'));
+  else if(kind=='txt')vfFile(fn+'.txt','text/plain',v.title+(v.employer?' — '+v.employer:'')+'\n'+L.length+' people\n\n'+L.map((x,i)=>(i+1)+'. '+x.name+' · '+x.phone+(x.email?' · '+x.email:'')+(x.lives?' · '+x.lives:'')+' · '+(VF_OUT[x.outcome]||x.outcome)+(x.calledBy?' (called by '+x.calledBy+')':'')).join('\n'));
+  else{const fr=document.createElement('iframe');fr.style.cssText='position:fixed;width:0;height:0;border:0;right:0;bottom:0';document.body.append(fr);
+   fr.srcdoc=`<html><head><title>${esc(fn)}</title><style>body{font:12px system-ui;margin:24px}h1{font-size:18px;margin:0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left}th{background:#f3f4f6}</style></head><body><h1>${esc(v.title)}</h1><div>${esc(v.employer||'')} · ${L.length} people · Elite Jobs Rwanda · ${new Date().toLocaleString('en-GB')}</div><table><tr>${H.slice(0,8).map(h=>`<th>${h}</th>`).join('')}</tr>${L.map(x=>`<tr>${row(x).slice(0,8).map(c=>`<td>${esc(c||'')}</td>`).join('')}</tr>`).join('')}</table></body></html>`;
+   fr.onload=()=>{try{fr.contentWindow.focus();fr.contentWindow.print()}catch(e){toast('Use CSV instead')}setTimeout(()=>fr.remove(),60000)}}
+  haptic('success')},
+ vfsess(id){if(!id){VF.sess=null;refreshMain();return}VF.sess=null;const v=VF.up&&VF.up.vacs.find(x=>x.id==id);if(v){const S=v.int.session;VF.sess={id,mode:(S&&S.mode)||'seq',n:S?S.ids.length:1,ids:S?S.ids.slice():[]}}refreshMain()},
+ vfsmode(m){if(VF.sess){VF.sess.mode=m;haptic('tick');refreshMain()}},
+ vfssave(id){const st=VF.sess;vfAct('/api/vf/session',{id,mode:st.mode,n:st.n,ids:st.ids},'✔ Ready — add the first recipient').then(()=>{VF.sess=null;return vfUpLoad()}).catch(()=>{})},
+ vfrewind(id){if(!sure('rew'+id,'Rewind this vacancy to Upcoming to add people who came late?'))return;vfAct('/api/vf/rewind',{id},'↩ It’s back in Upcoming').then(()=>{vfRemLoad();ui.vfu=id;vfGo('vacs','upcoming')}).catch(()=>{})},
+ vfdecide(id){vfAct('/api/vf/rmok',{id},'✔ Approved — decide in Interview results').then(r=>{VF.rq.day=r.day;VF.rq.q='';VF.rq.min='';vfGo('vfres');vfResLoad()}).catch(()=>{})},
+ vfredo(app){VF.redo=app;refreshMain()},
+ vfgodraft(){vfGo('vfdraft')},
+ vfcoming(id,app){vfAct('/api/vf/push',{id,app,qualified:true,contact:'coming'},'✔ Moved to Coming on site').then(vfDrLoad).catch(()=>{})},
+ vfrepf(f){VF.repF=f;refreshMain()},
+ vfedit(id){ui.vfedit=id||null;refreshMain()}});
+const vfSv3=A.vfserved;A.vfserved=function(id,app,v){vfAct('/api/vf/served',{id,app,v:v=='1'},v=='1'?'✔ Served — their record is updated':'✔ Not served — saved').then(()=>{vfDrLoad();vfWaitLoad()}).catch(()=>{})};
+const vfPush3=A.vfpush;A.vfpush=function(id,app){VF.redo=null;vfPush3(id,app)};
 </script></body></html>

@@ -27,7 +27,7 @@ const throws=async(f,re)=>{try{await f();assert.fail('should refuse')}catch(e){a
  await throws(()=>vf.callApprove(S('C'),v.id),/limit: 2 of 3/);
  apps.push({id:'a3',post:'UJ-1',status:'new',data:{name:'C'}});
  assert.equal(T('C',v.id).me.ready,true); assert.equal(T('O',v.id).me.ready,true,'the substitute too');
- await throws(()=>vf.callApprove(S('O'),v.id),/3 people haven’t been called/);
+ await throws(()=>vf.callApprove(S('O'),v.id),/Call at least one applicant first/);
  apps.forEach((a,i)=>{a.status='done';a.outcome=i<2?'coming':'no-answer'});
  await vf.callApprove(S('O'),v.id);
  assert.ok(removed.some(u=>u.includes('UJ-1/remove')));
@@ -63,19 +63,24 @@ const throws=async(f,re)=>{try{await f();assert.fail('should refuse')}catch(e){a
  // Push early: the walk-in not finished goes to results too
  vf.pushUp(S('I2'),v.id);
  assert.equal(vf.upcoming(S('I1')).vacs.length,0);
+ assert.equal(vf.results(S('A'),{}).list.length,0,'not in results before the recruiter approves the remarks');
+ assert.equal(vf.remarks(S('I1')).vacs[0].id,v.id);
+ vf.rmApprove(S('A'),v.id);
  const R=vf.results(S('A'),{}).list; assert.equal(R.length,2); assert.ok(R.find(x=>x.unfinished&&x.name==='Jean Walk'));
  // the recruitment manager decides
- await throws(()=>vf.push(S('H'),{id:v.id,app:'a1',qualified:true}),/recruitment manager/);
+ await throws(()=>vf.push(S('H'),{id:v.id,app:'a1',qualified:true,contact:'coming'}),/recruiter/);
  vf.setGrant(S('A'),{uid:'H',key:'rm',on:true});
- vf.push(S('H'),{id:v.id,app:'a1',qualified:true});
- const q=vf.results(S('H'),{min:17}).list[0]; assert.equal(q.push.qualified,true); assert.ok(q.served);
+ await throws(()=>vf.push(S('H'),{id:v.id,app:'a1',qualified:true}),/what happened when you called/);
+ vf.push(S('H'),{id:v.id,app:'a1',qualified:true,contact:'coming'});
+ const q=vf.results(S('H'),{min:17}).list[0]; assert.equal(q.push.qualified,true); assert.ok(!q.served); assert.equal(vf.draft(S('H')).waiting[0].name,'A');
+ vf.served(S('H'),{id:v.id,app:'a1',v:true}); assert.equal(vf.draft(S('H')).waiting.length,0);
  assert.equal(vf.callList(S('A')).list.length,0,'no more Call Center callback');
  const sl=await vf.makeShortlist(S('H'),{id:v.id,apps:['a1']}); assert.equal(sl.id,'SL1'); assert.equal((await vf.shortlistAnswers(S('H'),v.id)).list[0].people[0].pick.v,'interview');
  // 17:30: a card still in Upcoming moves to results by itself
  { const z=vf.create(S('H'),{title:'Chef'}).vac; vf.posted(S('P'),z.id,'UJ-9','Chef',1,Date.now()+864e5); apps.push({id:'z1',post:'UJ-9',status:'done',outcome:'coming',data:{name:'Zed'}});
    await vf.callApprove(S('C'),z.id); vf.hrFilter(S('H'),z.id); vf.complete(S('H'),z.id); vf.intApprove(S('I1'),z.id); vf.addCand(S('I1'),z.id,'z1');
    const f=path.join(D,'vflow.json'),j=JSON.parse(fs.readFileSync(f,'utf8')); j.vacs.find(x=>x.id===z.id).int.t=Date.now()-2*864e5; fs.writeFileSync(f,JSON.stringify(j));
-   assert.equal(vf.upcoming(S('I1')).vacs.length,0); assert.ok(vf.results(S('A'),{}).list.find(x=>x.name==='Zed'&&x.unfinished)); }
+   assert.equal(vf.upcoming(S('I1')).vacs.length,0); assert.ok(vf.remarks(S('A')).vacs.find(x=>x.id===z.id).cands.find(x=>x.name==='Zed'&&x.unfinished)); }
  // a second vacancy: deleted by whoever stated it, the job comes down, the record is kept
  const w=vf.create(S('H'),{title:'Cashier',need:1}).vac; vf.claimPost(S('P'),w.id); vf.posted(S('P'),w.id,'UJ-2','Cashier',1,Date.now()+864e5);
  await vf.remove(S('H'),w.id);

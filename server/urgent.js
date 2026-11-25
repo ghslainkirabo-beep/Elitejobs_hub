@@ -18,7 +18,7 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
   const err = (m, code) => Object.assign(new Error(m), { code: code || 400 });
   const staff = () => ((loadState() || {}).staff || []);
   const person = id => staff().find(s => s.id === id);
-  const OUTCOMES = { 'no-answer': 'Didn’t pick up', 'not-available': 'Not available', 'not-interested': 'Not interested in the job', 'coming': 'Coming on site' };
+  const OUTCOMES = { 'no-answer': 'Didn’t pick up', 'not-available': 'Not available', 'not-interested': 'Not engaged', 'coming': 'Coming on site', 'member': 'Already a member' };
 
   // ---------------- permissions ----------------
   let powerHook = null; const setPowerHook = f => { powerHook = f; };
@@ -236,6 +236,7 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
     if (b.country !== undefined) body.country = ctryOf(b.country);
     if (b.place !== undefined) body.place = String(b.place); if (b.text !== undefined) body.text = String(b.text);
     if (b.rules) body.rules = rulesOf(b.rules);
+    if (b.cap !== undefined) body.cap = Math.max(0, Math.min(500, parseInt(b.cap, 10) || 0));
     const r = await remote(`/api/hub/posts/${encodeURIComponent(id)}/edit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({})); if (!r.ok) throw err(j.error || 'The website didn’t accept the change.');
     appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `edited the urgent job “${body.title || id}” on the website${body.expires ? ' (now ends ' + new Date(body.expires).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) + ')' : ''}` });
