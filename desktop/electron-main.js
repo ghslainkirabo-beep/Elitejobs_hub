@@ -26,13 +26,20 @@ function waitForServer(url, tries, cb) {
 }
 
 function askRole() {
+  // The Hub lives in the cloud now, so connecting to it is the first and default choice.
   const choice = dialog.showMessageBoxSync({
-    type: 'question', buttons: ['This is the Hub PC', 'Connect to a Hub elsewhere'], defaultId: 0, cancelId: 0,
+    type: 'question', buttons: ['Connect to the Elitejobs Hub (recommended)', 'Connect to another address', 'Run a separate Hub on this PC (IT only)'], defaultId: 0, cancelId: 0,
     title: 'Elitejobs Hub — first time on this PC',
-    message: 'Is this the one PC that runs the Hub, or does this PC connect to it?',
-    detail: 'On IT Support’s main office computer, choose "This is the Hub PC". On every other computer, choose "Connect to a Hub elsewhere".'
+    message: 'Connect this PC to the Elitejobs Hub?',
+    detail: 'Everyone uses the same Hub at hub.elitejobsrwanda.com. Choose the first button unless IT Support told you otherwise.'
   });
-  if (choice === 0) { const c = { role: 'server' }; saveConfig(c); return Promise.resolve(c); }
+  if (choice === 0) { const c = { role: 'client', address: 'https://hub.elitejobsrwanda.com' }; saveConfig(c); return Promise.resolve(c); }
+  if (choice === 2) {
+    const sure = dialog.showMessageBoxSync({ type: 'warning', buttons: ['Go back and connect to the Hub', 'Yes, run a separate Hub here'], defaultId: 0, cancelId: 0,
+      title: 'A separate Hub?', message: 'A separate Hub starts empty and does not share anything with the company Hub.', detail: 'Only IT Support needs this, for testing.' });
+    if (sure === 1) { const c = { role: 'server' }; saveConfig(c); return Promise.resolve(c); }
+    const c = { role: 'client', address: 'https://hub.elitejobsrwanda.com' }; saveConfig(c); return Promise.resolve(c);
+  }
   return new Promise(resolve => {
     const w = new BrowserWindow({ width: 540, height: 280, resizable: false, title: 'Connect to the Hub', backgroundColor: '#171B18',
       webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, 'connect-preload.js') } });
