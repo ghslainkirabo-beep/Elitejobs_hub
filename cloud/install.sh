@@ -8,7 +8,8 @@ set -euo pipefail
 TOKEN="${*:-}"
 if [ -z "$TOKEN" ] && [ -r /dev/tty ]; then
   printf '\n\033[1;35m▸ Paste the Cloudflare line (the whole "sudo cloudflared service install eyJ..." line is fine), then press Enter:\033[0m\n'
-  IFS= read -r TOKEN </dev/tty || true
+  IFS= read -rs TOKEN </dev/tty || true   # -s: the token is not shown on screen, so a copied screen never carries it
+  echo
 fi
 # Accept the bare token or Cloudflare's whole install line: keep only the eyJ... token.
 TOKEN=$(printf '%s' "$TOKEN" | grep -oE 'eyJ[A-Za-z0-9+/=_-]{20,}' | head -n1 || true)
