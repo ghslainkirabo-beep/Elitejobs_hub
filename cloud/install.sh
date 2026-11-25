@@ -2,10 +2,18 @@
 # Elitejobs Hub — always-on cloud server setup.
 # For a fresh Ubuntu 22.04 / 24.04 server. Run as root:
 #   curl -fsSL https://raw.githubusercontent.com/ghslainkirabo-beep/Elitejobs_hub/main/cloud/install.sh | bash -s -- <CLOUDFLARE_TUNNEL_TOKEN>
+#   or just: curl -fsSL .../install.sh | bash   (it asks you to paste the Cloudflare line)
 # Safe to run again (it updates instead of reinstalling, and never touches the Hub's data).
 set -euo pipefail
-TOKEN="${1:-}"
-if [ -z "$TOKEN" ]; then echo "✖ Put the Cloudflare Tunnel token after the command (bash -s -- <token>)."; exit 1; fi
+TOKEN="${*:-}"
+if [ -z "$TOKEN" ] && [ -r /dev/tty ]; then
+  printf '\n\033[1;35m▸ Paste the Cloudflare line (the whole "sudo cloudflared service install eyJ..." line is fine), then press Enter:\033[0m\n'
+  IFS= read -r TOKEN </dev/tty || true
+fi
+# Accept the bare token or Cloudflare's whole install line: keep only the eyJ... token.
+TOKEN=$(printf '%s' "$TOKEN" | grep -oE 'eyJ[A-Za-z0-9+/=_-]{20,}' | head -n1 || true)
+if [ -z "$TOKEN" ]; then echo "✖ No Cloudflare token found. Copy the 'Install as service' line again and run this once more."; exit 1; fi
+echo "✔ Token received (kept private on this server)."
 REPO=https://github.com/ghslainkirabo-beep/Elitejobs_hub.git
 APP=/opt/elitejobs-hub
 DATA=/var/lib/elitejobs-hub
