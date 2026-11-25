@@ -105,6 +105,7 @@ function mergeState(cur, inc, it) {
   out.empSeq = cur.empSeq || 0;
   out.virgin = true;
   out.sec = cur.sec || [];
+  out.rehubEp = cur.rehubEp || 0; out.adminReserved = cur.adminReserved || null; // only Rehub changes these
   // Only IT Support (with the IT key) can pause positions or post notices.
   if (!it) { out.disabled = cur.disabled || {}; out.update = cur.update || null; }
   out.rev = (cur.rev || 0) + 1;
@@ -114,10 +115,17 @@ function commit(next) { saveState(next); broadcast({ type: 'state', state: next 
 
 // ---- people: the Hub issues company IDs, so they are unique ----------------------
 function realHolder(s, role) { return (s.staff || []).filter(x => x.role === role && !x.name.includes('@')).sort((a, b) => a.joined - b.joined)[0] || null; }
-function register(name, role, devKey) {
+function register(name, role, devKey, ep, fresh) {
   const s = loadState() || blankState();
   const clean = String(name || '').replace(/[<>&"'`]/g, '').trim().replace(/\s+/g, ' ').slice(0, 40);
   if (clean.length < 2 || !POSITIONS[role]) throw new Error('A name and a position are needed.');
+  // After Rehub, a saved sign-in from before the reset no longer works: everyone signs in again as new.
+  if ((s.rehubEp || 0) > 0 && !fresh && (+ep || 0) < s.rehubEp) throw Object.assign(new Error('The Hub started fresh sign-ins. Please sign in again as a new user.'), { code: 'REHUB' });
+  // After Rehub, the Admin position waits for the person who held it.
+  if (role === 'admin' && !clean.includes('@') && s.adminReserved && !realHolder(s, 'admin') && s.adminReserved.toLowerCase() !== clean.toLowerCase()) {
+    office.secEvent('Someone tried to sign in as “' + clean + '” in Admin, which is kept for ' + s.adminReserved + ' after the Rehub. It was refused.', ['admin', 'it']);
+    throw Object.assign(new Error('Admin is kept for ' + s.adminReserved + '. If you also work in Admin, sign in with @ in your name, like @' + clean.split(' ')[0] + '.'), { code: 'ROLE_TAKEN' });
+  }
   // Only ONE real Admin and ONE real IT Support. Anyone else in those positions must put
   // @ in their name (e.g. "@Jean"): they are then a separate, lesser account — never the real one.
   if ((role === 'admin' || role === 'it') && !clean.includes('@')) {
@@ -133,6 +141,7 @@ function register(name, role, devKey) {
     s.empSeq = (s.empSeq || 0) + 1;
     p = { id: 'ELR-' + String(s.empSeq).padStart(4, '0'), name: clean, role, dept: POSITIONS[role], joined: now, last: now, on: true, _u: now };
     s.staff.push(p);
+    if (role === 'admin' && s.adminReserved && s.adminReserved.toLowerCase() === clean.toLowerCase()) delete s.adminReserved;
     s.log = [{ t: now, by: clean, uid: p.id, role, text: 'joined the system as ' + POSITIONS[role] + ' (' + p.id + ')' }].concat(s.log || []);
     fs.appendFileSync(ACTIVITY, JSON.stringify(s.log[0]) + '\n');
   } else { p.last = now; p._u = now; }
@@ -143,7 +152,7 @@ function register(name, role, devKey) {
   if (h < 6 || h >= 21) office.secEvent(p.name + ' (' + p.dept + ') signed in at ' + new Date(now).toTimeString().slice(0, 5) + ', outside working hours.');
   const other = s.staff.filter(x => x.id !== p.id && x.name.toLowerCase() === clean.toLowerCase());
   if (other.length && p.joined === now) office.secEvent('“' + p.name + '” signed in as ' + p.dept + ' but already exists as ' + other.map(x => x.dept).join(', ') + '. Check this is the same person.');
-  return Object.assign({}, p, { device: trust });
+  return Object.assign({}, p, { device: trust, ep: s.rehubEp || 0 });
 }
 
 // ---- devices: each computer/phone/iPad carries its own random key. A person's account
@@ -198,6 +207,67 @@ function activity() {
   catch (e) { return []; }
 }
 function appendActivity(a) { fs.appendFileSync(ACTIVITY, JSON.stringify(a) + '\n'); }
+
+// ---- Rehub: start fresh sign-ins. Every account except the person who runs it is removed;
+// every job, client, CV, vacancy and record stays. Done openly: written to the log, removed
+// accounts kept for 30 days (and can be brought back), Admin's place kept for the same person.
+const REHUB_DIR = path.join(DATA_DIR, 'rehub');
+const REHUB_KEEP = 30 * 864e5;
+function rehubPurge() { try { for (const f of fs.readdirSync(REHUB_DIR)) { const m = /^rehub-(\d+)\.json$/.exec(f); if (m && Date.now() - +m[1] > REHUB_KEEP) fs.unlinkSync(path.join(REHUB_DIR, f)); } } catch (e) {} }
+function rehubArchives() {
+  rehubPurge();
+  try { return fs.readdirSync(REHUB_DIR).filter(f => /^rehub-\d+\.json$/.test(f)).map(f => { try { return JSON.parse(fs.readFileSync(path.join(REHUB_DIR, f), 'utf8')); } catch (e) { return null; } }).filter(Boolean).sort((a, b) => b.t - a.t); } catch (e) { return []; }
+}
+function rehubWho(req) {
+  const me = whoFrom(req);
+  if (!me || me.name.includes('@') || me.role !== 'it') throw Object.assign(new Error('Only the real IT Support, on their own trusted device, can use Rehub.'), { status: 403 });
+  return me;
+}
+function rehubView(me) {
+  const s = loadState() || blankState();
+  return { me: { id: me.id, name: me.name, dept: me.dept }, others: s.staff.filter(x => x.id !== me.id).map(x => ({ name: x.name, dept: x.dept })), adminReserved: s.adminReserved || null,
+    past: rehubArchives().map(a => ({ t: a.t, by: a.by, until: a.t + REHUB_KEEP, people: a.staff.map(x => ({ id: x.id, name: x.name, dept: x.dept, back: s.staff.some(y => y.id === x.id) })) })) };
+}
+function rehubRun(me, b) {
+  if (String((b && b.confirm) || '').trim().toUpperCase() !== 'START FRESH') throw new Error('Type START FRESH to confirm.');
+  const s = loadState() || blankState(), now = Date.now();
+  const gone = s.staff.filter(x => x.id !== me.id);
+  if (!gone.length) throw new Error('You are already the only account. There is nothing to reset.');
+  const d = devs(), goneDevs = {};
+  for (const [h, x] of Object.entries(d)) if (x.uid !== me.id) { goneDevs[h] = x; delete d[h]; }
+  const oldAdmin = realHolder(s, 'admin');
+  fs.mkdirSync(REHUB_DIR, { recursive: true });
+  fs.writeFileSync(path.join(REHUB_DIR, 'rehub-' + now + '.json'), JSON.stringify({ t: now, by: me.name, byId: me.id, staff: gone, devices: goneDevs }));
+  saveDevs(d);
+  s.staff = s.staff.filter(x => x.id === me.id);
+  s.rehubEp = (s.rehubEp || 0) + 1;
+  if (oldAdmin) s.adminReserved = oldAdmin.name;
+  const text = 'started fresh sign-ins (Rehub): ' + gone.length + ' account' + (gone.length === 1 ? '' : 's') + ' removed, every job, client, CV and record kept. The removed accounts are kept for 30 days and can be brought back.';
+  s.log = [{ t: now, by: me.name, uid: me.id, role: me.role, text }].concat(s.log || []);
+  appendActivity(s.log[0]);
+  s.rev = (s.rev || 0) + 1;
+  commit(s);
+  office.secEvent(me.name + ' (' + me.dept + ') ' + text, ['admin', 'it']);
+  return { ok: true, removed: gone.length, ep: s.rehubEp };
+}
+function rehubRestore(me, id) {
+  const s = loadState() || blankState();
+  const a = rehubArchives().find(x => x.staff.some(y => y.id === id));
+  if (!a) throw new Error('That account isn’t in the Rehub archive (it may be older than 30 days).');
+  if (s.staff.some(y => y.id === id)) throw new Error('That account is already back.');
+  const p = a.staff.find(y => y.id === id);
+  if ((p.role === 'admin' || p.role === 'it') && !p.name.includes('@') && realHolder(s, p.role)) throw new Error(POSITIONS[p.role] + ' already belongs to ' + realHolder(s, p.role).name + '.');
+  s.staff.push(Object.assign({}, p, { _u: Date.now() }));
+  if (p.role === 'admin' && s.adminReserved && s.adminReserved.toLowerCase() === p.name.toLowerCase()) delete s.adminReserved;
+  const text = 'brought back the account of ' + p.name + ' (' + p.dept + ', ' + p.id + ') from the Rehub archive';
+  s.log = [{ t: Date.now(), by: me.name, uid: me.id, role: me.role, text }].concat(s.log || []);
+  appendActivity(s.log[0]);
+  s.rev = (s.rev || 0) + 1;
+  commit(s);
+  office.secEvent(me.name + ' ' + text + '. They sign in again with the same name and position.', ['admin', 'it']);
+  return { ok: true };
+}
+setInterval(rehubPurge, 6 * 3600e3).unref();
 const office = require('./office.js')({ DATA_DIR, loadState, commit: s => commit(s), broadcast: o => broadcast(o), activity, appendActivity, ai, PORT, ipOf: realIp, extraFor: (p, w) => vflow.dailyTasks(p.id, p.name, w.from, w.to), dailyText: l => vflow.dailyText(l) });
 const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => broadcast(o), appendActivity, secEvent: (t, w) => office.secEvent(t, w) });
 const inquiries = require('./inquiries.js')({ DATA_DIR, broadcast: o => broadcast(o), appendActivity: a => appendActivity(a), urgent });
@@ -379,7 +449,7 @@ const server = http.createServer((req, res) => {
   }
   if (p === '/api/register' && post) return readBody(req, 1e5, buf => {
     let b; try { b = JSON.parse(buf.toString('utf8') || '{}'); } catch (e) { return json(res, 400, { error: 'Bad request.' }); }
-    try { json(res, 200, register(b.name, b.role, b.dev)); } catch (e) { json(res, e.code === 'ROLE_TAKEN' ? 409 : 400, { error: e.message, code: e.code || null }); }
+    try { json(res, 200, register(b.name, b.role, b.dev, b.ep, b.fresh === true)); } catch (e) { json(res, e.code === 'ROLE_TAKEN' || e.code === 'REHUB' ? 409 : 400, { error: e.message, code: e.code || null }); }
   });
 
   // ---- regular jobs on the website (identity = trusted device; permission = Admin's Publish grant) ----
@@ -629,6 +699,9 @@ const server = http.createServer((req, res) => {
 
   // ---- IT only: AI settings, update source, THE HUB UPDATE ----
   if (p.startsWith('/api/it/') && !hasIT(req)) return send(res, 401, 'IT key required');
+  if (p === '/api/it/rehub' && !post) { try { return json(res, 200, rehubView(rehubWho(req))); } catch (e) { return json(res, e.status || 400, { error: e.message }); } }
+  if (p === '/api/it/rehub' && post) return jsonBody(req, res, 1e4, b => rehubRun(rehubWho(req), b));
+  if (p === '/api/it/rehub/restore' && post) return jsonBody(req, res, 1e4, b => rehubRestore(rehubWho(req), String(b.id || '')));
   if (p === '/api/it/ai' && post) return jsonBody(req, res, 1e5, b => ai.settings(b));
   if (p === '/api/it/ai/test' && post) return jsonBody(req, res, 1e4, () => ai.triage({ text: 'Test: the office printer is not printing.', kind: 'ticket' }).then(r => ({ ok: true, sample: r })));
   if (p === '/api/it/workbench' && post) return jsonBody(req, res, 2e5, b => ai.workbench({ mode: b.mode, history: b.history, message: b.message, systemContext: b.withCode ? activeHtml() : null }).then(t => ({ text: t })));
