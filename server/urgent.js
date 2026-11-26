@@ -328,6 +328,6 @@ module.exports = function makeUrgent({ DATA_DIR, loadState, broadcast, appendAct
     wj(ASKS, list.filter(x => x.id !== id)); appendActivity({ t: Date.now(), by: p.name, uid: p.id, role: p.role, text: `deleted the Abroad enquiry of ${a.name} (${a.country})` });
     broadcast({ type: 'abroad', kind: 'asks' }); return { ok: true };
   }
-  return { setPowerHook, asks, askSet, askDel, rights, me, grantsView, setGrant, cfgView, setCfg, sync, posts, publish, removePost, editPost, doc, apps, photo, outcome, reopen, finish, report, need, remote,
+  return { siteOf: () => cfg().site || '', setPowerHook, asks, askSet, askDel, rights, me, grantsView, setGrant, cfgView, setCfg, sync, posts, publish, removePost, editPost, doc, apps, photo, outcome, reopen, finish, report, need, remote,
     allApps: () => rj(APPS, []), filePath: n => path.join(PH, path.basename(String(n))) };
 };

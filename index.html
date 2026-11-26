@@ -956,7 +956,7 @@ svc(){if(!S.svc.length)return`<div class=empty>No services added yet.${can('it')
 itgate(){return`<div class=card><h3>🔐 IT key needed</h3><p class=sub>These controls change the system for everyone, so they need the IT key as well as the office passcode. On the Hub PC this is filled in for you; elsewhere, find it in <b>it-key.txt</b> in the Hub's data folder.</p><form id=itkf class=itkf autocomplete=off><input name=k placeholder="IT key" spellcheck=false style="text-transform:uppercase;letter-spacing:.15em"><button class="b p">Unlock IT tools</button></form></div>`},
 sysctl(){if(!itKey())return V.itgate();if(ui.engine===undefined){ui.engine='';api('/api/ui-version').then(d=>{ui.engine=d.engine||'older than 1.7.4';refreshMain()}).catch(()=>{})}const EV=`<div class="card" style="margin-bottom:12px"><b>Hub engine running on the Hub PC:</b> ${ui.engine?esc(ui.engine):'checking…'} <small class=sub>— if an app update shows here as older than what you installed, stop the Hub from the icon next to the clock and open it again.</small></div>`;const D=S.disabled||{};const rows=Object.keys(R).filter(k=>k!='it').map(k=>`<div class=bar style="grid-template-columns:150px 1fr auto"><span>${R[k].i} ${R[k].n}</span><span>${D[k]?bdg('Disabled'):bdg('Running')}</span>${btn(D[k]?'Enable':'Disable',`dis|${k}`,D[k]?'p':'')}</div>`).join('');
  return EV+`<div class=card><h3>🧯 System control</h3><p class=sub>Turn any position on or off for everyone, live. IT Support can never be disabled. Every change is written to the audit log, visible to Admin.</p>${rows}</div>
- <div class=card><h3>Whole system</h3><p class=sub>Freeze every position except IT at once.</p>${btn(D.ALL?'Unfreeze everything':'Freeze everything (except IT)','disall',D.ALL?'p':'')}</div>${opCard()}${mvCard()}${wjKeyCard()}`},
+ <div class=card><h3>Whole system</h3><p class=sub>Freeze every position except IT at once.</p>${btn(D.ALL?'Unfreeze everything':'Freeze everything (except IT)','disall',D.ALL?'p':'')}</div>${opCard()}${pxCard()}${mvCard()}${wjKeyCard()}`},
 push(){if(!itKey())return V.itgate();const u=S.update||{};return `<div class=card><h3>📣 Notices</h3><p class=sub>Send a short banner to one position, or to everyone, right now. It stays at the top of their screen until you clear it.</p>
  <form class="card" data-f="pushmsg" style="box-shadow:none;border:0;padding:0"><label>Who sees it</label><select name=who><option value=all>Everyone</option>${Object.keys(R).map(k=>`<option value=${k}>${R[k].n}</option>`).join('')}</select><label>Message</label><input name=text required placeholder="e.g. System maintenance at 5pm"><button class="b p">Send banner</button></form>
  ${u.text?`<div class=card style="box-shadow:none;border:0;padding:12px 0 0"><b>Current banner:</b> ${u.text} ${btn('Clear','pushclear')}</div>`:''}</div>
@@ -1451,33 +1451,20 @@ function ejCard(p, mini) {
   </div><span class="lq-spec" aria-hidden="true"></span></div></div>`;
 }
 // ---- photo cards (Endover): two photos that swap, like the job cards on the Jobs page ----
-const EJ_PH = (u => 'https://images.unsplash.com/photo-' + u)
-const EJ_PHOTOS = {
-  hosp: { bartender: '1574096079513-d8259312b785', barman: '1514933651103-005eec06c04b', waiter: '1581579438747-1dc8d17bbce4', waitress: '1565299585323-38d6b0865b47', counter: '1528605248644-14dd04022da1' },
-  fin: { cashier: '1556742049-0a67daf4005a', accountant: '1556742049-0a67daf4005a' },
-  office: { receptionist: '1573496359142-b8d87734a5a2', manager: '1531482615713-2afd69097998', supervisor: '1573497019940-1c28c88b4f3e' },
-  sales: { sales: '1560250097-0b93528c311a' },
-  drive: { driver: '1449965408869-eaa3f722e40d' }
-};
-// Photo URL with the size the cards need. Only Unsplash image addresses are accepted.
-const ejOkPh = u => typeof u === 'string' && /^https:\/\/images\.unsplash\.com\/[A-Za-z0-9._~\/?&=%:+-]+$/.test(u);
-const ejSized = u => u + (u.includes('?') ? '&' : '?') + (u.includes('auto=format') ? '' : 'auto=format&fit=crop&w=720&q=72');
-// returns up to 2 photos {u, by} for a job: the ones chosen in the Hub first, else the built-in set for its field
+// Job photos are our own copies of Pixabay photos, kept on the website (/api/media/…). The Hub shows them from there.
+const ejOkPh = u => typeof u === 'string' && /^\/api\/media\/[A-Za-z0-9_-]{6,40}$/.test(u);
+const ejSite = () => ((ui.px && ui.px.site) || 'https://elitejobsrwanda.com').replace(/\/$/, '');
+const ejSized = u => ejSite() + u;
 function ejPhotos(tpl, title, m) {
   m = m || {};
-  const own = (Array.isArray(m.photos) ? m.photos : []).filter(ejOkPh).slice(0, 2);
-  if (own.length) return own.map((u, i) => ({ u: ejSized(u), by: String((m.credit || [])[i] || '') }));
-  const pool = EJ_PHOTOS[tpl]; if (!pool) return [];
-  const t = ejNorm(title), keys = Object.keys(pool), hit = keys.find(k => t.includes(k)), out = [], seen = {};
-  const add = k => { const u = pool[k]; if (u && !seen[u]) { seen[u] = 1; out.push({ u: ejSized(EJ_PH(u)), by: '' }) } };
-  if (hit) add(hit); keys.forEach(add); return out.slice(0, 2);
+  return (Array.isArray(m.photos) ? m.photos : []).filter(ejOkPh).slice(0, 2).map((u, i) => ({ u: ejSized(u), by: String((m.credit || [])[i] || '') }));
 }
 // One photo card. mini = just the first frame (small tab).
 function ejPhotoCard(p, mini) {
   const m = p.meta || {}, id = EJ_TPL[p.tpl] ? p.tpl : 'gen', T = EJ_TPL[id], pay = ejPay(m), ph = ejPhotos(id, p.title, m);
   const cat = esc((EJ_CATS.find(c => c[0] === (m.cat && m.cat !== 'gen' ? m.cat : id)) || [0, T.n])[1]);
   const art = `<div class="pc-f pc-art"><span class="pc-ic" aria-hidden="true">${ejIco(T.g)}</span></div>`;
-  const frames = ph.map(x => `<div class="pc-f"><img src="${esc(x.u)}" srcset="${esc(x.u)} 1x, ${esc(x.u.replace('w=720', 'w=1440'))} 2x" alt="" loading="eager" decoding="async" onerror="this.parentNode.classList.add('pc-art');this.remove()">${x.by && !mini ? `<span class="pc-cr">Photo: ${esc(x.by)} · Unsplash</span>` : ''}</div>`);
+  const frames = ph.map(x => `<div class="pc-f"><img src="${esc(x.u)}" alt="" loading="eager" decoding="async" onerror="this.parentNode.classList.add('pc-art');this.remove()">${x.by && !mini ? `<span class="pc-cr">Photo: ${esc(x.by)} · Pixabay</span>` : ''}</div>`);
   while (frames.length < 2) frames.push(art);
   const fr = (mini ? frames.slice(0, 1) : frames).map((f, i) => i ? f : f.replace('class="pc-f', 'class="pc-f on')).join('');
   return `<div class="pcw${mini ? ' mini' : ''}"><div class="pc" style="--a:${T.c[0]};--b:${T.c[1]};--c:${T.c[2]}"><div class="pc-ph" data-pc-frames>${fr}${mini ? '' : '<span class="pc-pay">' + esc(pay.v) + (pay.u ? ' <small>' + esc(pay.u.split(' · ')[0]) + '</small>' : '') + '</span>'}</div>
@@ -1992,7 +1979,7 @@ function eoFly(from,toEl,done){const calm=matchMedia('(prefers-reduced-motion:re
  an.onfinish=()=>{c.remove();done()};an.oncancel=()=>{c.remove();done()}}
 // ---------- photo vault: as you type the job title, photos of that job appear; tap two for the card ----------
 const EOV_STOP=new Set('for the a an and or of to in at on with needed need urgent urgently wanted hiring hire hired tonight today tomorrow now new good kigali rwanda job jobs position positions vacancy vacancies opening openings male female men women man woman full part time shift night day per month our we is are de des du la le les et pour un une w wa wo ya y yo ry rya mu ku na by bya cy cya z za b ba'.split(' '));
-// local words → English, so Unsplash understands (Kinyarwanda and French)
+// local words → English, so the photo search understands (Kinyarwanda and French)
 const EOV_LOCAL={mucoma:'waiter',abacoma:'waiter',umuzamu:'security guard',abazamu:'security guard',umushoferi:'driver',abashoferi:'driver',umutetsi:'cook',abatetsi:'cook',umukozi:'worker',umwarimu:'teacher',abarimu:'teacher',umuforomo:'nurse',abaforomo:'nurse',umubaruramari:'accountant',umucuruzi:'salesperson',umucungamari:'accountant',umufundi:'mason',abafundi:'mason',umudozi:'tailor',umuhinzi:'farmer',isuku:'cleaner',serveur:'waiter',serveuse:'waitress',cuisinier:'cook',cuisiniere:'cook',gardien:'security guard',chauffeur:'driver',nounou:'nanny',menage:'cleaner',menagere:'housekeeper',caissier:'cashier',caissiere:'cashier',comptable:'accountant',infirmier:'nurse',infirmiere:'nurse',enseignant:'teacher',enseignante:'teacher',macon:'mason',vendeur:'salesperson',vendeuse:'salesperson',receptionniste:'receptionist',secretaire:'secretary',livreur:'delivery rider',barmaid:'bartender',barmen:'bartender',barman:'bartender',askari:'security guard',houseboy:'housekeeper',housegirl:'housekeeper',counterlady:'cashier counter',ijoro:'night',moto:'motorcycle',bodaboda:'motorcycle taxi',boda:'motorcycle taxi',taxi:'taxi',umuyedi:'helper',abakozi:'workers'};
 // the job words of a title: “5 waiters for tonight” → “waiters”; “Umuzamu” → “security guard”
 function eoQ(t){const w=ejNorm(t).split(' ').filter(x=>x&&!/^\d+$/.test(x)&&!EOV_STOP.has(x)).map(x=>EOV_LOCAL[x]||x);return w.join(' ').split(' ').slice(0,4).join(' ')}
@@ -2004,31 +1991,27 @@ function eoPosCat(q){const n=ejNorm(q);if(!n)return'';let best='',score=0;for(co
 function eoQueries(title,cat){const q=eoQ(title),tpl=ejPick(q||title,cat),pc=eoPosCat(q),ex=pc[0]==='=',f=(ex&&EOV_CAT[pc.slice(1)])||(tpl!=='gen'&&EOV_FIELD[tpl])||EOV_CAT[pc]||EOV_FIELD.gen,L=[];const add=x=>{x=String(x||'').trim();if(x&&!L.includes(x))L.push(x)};
  if(q){add(q+' african');add(q+' africa');add(q)}add(f+' african');add(f);return L}
 function eov(){const e=eo();if(!e.v)e.v={q:'',items:[],busy:false,err:'',pick:[]};return e.v}
-function eoKey(){return LS.get('ug-unsplash')||''}
-function eoBuiltIn(title,cat){const tpl=ejPick(title,cat),ws=eoQ(title).split(' ').filter(w=>w.length>=4).map(w=>w.slice(0,4)),pool=Object.assign({},EJ_PHOTOS[tpl]||{});
- Object.values(EJ_PHOTOS).forEach(P=>{const ks=Object.keys(P);if(ks.some(k=>ws.some(w=>k.startsWith(w)))){ks.filter(k=>ws.some(w=>k.startsWith(w))).concat(ks).forEach(k=>{if(!pool[k])pool[k]=P[k]})}});return Object.entries(pool).map(([k,id])=>({id:'b-'+id,u:EJ_PH(id),t:EJ_PH(id)+'?auto=format&fit=crop&w=320&q=60',by:'',dl:'',alt:k})).filter((x,i,a)=>a.findIndex(y=>y.u==x.u)==i)}
+function eoKey(){return !!(ui.px&&ui.px.on)}
+function pxStatus(){return api('/api/photos/status').then(x=>{ui.px=x;return x}).catch(()=>ui.px)}
+try{LS.del('ug-unsplash')}catch(e){}
+function eoBuiltIn(){return[]}
 let eovT=null,eovN=0;
 function eoVaultSoon(){clearTimeout(eovT);eovT=setTimeout(eoVaultSearch,650)}
 async function eoVaultSearch(){const f=eo().f,v=eov(),q=eoQ(f.title||'');if(q==v.q&&v.items.length)return;v.q=q;v.err='';
  if(!q){v.items=[];return eoVaultPaint()}
- if(!eoKey()){v.items=eoBuiltIn(f.title||'',f.cat);return eoVaultPaint()}
- const C=window.__eovCache||(window.__eovCache={});if(C[q]){v.items=C[q];return eoVaultPaint()}
+ if(!ui.px)await pxStatus();if(!eoKey()){v.items=[];return eoVaultPaint()}
  const n=++eovN;v.busy=true;eoVaultPaint();
- try{const get=async(query,extra)=>{const r=await fetch('https://api.unsplash.com/search/photos?'+new URLSearchParams(Object.assign({query,per_page:'30',content_filter:'high',order_by:'relevant'},extra||{})),{headers:{Authorization:'Client-ID '+eoKey(),'Accept-Version':'v1'}});
-   if(r.status==401)throw new Error('The photo key is not right. Check it and paste it again.');if(r.status==403)throw new Error('Too many searches this hour. Try again in a while.');if(!r.ok)throw new Error('Photo search failed ('+r.status+').');return(await r.json()).results||[]};
-  // best first: African people at that job; then the job anywhere; sharp photos only
-  const seen={},out=[],take=list=>list.forEach(p=>{if(out.length<10&&p.urls&&p.urls.raw&&p.width>=1600&&!seen[p.id]){seen[p.id]=1;out.push(p)}});
-  for(const query of eoQueries(f.title||'',f.cat)){take(await get(query));if(n!==eovN)return;if(out.length>=10)break}
-  v.items=out.map(p=>({id:p.id,u:p.urls.raw,t:p.urls.small,by:(p.user&&p.user.name)||'',dl:(p.links&&p.links.download_location)||'',alt:p.alt_description||''}));
-  if(v.items.length)C[q]=v.items;
-  if(!v.items.length)v.err='No clean photos for “'+q+'”. Try another word in the title.'}
- catch(er){if(n!==eovN)return;v.items=eoBuiltIn(f.title||'',f.cat);v.err=er.message||'No internet — showing the built-in photos.'}
+ try{const seen={},out=[];
+  // best first: African people at that job; then the job anywhere
+  for(const query of eoQueries(f.title||'',f.cat)){const r=await api('/api/photos/search?q='+encodeURIComponent(query));if(n!==eovN)return;(r.items||[]).forEach(p=>{if(out.length<12&&!seen[p.id]){seen[p.id]=1;out.push(p)}});if(out.length>=12)break}
+  v.items=out;if(!out.length)v.err='No photos for “'+q+'”. Try another word in the title.'}
+ catch(er){if(n!==eovN)return;v.items=[];v.err=er.message||'Photo search failed.'}
  v.busy=false;eoVaultPaint()}
 function eoVault(){const v=eov(),k=eoKey(),pk=v.pick;
  const grid=v.items.length?`<div class=eovg>${v.items.map(x=>{const i=pk.findIndex(p=>p.id==x.id);return`<button type=button class="eovp${i>=0?' on':''}" data-a="eopick|${esc(x.id)}" aria-pressed=${i>=0} title="${esc(x.alt||'')}${x.by?' — '+esc(x.by):''}"><img src="${esc(x.t)}" alt="" loading=lazy>${i>=0?`<b>${i+1}</b>`:''}</button>`}).join('')}</div>`:'';
- const msg=v.busy?'Finding photos…':v.err?esc(v.err):!v.q?'Type the job title and photos of that job appear here.':!v.items.length?'No built-in photos for this job yet.':pk.length==2?'✔ Two photos chosen. The first shows first.':'Tap '+(2-pk.length)+' more photo'+(pk.length==1?'':'s')+'. The first one shows first.';
+ const msg=v.saving?'Keeping the photo on the website…':v.busy?'Finding photos…':v.err?esc(v.err):!k?'Photos need the Pixabay key: IT or Admin adds it once in IT → System control → Job photos.':!v.q?'Type the job title and photos of that job appear here.':!v.items.length?'No photos yet.':pk.length==2?'✔ Two photos chosen. The first shows first.':'Tap '+(2-pk.length)+' more photo'+(pk.length==1?'':'s')+'. The first one shows first.';
  return`<div class=eovh><b>Photo vault</b><small>${msg}</small>${pk.length?`<button type=button class=eovc data-a=eopick|>Clear</button>`:''}</div>${grid}
- ${k?`<small class=eovk>Searching Unsplash. <button type=button data-a=eokey|>Change key</button></small>`:`<details class=eovk><summary>Search every job (free Unsplash key)</summary><div class=row><input id=eokeyin placeholder="Paste the Access Key" autocomplete=off><button type=button class="b p" data-a=eokey|set>Save</button></div><small>Get it free at unsplash.com/developers → New application. It stays on this computer only.</small></details>`}`}
+ ${k&&v.items.length?`<small class=eovk>Photos from <a href="https://pixabay.com/" target=_blank rel=noopener>Pixabay</a>. The one you choose is kept on our website.</small>`:''}`}
 function eoVaultPaint(){const el=$('#eovault');if(el)el.innerHTML=eoVault()}
 function eoPicks(){return eov().pick}
 // the preview card swaps its two photos: 3.5 s each
@@ -2036,14 +2019,18 @@ setInterval(()=>{const c=$('#eoprev .pc');if(!c)return;const fs=c.querySelectorA
 Object.assign(A,{
  ugmode(m){ui.ug.mode=m=='endover'?'endover':'flyer';haptic('soft');const e=flat(ui.r)[ui.v];const go=()=>refreshMain();
   if(document.startViewTransition&&!matchMedia('(prefers-reduced-motion:reduce)').matches){const v=document.startViewTransition(go);[v.ready,v.finished,v.updateCallbackDone].forEach(p=>p.catch(()=>{}))}else go();setTimeout(()=>ugHydrate($('#main')),0)},
- eopick(id){const v=eov();if(!id){v.pick=[];haptic('soft')}else{const i=v.pick.findIndex(p=>p.id==id);if(i>=0)v.pick.splice(i,1);else{const x=v.items.find(p=>p.id==id);if(!x)return;if(v.pick.length>=2)v.pick.shift();v.pick.push(x)}haptic('tick')}eoVaultPaint();eoLive()},
- eokey(a){if(a=='set'){const k=($('#eokeyin')||{}).value||'';if(k.trim().length<20){haptic('error');return toast('✖ Paste the whole Access Key')}LS.set('ug-unsplash',k.trim());toast('✔ Photo key saved on this computer')}else{LS.del('ug-unsplash')}eov().q='';eov().items=[];eoVaultPaint();eoVaultSearch()},
+ async eopick(id){const v=eov();if(!id){v.pick=[];haptic('soft');eoVaultPaint();return eoLive()}
+  const i=v.pick.findIndex(p=>p.id==id);if(i>=0){v.pick.splice(i,1);haptic('tick');eoVaultPaint();return eoLive()}
+  const x=v.items.find(p=>p.id==id);if(!x||v.saving)return;
+  if(!x.u){v.saving=true;eoVaultPaint();try{const r=await api('/api/photos/use',{id});x.u=r.url;x.by=r.by||x.by}catch(e){v.saving=false;haptic('error');toast('✖ '+e.message);return eoVaultPaint()}v.saving=false}
+  if(v.pick.length>=2)v.pick.shift();v.pick.push(x);haptic('tick');eoVaultPaint();eoLive()},
+
  eosel(id){const e=eo();e.sel=id?+id:null;if(!id)e.sel=null;haptic('soft');eoMount()},
  eodel(id){const e=eo();e.list=e.list.filter(x=>x.id!=id);if(e.sel==id)e.sel=null;eoSave();haptic('medium');eoMount()},
  eoedit(id){const e=eo(),x=e.list.find(y=>y.id==id);if(!x)return;e.f=Object.assign({},x.form);eov().pick=(x.form.pick||[]).slice();eov().q='';setTimeout(eoVaultSearch,0);e.list=e.list.filter(y=>y.id!=id);e.sel=null;eoSave();eoMount()},
  eoadd(){const e=eo();if(e.busy)return;const f=eoRead(),er=eoCheck(f);if(er){haptic('error');return toast('✖ '+er)}
   const post=eoBuild(f),item={id:Date.now(),post,rules:ugRulesRead($('#eof')),form:Object.assign({},f,{pick:eoPicks().slice()}),life:f.life,until:f.life=='custom'?new Date(f.until).toISOString():''};
-  eoPicks().forEach(p=>{if(p.dl&&eoKey())fetch(p.dl,{headers:{Authorization:'Client-ID '+eoKey()}}).catch(()=>{})});const src=$('#eoprev .pcw');e.list.push(item);e.f={life:f.life,ben:[],cat:f.cat};e.v={q:'',items:[],busy:false,err:'',pick:[]};eoSave();haptic('medium');
+  const src=$('#eoprev .pcw');e.list.push(item);e.f={life:f.life,ben:[],cat:f.cat};e.v={q:'',items:[],busy:false,err:'',pick:[]};eoSave();haptic('medium');
   const clone=src;eoMount();const tab=document.querySelector('.eotab[data-id="'+item.id+'"]');if(tab)tab.classList.add('fresh');
   eoFly(clone,tab&&tab.querySelector('.eoth'),()=>{if(tab){tab.classList.remove('fresh');tab.classList.add('eopop')}haptic('success')})},
  async eogo(){const e=eo();if(e.busy||!e.list.length)return;e.busy=true;eoMount();let ok=0;
@@ -2151,6 +2138,15 @@ function wjKeyCard(){const k=ui.wjk;if(k===undefined){ui.wjk=null;api('/api/it/w
  <div class=mvf style="grid-template-columns:1fr auto"><label>GitHub key<input id=wjkey type=password placeholder="${k.configured?'Saved — paste a new one to replace it':'github_pat_…'}" autocomplete=off spellcheck=false></label><div style="display:flex;align-items:flex-end">${btn('Save key','wjkeysave','p')}</div></div></div>`}
 Object.assign(A,{wjkeysave(){const v=($('#wjkey')||{}).value||'';if(!v.trim())return toast('✖ Paste the key first');api('/api/it/webjobs-key',{token:v.trim()}).then(d=>{ui.wjk=d;haptic('success');toast('✔ Website jobs connected');refreshMain()}).catch(e=>{haptic('error');toast('✖ '+e.message)})}});
 // ---------- IT: move the Hub into the cloud (one time) ----------
+function pxCard(){const x=ui.px;if(x===undefined){ui.px=null;pxStatus().then(()=>refreshMain());return ''}if(!x)return '';const F=x.fill||{};
+ if(F.busy&&!ui.pxT)ui.pxT=setInterval(()=>pxStatus().then(s=>{if(!s||!s.fill||!s.fill.busy){clearInterval(ui.pxT);ui.pxT=null;toast(s&&s.fill&&s.fill.error?'✖ '+s.fill.error:'✔ Default photos are on the website')}refreshMain()}),4000);
+ return`<div class=card><h3>📷 Job photos (Pixabay)</h3><p class=sub>Job photos come from Pixabay. The key stays on the Hub server only; a chosen photo is downloaded once and kept on our website. ${x.on?`<b>✓ Key set</b>${x.by?' by '+esc(x.by):''}${x.t?' · '+agoT(x.t):''}`:'<b>No key yet.</b> Get it free: sign in on pixabay.com, open pixabay.com/api/docs and copy “Your API key”.'}</p>
+ ${x.canSet?`<form class=row id=pxkeyf autocomplete=off style="gap:8px;margin:8px 0"><input name=key type=password placeholder="${x.on?'Paste a new key to replace it':'Paste the Pixabay key'}" style="flex:1;min-width:0" autocomplete=off><button class="b p">Save key</button>${x.on?'<button type=button class=b data-a=pxkeydel>Remove</button>':''}</form>
+ ${x.on?`<p class=sub style="margin-top:12px"><b>Default photos</b> — for jobs posted without their own photo, and for the field and job pages: each field and common job (waiter, driver, nurse…) gets real Pixabay photos of African workers.${F.last?` Last filled ${agoT(F.last.t)} by ${esc(F.last.by)}: ${F.last.photos} photos.`:''}</p>
+ ${F.busy?`<div class=vfbar><i style="width:${Math.round((F.done||0)/(F.total||1)*100)}%"></i></div><small class=sub>Filling ${F.done} of ${F.total} groups…</small>`:btn(F.last?'Refresh the default photos':'Fill the default photos','pxfill','p')}${F.error&&!F.busy?`<p class=bad>${esc(F.error)}</p>`:''}`:''}`:'<small class=sub>IT or Admin sets the key.</small>'}</div>`}
+document.addEventListener('submit',e=>{if(e.target.id!='pxkeyf')return;e.preventDefault();const k=new FormData(e.target).get('key');api('/api/photos/key',{key:k}).then(()=>{toast('✔ Pixabay key saved on the Hub server');eov().q='';return pxStatus()}).then(()=>refreshMain()).catch(er=>{haptic('error');toast('✖ '+er.message)})},true);
+Object.assign(A,{pxkeydel(){if(!sure('pxdel','Remove the Pixabay key? Photo search stops until a new key is added'))return;api('/api/photos/key',{key:''}).then(pxStatus).then(()=>refreshMain())},
+ pxfill(){api('/api/photos/defaults',{}).then(()=>{toast('Filling the default photos — this takes a few minutes');return pxStatus()}).then(()=>refreshMain()).catch(e=>toast('✖ '+e.message))}});
 function opCard(){const o=ui.opc;if(o===undefined){ui.opc=null;api('/api/it/office-passcode').then(d=>{ui.opc=d;refreshMain()}).catch(()=>{ui.opc={}});return ''}
  if(!o||!o.code)return '';return `<div class=card><h3>🔑 Office passcode</h3><p class=sub>Colleagues opening the Hub in a browser or on a phone${o.url?' at <b>'+esc(o.url)+'</b>':''} type this once. Share it only with company staff, in person.</p><p style="font-size:26px;letter-spacing:.25em;font-weight:700;margin:6px 0">${esc(o.code)}</p></div>`}
 function mvCard(){const m=ui.mv;
@@ -2196,7 +2192,7 @@ function wjEditor(d){const f=wjForm(),F=d.fields||{},others=(d.jobs||[]).filter(
   <label>A typical day <small>(optional, one per line)</small><textarea name=day rows=3>${esc(f.day||'')}</textarea></label>
   <label>What to bring <small>(optional, one per line — empty uses CV, ID, certificates)</small><textarea name=bring rows=3>${esc(f.bring||'')}</textarea></label>
   ${others.length?`<div class=wjnext><span>Where it can lead <small>(optional)</small></span><div>${others.map(j=>`<label class=chk><input type=checkbox name=next value="${esc(j.id)}"${(f.next||[]).includes(j.id)?' checked':''}> ${esc(j.title)}</label>`).join('')}</div></div>`:''}
-  <div class=wjphotos><span>Photo</span>${eoKey()?`${pk.busy?'<small>Finding photos…</small>':pk.err?`<small>${esc(pk.err)}</small>`:''}<div class=eovg>${(pk.items||[]).map(x=>`<button type=button class="eovp${f.image==x.u?' on':''}" data-a="wjpick|${esc(x.id)}"><img src="${esc(x.t)}" alt="" loading=lazy>${f.image==x.u?'<b>✓</b>':''}</button>`).join('')}</div>${btn(pk.items?'Find other photos':'Find photos for this job','wjphotos')}`:`<small>Add the free Unsplash key in Urgent hiring → Endover to pick photos. Without a photo the website shows the job's first letter.</small>`}</div>
+  <div class=wjphotos><span>Photo</span>${eoKey()?`${pk.busy?'<small>Finding photos…</small>':pk.err?`<small>${esc(pk.err)}</small>`:''}<div class=eovg>${(pk.items||[]).map(x=>`<button type=button class="eovp${f.image&&f.image==ejSite()+x.u?' on':''}" data-a="wjpick|${esc(x.id)}"><img src="${esc(x.t)}" alt="" loading=lazy>${f.image&&f.image==ejSite()+x.u?'<b>✓</b>':''}</button>`).join('')}</div>${btn(pk.items?'Find other photos':'Find photos for this job','wjphotos')}`:`<small>Photos need the Pixabay key: IT or Admin adds it in IT → System control → Job photos. Without a photo the website shows the field's photo.</small>`}</div>
  </form>
  <div class=wjside><div class=wjlbl>Preview on the website</div><div id=wjprev>${wjPreview(f,F)}</div>
   ${ui.wj.busy?`<p class=sub>⏳ Publishing to elitejobsrwanda.com…</p>`:btn(f.id?'Save changes':'Publish to the website','wjsave','p')}
@@ -2220,10 +2216,10 @@ Object.assign(A,{
  wjclose(id){ui.wj.sure=null;api('/api/webjobs/close',{id}).then(()=>{haptic('success');toast('✔ Closed. It leaves the website in about a minute.');LOADERS.webjobs()}).catch(e=>{haptic('error');toast('✖ '+e.message)})},
  async wjphotos(){const f=wjRead(),pk=ui.wj.ph=ui.wj.ph||{};const qs=eoQueries(f.title||'',f.category);if(!qs.length){pk.err='Type the job title first.';return refreshMain()}
   pk.busy=true;pk.err='';refreshMain();const seen={},out=[];
-  try{for(const q of qs){const r=await fetch('https://api.unsplash.com/search/photos?'+new URLSearchParams({query:q,per_page:'20',content_filter:'high',order_by:'relevant'}),{headers:{Authorization:'Client-ID '+eoKey(),'Accept-Version':'v1'}});if(!r.ok)throw new Error(r.status==403?'Too many photo searches this hour.':'Photo search failed ('+r.status+').');const j=await r.json();(j.results||[]).forEach(p=>{if(out.length<10&&p.width>=1600&&!seen[p.id]){seen[p.id]=1;out.push({id:p.id,u:p.urls.raw,t:p.urls.small})}});if(out.length>=10)break}
+  try{for(const q of qs){const r=await api('/api/photos/search?q='+encodeURIComponent(q));(r.items||[]).forEach(p=>{if(out.length<12&&!seen[p.id]){seen[p.id]=1;out.push(p)}});if(out.length>=12)break}
    pk.items=out;if(!out.length)pk.err='No photos found. Try another word in the title.'}catch(e){pk.err=e.message}
   pk.busy=false;refreshMain()},
- wjpick(id){const f=wjRead(),x=((ui.wj.ph||{}).items||[]).find(p=>p.id==id);if(!x)return;f.image=f.image==x.u?'':x.u;haptic('tick');refreshMain()},
+ async wjpick(id){const f=wjRead(),x=((ui.wj.ph||{}).items||[]).find(p=>p.id==id);if(!x)return;if(!x.u){try{x.u=(await api('/api/photos/use',{id})).url}catch(e){return toast('✖ '+e.message)}}const u=ejSite()+x.u;f.image=f.image==u?'':u;haptic('tick');refreshMain()},
  wjsave(){const f=wjRead();ui.wj.ferr='';ui.wj.busy=true;refreshMain();
   api('/api/webjobs/save',{id:f.id||'',gender:f.gender||'',salmax:f.salmax===undefined?'':f.salmax,title:f.title,category:f.category,location:f.location,summary:f.summary,description:f.description,requirements:f.requirements,day:f.day,bring:f.bring,next:f.next,image:f.image||''})
    .then(r=>{ui.wj.busy=false;ui.wj.f=null;haptic('success');toast('✔ '+(f.id?'Saved':'Published')+' — live on elitejobsrwanda.com in about a minute');LOADERS.webjobs()})

@@ -270,6 +270,7 @@ function rehubRestore(me, id) {
 setInterval(rehubPurge, 6 * 3600e3).unref();
 const office = require('./office.js')({ DATA_DIR, loadState, commit: s => commit(s), broadcast: o => broadcast(o), activity, appendActivity, ai, PORT, ipOf: realIp, extraFor: (p, w) => vflow.dailyTasks(p.id, p.name, w.from, w.to), dailyText: l => vflow.dailyText(l) });
 const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => broadcast(o), appendActivity, secEvent: (t, w) => office.secEvent(t, w) });
+const photos = require('./photos.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity({ t: a.t, by: a.who, text: a.what }) });
 const inquiries = require('./inquiries.js')({ DATA_DIR, broadcast: o => broadcast(o), appendActivity: a => appendActivity(a), urgent });
 const cvs = require('./cvs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a) });
 const vflow = require('./vflow.js')({ DATA_DIR, urgent, staffOf: () => (loadState().staff || []).filter(x => !x.left), stateOf: () => loadState() || {}, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), note: (r, t) => office.hubNote(r, t) });
@@ -561,6 +562,19 @@ const server = http.createServer((req, res) => {
   }
 
   // ---- Vacancy flow + Elitejobs database (grants and passkeys by Admin) ----
+  // job photos from Pixabay (the key stays on this server; chosen photos are stored on our website)
+  if (p.startsWith('/api/photos/')) {
+    const me = whoFrom(req), q = url.searchParams;
+    const run = fn => Promise.resolve().then(fn).then(r => json(res, 200, r)).catch(e => json(res, e.code >= 400 && e.code < 600 ? e.code : 400, { error: e.message || String(e) }));
+    const body = (n, fn) => readBody(req, n, buf => run(() => fn(JSON.parse(buf.toString() || '{}'))));
+    if (!me) return json(res, 401, { error: 'Sign in first.' });
+    if (p === '/api/photos/status') return run(() => photos.status(me));
+    if (p === '/api/photos/key' && post) return body(2e3, b => photos.setKey(me, b));
+    if (p === '/api/photos/search') return run(() => photos.search(me, q.get('q') || ''));
+    if (p === '/api/photos/use' && post) return body(2e3, b => photos.use(me, b.id));
+    if (p === '/api/photos/defaults' && post) return body(2e3, () => photos.fillDefaults(me));
+    return json(res, 404, { error: 'Not found' });
+  }
   if (p.startsWith('/api/vf/')) {
     const me = whoFrom(req), q = url.searchParams;
     const run = fn => Promise.resolve().then(fn).then(r => json(res, 200, r)).catch(e => json(res, e.code >= 400 && e.code < 600 ? e.code : 400, { error: e.message || String(e) }));

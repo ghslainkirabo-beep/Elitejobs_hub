@@ -59,7 +59,7 @@ module.exports = function makeWebJobs({ DATA_DIR, appendActivity, broadcast, nee
   const clean = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
   const lines = (v, max, n) => (Array.isArray(v) ? v : String(v || '').split('\n')).map(x => clean(x, n)).filter(Boolean).slice(0, max);
   const slug = t => clean(t, 60).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || 'job';
-  const okImg = u => /^https:\/\/images\.unsplash\.com\/[A-Za-z0-9._~\/?&=%:+-]{1,400}$/.test(u);
+  const okImg = u => /^https:\/\/[a-z0-9.-]+\/api\/media\/[A-Za-z0-9_-]{6,40}$/.test(u); // our own stored Pixabay photos
   function shape(b, jobs, keepId) {
     const title = clean(b.title, 60); if (title.length < 3) throw err('Give the job a title.');
     const category = String(b.category || ''); if (!FIELDS[category] && category !== 'hospitality') throw err('Choose the field.');
