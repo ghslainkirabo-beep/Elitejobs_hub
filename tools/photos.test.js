@@ -45,7 +45,8 @@ const throws = async (f, re) => { try { await f(); assert.fail('should refuse');
   await throws(() => px.fillDefaults(IT), /already being filled/);
   for (let i = 0; i < 200 && px.status(IT).fill.busy; i++) await new Promise(r => setTimeout(r, 20));
   const f = px.status(IT).fill; assert.equal(f.busy, false); assert.ok(f.last.photos >= 40, 'photos stored: ' + f.last.photos);
-  assert.ok(fieldpics['job:waiter'].length >= 1 && fieldpics['field:hospitality'].length === 3 && fieldpics['tpl:gen'].length === 3);
+  assert.ok(fieldpics['job:waiter'].length >= 1 && fieldpics['field:hospitality'].length >= 1 && fieldpics['tpl:gen'].length >= 1);
+  assert.ok(stored.every(x => /african/.test(x.tags)), 'only African-described photos were stored');
   assert.ok(Object.values(fieldpics).flat().every(u => /^\/api\/media\/px\d+$/.test(u)));
   assert.ok(acts.some(a => /filled the website's default job photos/.test(a)));
   // older than 24 hours: searched again
