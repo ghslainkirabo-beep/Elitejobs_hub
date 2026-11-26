@@ -271,6 +271,7 @@ setInterval(rehubPurge, 6 * 3600e3).unref();
 const office = require('./office.js')({ DATA_DIR, loadState, commit: s => commit(s), broadcast: o => broadcast(o), activity, appendActivity, ai, PORT, ipOf: realIp, extraFor: (p, w) => vflow.dailyTasks(p.id, p.name, w.from, w.to), dailyText: l => vflow.dailyText(l) });
 const urgent = require('./urgent.js')({ DATA_DIR, loadState, broadcast: o => broadcast(o), appendActivity, secEvent: (t, w) => office.secEvent(t, w) });
 const photos = require('./photos.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity({ t: a.t, by: a.who, text: a.what }) });
+setTimeout(() => { try { photos.autoRefresh(); } catch (e) { console.error('photo refresh:', e.message); } }, 60e3);
 const inquiries = require('./inquiries.js')({ DATA_DIR, broadcast: o => broadcast(o), appendActivity: a => appendActivity(a), urgent });
 const cvs = require('./cvs.js')({ DATA_DIR, urgent, appendActivity: a => appendActivity(a) });
 const vflow = require('./vflow.js')({ DATA_DIR, urgent, staffOf: () => (loadState().staff || []).filter(x => !x.left), stateOf: () => loadState() || {}, appendActivity: a => appendActivity(a), broadcast: o => broadcast(o), note: (r, t) => office.hubNote(r, t) });

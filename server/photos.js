@@ -222,5 +222,8 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     appendActivity({ t: Date.now(), who: p.name, what: `added a default photo to ${k}` });
     return { ok: true, urls: d.map[k] };
   }
-  return { status, setKey, search, jobSearch, use, fillDefaults, defaultsList, defaultsRemove, defaultsAdd };
+  // when the photo rules change, the Hub refreshes the default photos once by itself, so nobody has to press the button
+  const RULES = 3;
+  function autoRefresh() { const d = defs(); if (!key() || d.rules === RULES || filling) return false; d.rules = RULES; wj(DEF, d); fillDefaults({ name: 'the Hub (automatic, new photo rules)', role: 'it' }); return true; }
+  return { status, setKey, search, jobSearch, use, fillDefaults, defaultsList, defaultsRemove, defaultsAdd, autoRefresh };
 };

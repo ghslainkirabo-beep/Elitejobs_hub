@@ -80,5 +80,8 @@ const throws = async (f, re) => { try { await f(); assert.fail('should refuse');
   // older than 24 hours: searched again
   const c = JSON.parse(fs.readFileSync(path.join(D, 'photo-cache.json'))); Object.values(c).forEach(x => x.t -= 25 * 36e5); fs.writeFileSync(path.join(D, 'photo-cache.json'), JSON.stringify(c));
   const m = calls.api; await px.jobSearch(HR, 'waiter'); assert.ok(calls.api > m, 'searched again after 24 hours');
+  // new rules: the Hub refreshes once by itself, not again
+  assert.equal(px.autoRefresh(), true); for (let i = 0; i < 200 && px.status(IT).fill.busy; i++) await new Promise(r => setTimeout(r, 20));
+  assert.equal(px.autoRefresh(), false, 'only once');
   console.log('ALL PASS');
 })().catch(e => { console.error('FAIL', e); process.exit(1); });
