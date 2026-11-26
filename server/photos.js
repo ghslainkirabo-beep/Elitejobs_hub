@@ -50,9 +50,14 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
       wj(CACHE, c);
     }
     const used = rj(USED, {});
-    return { items: c[q].hits.map(h => ({ id: h.id, t: h.t, tags: h.tags, by: h.by, page: h.page, u: used[h.id] || '' })), from: 'Pixabay' };
+    // Pixabay's API ranks by popularity, not by match: when the search asks for African people, photos whose own
+    // description says so come first, and the others only if there are too few.
+    let hits = c[q].hits;
+    if (/afric/.test(q)) { const af = hits.filter(isAfrican); hits = af.length >= 4 ? af : af.concat(hits.filter(h => !isAfrican(h))); }
+    return { items: hits.map(h => ({ id: h.id, t: h.t, tags: h.tags, by: h.by, page: h.page, u: used[h.id] || '' })), from: 'Pixabay' };
   }
 
+  const isAfrican = h => /\b(africa|african|africans|black|rwanda|kenya|nigeria|ghana|uganda|tanzania|ethiopia|senegal|cameroon|congo)\b/i.test(h.tags || '');
   // ---- choose: download once, store on our website, return our own address ----
   const MEDIA = /^\/api\/media\/[A-Za-z0-9_-]{6,40}$/;
   async function store(h) {
@@ -101,10 +106,12 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     filling = (async () => {
       const map = {}; let n = 0;
       for (const [k, qs] of E) {
-        const want = k.startsWith('job:') ? 1 : 3, got = [];
+        const want = k.startsWith('job:') ? 3 : 3, got = [];
         for (const q of qs) {
           if (got.length >= want) break;
           let items = []; try { items = (await search(p, q)).items; } catch (e) { fillState.error = e.message; }
+          const H = Object.values(cache()).flatMap(x => x.hits), af = items.filter(it => isAfrican(H.find(x => x.id === it.id) || {}));
+          if (/afric/.test(q)) items = af.length ? af : items;
           for (const it of items) { if (got.length >= want) break; try { const h = Object.values(cache()).flatMap(x => x.hits).find(x => x.id === it.id); got.push(await store(h)); n++; } catch (e) { /* next photo */ } }
         }
         if (got.length) map[k] = got;

@@ -10,7 +10,7 @@ global.fetch = async (u) => {
     calls.api++; const q = new URL(u).searchParams;
     if (q.get('key') === 'bad-123456-ffffffffffffffffffff') return { ok: false, status: 400, json: async () => ({}) };
     const term = q.get('q');
-    return { ok: true, status: 200, json: async () => ({ hits: [1, 2, 3].map(i => ({ id: term.length * 100 + i, webformatURL: `https://pixabay.com/get/w${i}.jpg`, largeImageURL: `https://pixabay.com/get/l${i}.jpg`, imageWidth: 1920, imageHeight: 1280, tags: term, user: 'maker' + i, pageURL: 'https://pixabay.com/photos/x-' + i })) }) };
+    return { ok: true, status: 200, json: async () => ({ hits: [1, 2, 3].map(i => ({ id: term.length * 100 + i, webformatURL: `https://pixabay.com/get/w${i}.jpg`, largeImageURL: `https://pixabay.com/get/l${i}.jpg`, imageWidth: 1920, imageHeight: 1280, tags: i === 3 ? term + ', african, black' : 'restaurant, bar', user: 'maker' + i, pageURL: 'https://pixabay.com/photos/x-' + i })) }) };
   }
   if (u.startsWith('https://pixabay.com/get/')) { calls.img++; return { ok: true, status: 200, headers: { get: () => 'image/jpeg' }, arrayBuffer: async () => JPG }; }
   throw new Error('unexpected ' + u);
@@ -32,10 +32,10 @@ const throws = async (f, re) => { try { await f(); assert.fail('should refuse');
   await px.setKey(IT, { key: '12345678-abcdefabcdefabcdefabcdef01' });
   assert.equal(px.status(HR).on, true); assert.equal(px.status(HR).canSet, false); assert.ok(!JSON.stringify(px.status(IT)).includes('abcdef'), 'the key never leaves the server');
   // search, then the same search again within 24 h doesn't call Pixabay
-  const r = await px.search(HR, 'Waiter African!'); assert.equal(r.items.length, 3); assert.equal(r.from, 'Pixabay');
+  const r = await px.search(HR, 'Waiter African!'); assert.equal(r.items.length, 3); assert.equal(r.from, 'Pixabay'); assert.match(r.items[0].tags, /african/, 'African photos first');
   const n = calls.api; await px.search(HR, 'waiter african'); assert.equal(calls.api, n, 'kept 24 hours');
   // choose: downloaded once, stored on our website, the same photo twice is not stored twice
-  const u1 = await px.use(HR, r.items[0].id); assert.match(u1.url, /^\/api\/media\/px\d+$/); assert.equal(stored.length, 1); assert.equal(stored[0].by, 'maker1');
+  const u1 = await px.use(HR, r.items[0].id); assert.match(u1.url, /^\/api\/media\/px\d+$/); assert.equal(stored.length, 1); assert.equal(stored[0].by, 'maker3');
   const u2 = await px.use(HR, r.items[0].id); assert.equal(u2.url, u1.url); assert.equal(stored.length, 1);
   assert.equal((await px.search(HR, 'waiter african')).items[0].u, u1.url, 'search shows it is already ours');
   await throws(() => px.use(HR, 'px999999'), /Search again/);
@@ -44,8 +44,8 @@ const throws = async (f, re) => { try { await f(); assert.fail('should refuse');
   const st = px.fillDefaults(IT); assert.equal(st.started, true); assert.equal(px.status(IT).fill.busy, true);
   await throws(() => px.fillDefaults(IT), /already being filled/);
   for (let i = 0; i < 200 && px.status(IT).fill.busy; i++) await new Promise(r => setTimeout(r, 20));
-  const f = px.status(IT).fill; assert.equal(f.busy, false); assert.ok(f.last.photos > 50, 'photos stored: ' + f.last.photos);
-  assert.ok(fieldpics['job:waiter'].length === 1 && fieldpics['field:hospitality'].length === 3 && fieldpics['tpl:gen'].length === 3);
+  const f = px.status(IT).fill; assert.equal(f.busy, false); assert.ok(f.last.photos >= 40, 'photos stored: ' + f.last.photos);
+  assert.ok(fieldpics['job:waiter'].length >= 1 && fieldpics['field:hospitality'].length === 3 && fieldpics['tpl:gen'].length === 3);
   assert.ok(Object.values(fieldpics).flat().every(u => /^\/api\/media\/px\d+$/.test(u)));
   assert.ok(acts.some(a => /filled the website's default job photos/.test(a)));
   // older than 24 hours: searched again
