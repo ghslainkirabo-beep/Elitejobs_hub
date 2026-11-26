@@ -93,7 +93,7 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
   const head = h => ' ' + String(h.tags || '').toLowerCase().split(',').slice(0, 3).map(x => x.trim()).join(' , ') + ' ';
   const aboutJob = (h, W) => { const t = head(h); return terms(W).some(w => w.includes(' ') ? t.includes(w) : new RegExp('\\b' + w.slice(0, Math.min(w.length, 6)), 'i').test(t)); };
   // never toys, statues, posed fashion shots, drawings or weapons — only real people at work
-  const FAKE = /\b(figurine|figure|figures|toy|toys|statue|sculpture|doll|dolls|miniature|puppet|lego|playmobil|mannequin|fashion|glamour|sexy|erotic|lingerie|bikini|pinup|cosplay|costume|halloween|fantasy|zombie|horror|render|illustration|cartoon|drawing|soldier|soldiers|army|military|war|weapon|gun|rifle|pistol)\b/i;
+  const FAKE = /\b(figurine|figure|figures|toy|toys|statue|sculpture|doll|dolls|miniature|puppet|lego|playmobil|mannequin|fashion|glamour|sexy|erotic|lingerie|bikini|pinup|cosplay|costume|halloween|fantasy|zombie|horror|render|illustration|cartoon|drawing|soldier|soldiers|army|military|war|weapon|gun|rifle|pistol|parade|ceremony|ceremonial|vatican|swiss|guardsman|piano|pinup)\b/i;
   const real = h => !FAKE.test(h.tags || '');
   let lastCall = 0; const GAP = Number(process.env.PX_PACE || 700); const pace = async () => { const w = lastCall + GAP - Date.now(); if (w > 0) await new Promise(r => setTimeout(r, w)); lastCall = Date.now(); }; // Pixabay allows 100 searches a minute
 
@@ -223,7 +223,22 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     return { ok: true, urls: d.map[k] };
   }
   // when the photo rules change, the Hub refreshes the default photos once by itself, so nobody has to press the button
-  const RULES = 3;
-  function autoRefresh() { const d = defs(); if (!key() || d.rules === RULES || filling) return false; d.rules = RULES; wj(DEF, d); fillDefaults({ name: 'the Hub (automatic, new photo rules)', role: 'it' }); return true; }
+  const RULES = 4;
+  // photos checked by eye on 26 Nov 2026 and found wrong (ceremonial palace guards, a posing model, a piano, a calculator alone):
+  // taken off the website and never chosen again
+  const WRONG = ['/api/media/px42476t3t0w1k6l18046a', '/api/media/px2j1m1l4w6x034e5y1918', '/api/media/px413k422e2q373l695r5g', '/api/media/px596w21604m6r4b1c1h59',
+    '/api/media/px342c2v5b1o39505f1q5x', '/api/media/px3q2y1m4y3z472r512n5l', '/api/media/px2t5z486c595y2a0y241e', '/api/media/px2u436k0i2n2w5q0o5n4f'];
+  function autoRefresh() {
+    const d = defs(); if (!key() || d.rules === RULES || filling) return false;
+    const U = rj(USED, {}), bad = new Set(WRONG);
+    for (const id of Object.keys(U)) if (bad.has(U[id]) && !d.ban.includes(id)) d.ban.push(id);
+    const was = d.rules; d.rules = RULES;
+    if (was === 3) { // only take the wrong ones off
+      for (const k of Object.keys(d.map)) d.map[k] = d.map[k].filter(u => !bad.has(u));
+      wj(DEF, d); push(d).then(() => appendActivity({ t: Date.now(), who: 'the Hub (automatic)', what: `took ${WRONG.length} wrong default photos off the website` })).catch(() => {});
+      return true;
+    }
+    wj(DEF, d); fillDefaults({ name: 'the Hub (automatic, new photo rules)', role: 'it' }); return true;
+  }
   return { status, setKey, search, jobSearch, use, fillDefaults, defaultsList, defaultsRemove, defaultsAdd, autoRefresh };
 };
