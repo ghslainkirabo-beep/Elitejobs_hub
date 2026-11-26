@@ -40,24 +40,33 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     signed(p); const k = key(); if (!k) throw err('Photos need the Pixabay key. IT or Admin adds it once in IT → System control → Job photos.', 409);
     q = norm(q); if (!q) return { items: [], from: 'Pixabay' };
     const c = cache();
-    if (!c[q]) {
-      const r = await fetch('https://pixabay.com/api/?' + new URLSearchParams({ key: k, q, image_type: 'photo', safesearch: 'true', per_page: '40', min_width: '900', lang: 'en' }), { signal: AbortSignal.timeout(15000) }).catch(() => null);
+    const ppl = /afric/.test(q);
+    if (!c[q] || c[q].v !== 2) {
+      const prm = { key: k, q, image_type: 'photo', safesearch: 'true', per_page: '60', min_width: '900', lang: 'en' }; if (ppl) prm.category = 'people';
+      const r = await fetch('https://pixabay.com/api/?' + new URLSearchParams(prm), { signal: AbortSignal.timeout(15000) }).catch(() => null);
       if (!r) throw err('Couldn’t reach Pixabay. Check the internet.', 502);
       if (r.status === 429) throw err('Too many photo searches in a short time. Wait a minute and try again.', 429);
       if (!r.ok) throw err('Pixabay answered ' + r.status + '.', 502);
       const j = await r.json();
-      c[q] = { t: Date.now(), hits: (j.hits || []).map(h => ({ id: 'px' + h.id, t: h.webformatURL, big: h.largeImageURL, w: h.imageWidth, h: h.imageHeight, tags: String(h.tags || '').slice(0, 120), by: String(h.user || '').slice(0, 60), page: h.pageURL })) };
+      c[q] = { v: 2, t: Date.now(), hits: (j.hits || []).map(h => ({ id: 'px' + h.id, t: h.webformatURL, big: h.largeImageURL, w: h.imageWidth, h: h.imageHeight, tags: String(h.tags || '').slice(0, 120), by: String(h.user || '').slice(0, 60), page: h.pageURL })) };
       wj(CACHE, c);
     }
     const used = rj(USED, {});
     // Pixabay's API ranks by popularity, not by match: when the search asks for African people, photos whose own
     // description says so come first, and the others only if there are too few.
     let hits = c[q].hits;
-    if (/afric/.test(q)) { const af = hits.filter(isAfrican); hits = af.length >= 4 ? af : af.concat(hits.filter(h => !isAfrican(h))); }
+    hits = hits.filter(h => !ANIMAL.test(h.tags || ''));
+    if (ppl) { const af = hits.filter(isAfrican); hits = af.length >= 4 ? af : af.concat(hits.filter(h => !isAfrican(h) && isPeople(h))); }
     return { items: hits.map(h => ({ id: h.id, t: h.t, tags: h.tags, by: h.by, page: h.page, u: used[h.id] || '' })), from: 'Pixabay' };
   }
 
-  const isAfrican = h => /\b(africa|african|africans|black|rwanda|kenya|nigeria|ghana|uganda|tanzania|ethiopia|senegal|cameroon|congo)\b/i.test(h.tags || '');
+  // a photo counts as African people only when its description names Africa (or a country) AND a person — and no animal
+  // (Pixabay is full of "African grey parrot" and "African elephant")
+  const ANIMAL = /\b(parrot|bird|elephant|lion|giraffe|zebra|animal|animals|wildlife|safari|monkey|gorilla|leopard|cheetah|rhino|buffalo|dog|cat|horse|cow|goat|chicken|fish|insect|butterfly|snake|tree|landscape|sunset|map)\b/i;
+  const PERSON = /\b(woman|women|man|men|person|people|girl|boy|lady|guy|worker|workers|portrait|face|smile|smiling|student|teacher|nurse|doctor|waiter|waitress|chef|cook|driver|guard|farmer|businessman|businesswoman|employee|staff|team|female|male|adult|child|children|mother|father)\b/i;
+  const AFRICA = /\b(africa|african|africans|black|rwanda|rwandan|kenya|kenyan|nigeria|nigerian|ghana|uganda|tanzania|ethiopia|senegal|cameroon|congo|afro)\b/i;
+  const isPeople = h => PERSON.test(h.tags || '') && !ANIMAL.test(h.tags || '');
+  const isAfrican = h => isPeople(h) && AFRICA.test(h.tags || '');
   // ---- choose: download once, store on our website, return our own address ----
   const MEDIA = /^\/api\/media\/[A-Za-z0-9_-]{6,40}$/;
   async function store(h) {
