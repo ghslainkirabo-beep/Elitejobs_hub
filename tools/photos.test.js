@@ -1,6 +1,7 @@
 // Pixabay photos: the key stays on the Hub, searches are kept 24 h, a chosen photo is downloaded once and stored on our
 // website, default photos fill in the background.
 const fs = require('fs'), os = require('os'), path = require('path'), assert = require('assert');
+process.env.PX_PACE = '1';
 const D = fs.mkdtempSync(path.join(os.tmpdir(), 'px-'));
 const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(5000, 7)]);
 let calls = { api: 0, img: 0 }, stored = [], fieldpics = null;
@@ -9,8 +10,8 @@ global.fetch = async (u) => {
   if (u.startsWith('https://pixabay.com/api/')) {
     calls.api++; const q = new URL(u).searchParams;
     if (q.get('key') === 'bad-123456-ffffffffffffffffffff') return { ok: false, status: 400, json: async () => ({}) };
-    const term = q.get('q'), job = term.split(' ')[0], cat = q.get('category') || '';
-    const T = [job + ', african, man', job + ', black, woman, smile', 'african grey parrot, bird', job + ', woman, portrait', 'restaurant, interior', 'man, portrait'];
+    const term = q.get('q'), job = term.split(' ').filter(w => !['african', 'africa', 'black'].includes(w)).join(' '), cat = q.get('category') || '';
+    const T = [job + ', african, man', job + ', black, woman, smile', 'african grey parrot, bird', job + ', woman, portrait', 'restaurant, interior', 'african, woman, headwrap'];
     let h0 = 0; for (const ch of term + cat) h0 = (h0 * 31 + ch.charCodeAt(0)) % 1e6;
     return { ok: true, status: 200, json: async () => ({ hits: Array.from({ length: 18 }, (_, i) => ({ id: h0 * 100 + i, webformatURL: `https://pixabay.com/get/w${i}.jpg`, largeImageURL: `https://pixabay.com/get/l${i}.jpg`, imageWidth: 1920, imageHeight: 1280, tags: T[i % T.length], user: 'maker' + i, pageURL: 'https://pixabay.com/photos/x-' + i })) }) };
   }
@@ -21,6 +22,7 @@ const urgent = { siteOf: () => 'https://elitejobsrwanda.com', remote: async (p, 
   const b = JSON.parse(o.body);
   if (p === '/api/hub/media') { stored.push(b); assert.equal(Buffer.from(b.b64, 'base64').length, JPG.length); return { json: async () => ({ url: '/api/media/px' + String(stored.length).padStart(6, '0') }) }; }
   if (p === '/api/hub/fieldpics') { fieldpics = b.map; return { json: async () => ({ ok: true }) }; }
+  if (p === '/api/hub/mediaprune') return { json: async () => ({ ok: true, deleted: [] }) };
 } };
 const acts = [];
 const px = require(path.join(__dirname, '..', 'server', 'photos.js'))({ DATA_DIR: D, urgent, appendActivity: a => acts.push(a.what) });
@@ -39,6 +41,8 @@ const throws = async (f, re) => { try { await f(); assert.fail('should refuse');
   assert.ok(r.items.slice(0, 6).every(x => x.af && /african|black/.test(x.tags) && /man|woman/.test(x.tags)), 'African people first');
   assert.ok(r.items.slice(6).every(x => !x.af && !/african|black/.test(x.tags)), 'then other people');
   assert.ok(!r.items.some(x => /parrot|interior/.test(x.tags)), 'never animals or empty rooms');
+  assert.ok(!r.items.some(x => /headwrap/.test(x.tags)), 'never an African person doing something else');
+  assert.ok(r.items.every(x => /waiter/.test(x.tags)), 'every photo is about the job');
   assert.ok(r.items.filter(x => /waiter/.test(x.tags)).length >= 9, 'about the job first');
   const n = calls.api; await px.jobSearch(HR, 'waiter'); assert.equal(calls.api, n, 'kept 24 hours');
   // choose: downloaded once at card size, stored on our website, the same photo twice is not stored twice
@@ -55,6 +59,8 @@ const throws = async (f, re) => { try { await f(); assert.fail('should refuse');
   assert.ok(fieldpics['job:waiter'].length === 8 && fieldpics['job:nurse'].length === 8 && fieldpics['field:hospitality'].length >= 5, 'about 5 African + 3 others per job');
   assert.ok(Object.values(fieldpics).flat().every(u => /^\/api\/media\/px\d+$/.test(u)));
   assert.ok(!stored.some(x => /parrot|interior/.test(x.tags)), 'never an animal or an empty room');
+  assert.ok(!stored.some(x => /headwrap/.test(x.tags)), 'never an unrelated portrait');
+  const all = Object.entries(fieldpics).filter(([k]) => k.startsWith('job:')).flatMap(([, v]) => v); assert.equal(new Set(all).size, all.length, 'no photo used for two jobs');
   assert.ok(acts.some(a => /filled the website's default job photos/.test(a)));
   // older than 24 hours: searched again
   const c = JSON.parse(fs.readFileSync(path.join(D, 'photo-cache.json'))); Object.values(c).forEach(x => x.t -= 25 * 36e5); fs.writeFileSync(path.join(D, 'photo-cache.json'), JSON.stringify(c));

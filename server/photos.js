@@ -71,13 +71,29 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
   //      the ones whose description names the job first ----
   const STOP = new Set(['african', 'africa', 'people', 'person', 'the', 'and', 'for', 'with', 'at', 'in', 'of']);
   const jobWords = q => norm(q).split(' ').filter(w => w.length > 2 && !STOP.has(w));
-  const aboutJob = (h, W) => { const t = String(h.tags || '').toLowerCase(); return W.some(w => t.includes(w.slice(0, Math.min(w.length, 5)))); };
+  // what a photo's description must name for it to count as that job (the job itself, or where and how it is done)
+  const SYN = { waiter: ['waitress', 'server', 'restaurant', 'cafe', 'serving', 'hospitality', 'dining'], waitress: ['waiter', 'server', 'restaurant', 'cafe', 'serving'],
+    bartender: ['barman', 'barmaid', 'cocktail', 'bar'], cashier: ['checkout', 'cash register', 'supermarket', 'till'], accountant: ['accounting', 'finance', 'calculator', 'bookkeeping'],
+    receptionist: ['reception', 'front desk', 'hotel'], manager: ['office', 'meeting', 'business'], supervisor: ['team', 'office', 'warehouse'], driver: ['driving', 'car', 'taxi', 'truck', 'chauffeur', 'bus'],
+    sales: ['shop', 'store', 'market', 'seller', 'vendor', 'retail'], saleswoman: ['shop', 'store', 'market', 'seller', 'vendor'], salesperson: ['shop', 'store', 'market', 'seller', 'vendor'], counter: ['shop', 'store', 'counter'],
+    nurse: ['hospital', 'medical', 'healthcare', 'clinic', 'nursing'], doctor: ['hospital', 'medical', 'physician', 'clinic', 'stethoscope'], chef: ['kitchen', 'cooking', 'cook', 'culinary'], cook: ['kitchen', 'cooking', 'chef'],
+    cleaner: ['cleaning', 'housekeeping', 'mop', 'janitor'], housekeeper: ['cleaning', 'housekeeping', 'maid'], teacher: ['classroom', 'school', 'teaching', 'education', 'lesson'], mason: ['construction', 'bricks', 'builder', 'building site', 'bricklayer'],
+    electrician: ['electrical', 'wiring', 'electricity', 'cable'], plumber: ['plumbing', 'pipe', 'pipes'], mechanic: ['garage', 'repair', 'engine', 'workshop'], tailor: ['sewing', 'seamstress', 'fabric', 'dressmaker'],
+    hairdresser: ['hair salon', 'hairstyle', 'braids', 'salon', 'hair'], barber: ['barbershop', 'haircut', 'shaving'], farmer: ['farm', 'agriculture', 'field', 'harvest', 'crops'], nanny: ['babysitter', 'childcare', 'baby', 'children'],
+    guard: ['security', 'uniform', 'guarding'], security: ['guard', 'uniform', 'guarding'], welder: ['welding', 'metal'], carpenter: ['carpentry', 'wood', 'woodwork', 'workshop'], pharmacist: ['pharmacy', 'medicine', 'drugstore'],
+    baker: ['bakery', 'bread', 'pastry'], storekeeper: ['warehouse', 'storage', 'inventory'], dishwasher: ['dishes', 'washing', 'kitchen'], gardener: ['garden', 'gardening', 'plants'], secretary: ['office', 'typing', 'desk'],
+    worker: ['work', 'working', 'job'], construction: ['construction', 'building', 'builder'], software: ['computer', 'laptop', 'coding', 'programmer'], developer: ['computer', 'laptop', 'coding', 'programmer'],
+    programmer: ['computer', 'laptop', 'coding'], office: ['office', 'desk', 'business'], factory: ['factory', 'industry', 'production'], engineer: ['engineering', 'engineer', 'helmet'], salon: ['salon', 'hair', 'beauty'] };
+  const terms = W => [...new Set(W.flatMap(w => [w, ...(SYN[w] || [])]))];
+  const aboutJob = (h, W) => { const t = ' ' + String(h.tags || '').toLowerCase() + ' '; return terms(W).some(w => w.includes(' ') ? t.includes(w) : new RegExp('\\b' + w.slice(0, Math.min(w.length, 6)), 'i').test(t)); };
+  let lastCall = 0; const GAP = Number(process.env.PX_PACE || 700); const pace = async () => { const w = lastCall + GAP - Date.now(); if (w > 0) await new Promise(r => setTimeout(r, w)); lastCall = Date.now(); }; // Pixabay allows 100 searches a minute
+
   async function raw(p, q, people) { // the cached Pixabay hits for one search
     const k = key(); if (!k) throw err('Photos need the Pixabay key. IT or Admin adds it once in IT → System control → Job photos.', 409);
     q = norm(q); const ck = q + (people ? '|people' : ''), c = cache();
     if (!c[ck] || c[ck].v !== 2) {
       const prm = { key: k, q, image_type: 'photo', safesearch: 'true', per_page: '80', min_width: '640', lang: 'en' }; if (people) prm.category = 'people';
-      const r = await fetch('https://pixabay.com/api/?' + new URLSearchParams(prm), { signal: AbortSignal.timeout(15000) }).catch(() => null);
+      await pace(); const r = await fetch('https://pixabay.com/api/?' + new URLSearchParams(prm), { signal: AbortSignal.timeout(15000) }).catch(() => null);
       if (!r) throw err('Couldn’t reach Pixabay. Check the internet.', 502);
       if (r.status === 429) throw err('Too many photo searches in a short time. Wait a minute and try again.', 429);
       if (!r.ok) throw err('Pixabay answered ' + r.status + '.', 502);
@@ -87,11 +103,14 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     }
     return c[ck].hits;
   }
-  async function jobPhotos(p, job, nAf = 6, nFo = 4) {
+  // only photos whose description names the job (or where it is done): if Pixabay has none, the answer is none — never a
+  // nice photo of somebody doing something else. `avoid` keeps one photo from being used for two different jobs.
+  async function jobPhotos(p, job, nAf = 6, nFo = 4, avoid) {
     signed(p); const W = jobWords(job); if (!W.length) return { af: [], fo: [] };
-    const base = W.join(' '), seen = new Set(), rank = L => L.filter(h => !seen.has(h.id)).sort((a, b) => aboutJob(b, W) - aboutJob(a, W));
-    const take = (L, n, ok) => { const out = []; for (const h of rank(L)) { if (out.length >= n) break; if (ok(h)) { seen.add(h.id); out.push(h); } } return out; };
-    const af = take([...await raw(p, base + ' african', true), ...await raw(p, base + ' africa', true)], nAf, isAfrican);
+    const base = W.join(' '), seen = new Set(avoid || []);
+    const take = (L, n, ok) => { const out = []; for (const h of L) { if (out.length >= n) break; if (!seen.has(h.id) && aboutJob(h, W) && ok(h)) { seen.add(h.id); out.push(h); } } return out; };
+    let af = take([...await raw(p, 'african ' + base, true), ...await raw(p, base + ' africa', true)], nAf, isAfrican);
+    if (af.length < nAf) af = af.concat(take([...await raw(p, 'black ' + base, true), ...await raw(p, 'african ' + base, false)], nAf - af.length, isAfrican));
     let fo = take(await raw(p, base, true), nFo, h => isPeople(h) && !isAfrican(h));
     if (fo.length < nFo) fo = fo.concat(take(await raw(p, base, false), nFo - fo.length, h => isPeople(h) && !isAfrican(h)));
     return { af, fo };
@@ -149,18 +168,20 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     if (filling) throw err('Default photos are already being filled.', 409);
     const E = Object.entries(DEFAULTS); fillState = { busy: true, done: 0, total: E.length, last: fillState.last, error: '' };
     filling = (async () => {
-      const map = {}; let n = 0;
+      const map = {}, usedIds = new Set(); let n = 0;
       for (const [k, qs] of E) {
         const got = [];
         for (const q of qs) {
           if (got.length >= 8) break;
-          let r = { af: [], fo: [] }; try { r = await jobPhotos(p, q.replace(/\bafrican\b/g, ' '), 5, 3); } catch (e) { fillState.error = e.message; }
-          for (const h of [...r.af, ...r.fo]) { if (got.length >= 8) break; try { const u = await store(h); if (!got.includes(u)) { got.push(u); n++; } } catch (e) { /* next photo */ } }
+          let r = { af: [], fo: [] }; try { r = await jobPhotos(p, q.replace(/\bafrican\b/g, ' '), 5, 3, usedIds); } catch (e) { fillState.error = e.message; }
+          for (const h of [...r.af, ...r.fo]) { if (got.length >= 8) break; try { const u = await store(h); usedIds.add(h.id); if (!got.includes(u)) { got.push(u); n++; } } catch (e) { /* next photo */ } }
         }
         if (got.length) map[k] = got;
         fillState.done++;
       }
       await urgent.remote('/api/hub/fieldpics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ map }) });
+      // tidy up: photos nothing uses any more are deleted from the website, and forgotten here
+      try { const pr = await (await urgent.remote('/api/hub/mediaprune', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json(); const del = new Set(pr.deleted || []), U = rj(USED, {}); for (const k of Object.keys(U)) if (del.has(U[k])) delete U[k]; wj(USED, U); } catch (e) { /* next time */ }
       appendActivity({ t: Date.now(), who: p.name, what: `filled the website's default job photos from Pixabay (${Object.keys(map).length} groups, ${n} photos)` });
       fillState = { busy: false, done: E.length, total: E.length, last: { t: Date.now(), groups: Object.keys(map).length, photos: n, by: p.name }, error: '' };
     })().catch(e => { fillState = Object.assign(fillState, { busy: false, error: e.message }); }).finally(() => { filling = null; });
