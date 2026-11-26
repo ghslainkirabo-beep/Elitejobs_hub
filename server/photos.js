@@ -67,12 +67,47 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
   const AFRICA = /\b(africa|african|africans|black|rwanda|rwandan|kenya|kenyan|nigeria|nigerian|ghana|uganda|tanzania|ethiopia|senegal|cameroon|congo|afro)\b/i;
   const isPeople = h => PERSON.test(h.tags || '') && !ANIMAL.test(h.tags || '');
   const isAfrican = h => isPeople(h) && AFRICA.test(h.tags || '');
+  // ---- a job's photos: up to 6 African people, then up to 4 people of other origins — all of them people, never animals,
+  //      the ones whose description names the job first ----
+  const STOP = new Set(['african', 'africa', 'people', 'person', 'the', 'and', 'for', 'with', 'at', 'in', 'of']);
+  const jobWords = q => norm(q).split(' ').filter(w => w.length > 2 && !STOP.has(w));
+  const aboutJob = (h, W) => { const t = String(h.tags || '').toLowerCase(); return W.some(w => t.includes(w.slice(0, Math.min(w.length, 5)))); };
+  async function raw(p, q, people) { // the cached Pixabay hits for one search
+    const k = key(); if (!k) throw err('Photos need the Pixabay key. IT or Admin adds it once in IT → System control → Job photos.', 409);
+    q = norm(q); const ck = q + (people ? '|people' : ''), c = cache();
+    if (!c[ck] || c[ck].v !== 2) {
+      const prm = { key: k, q, image_type: 'photo', safesearch: 'true', per_page: '80', min_width: '640', lang: 'en' }; if (people) prm.category = 'people';
+      const r = await fetch('https://pixabay.com/api/?' + new URLSearchParams(prm), { signal: AbortSignal.timeout(15000) }).catch(() => null);
+      if (!r) throw err('Couldn’t reach Pixabay. Check the internet.', 502);
+      if (r.status === 429) throw err('Too many photo searches in a short time. Wait a minute and try again.', 429);
+      if (!r.ok) throw err('Pixabay answered ' + r.status + '.', 502);
+      const j = await r.json();
+      c[ck] = { v: 2, t: Date.now(), hits: (j.hits || []).map(h => ({ id: 'px' + h.id, t: h.webformatURL, big: h.largeImageURL, w: h.imageWidth, h: h.imageHeight, tags: String(h.tags || '').slice(0, 120), by: String(h.user || '').slice(0, 60), page: h.pageURL })) };
+      wj(CACHE, c);
+    }
+    return c[ck].hits;
+  }
+  async function jobPhotos(p, job, nAf = 6, nFo = 4) {
+    signed(p); const W = jobWords(job); if (!W.length) return { af: [], fo: [] };
+    const base = W.join(' '), seen = new Set(), rank = L => L.filter(h => !seen.has(h.id)).sort((a, b) => aboutJob(b, W) - aboutJob(a, W));
+    const take = (L, n, ok) => { const out = []; for (const h of rank(L)) { if (out.length >= n) break; if (ok(h)) { seen.add(h.id); out.push(h); } } return out; };
+    const af = take([...await raw(p, base + ' african', true), ...await raw(p, base + ' africa', true)], nAf, isAfrican);
+    let fo = take(await raw(p, base, true), nFo, h => isPeople(h) && !isAfrican(h));
+    if (fo.length < nFo) fo = fo.concat(take(await raw(p, base, false), nFo - fo.length, h => isPeople(h) && !isAfrican(h)));
+    return { af, fo };
+  }
+  async function jobSearch(p, q) {
+    const { af, fo } = await jobPhotos(p, q), used = rj(USED, {});
+    const out = h => ({ id: h.id, t: h.t, tags: h.tags, by: h.by, page: h.page, u: used[h.id] || '' });
+    return { items: [...af.map(h => ({ ...out(h), af: true })), ...fo.map(out)], african: af.length, others: fo.length, from: 'Pixabay' };
+  }
+
   // ---- choose: download once, store on our website, return our own address ----
   const MEDIA = /^\/api\/media\/[A-Za-z0-9_-]{6,40}$/;
   async function store(h) {
     const used = rj(USED, {}); if (used[h.id]) return used[h.id];
     let buf = null, mime = 'image/jpeg';
-    for (const u of [h.big, h.t]) {
+    for (const u of [h.t, h.big]) {
       if (!u) continue;
       const r = await fetch(u, { signal: AbortSignal.timeout(20000) }).catch(() => null);
       if (!r || !r.ok) continue;
@@ -99,8 +134,9 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     'tpl:hosp': ['african waiter restaurant', 'african waitress', 'african chef kitchen'], 'tpl:clean': ['african cleaner cleaning'], 'tpl:secur': ['african security guard'],
     'tpl:drive': ['african driver car', 'delivery truck africa'], 'tpl:tech': ['african software developer'], 'tpl:fin': ['african accountant', 'african cashier'], 'tpl:sales': ['african sales shop'],
     'tpl:health': ['african nurse hospital'], 'tpl:build': ['african construction worker'], 'tpl:edu': ['african teacher classroom'], 'tpl:office': ['african receptionist office', 'african office team'], 'tpl:gen': ['african people working'],
-    'job:waiter': ['african waiter'], 'job:waitress': ['african waitress'], 'job:bartender': ['african bartender'], 'job:barman': ['african bartender'], 'job:cashier': ['african cashier'], 'job:accountant': ['african accountant'],
-    'job:receptionist': ['african receptionist'], 'job:manager': ['african manager office'], 'job:supervisor': ['african supervisor'], 'job:driver': ['african driver'], 'job:sales': ['african saleswoman shop'], 'job:counter': ['african shop counter'],
+    'job:waiter': ['waiter'], 'job:waitress': ['waitress'], 'job:bartender': ['bartender'], 'job:barman': ['bartender'], 'job:cashier': ['cashier'], 'job:accountant': ['accountant'],
+    'job:receptionist': ['receptionist'], 'job:manager': ['manager office'], 'job:supervisor': ['supervisor'], 'job:driver': ['driver'], 'job:sales': ['saleswoman shop'], 'job:counter': ['shop counter'],
+    'job:nurse': ['nurse'], 'job:cook': ['cook'], 'job:chef': ['chef'], 'job:cleaner': ['cleaner'], 'job:teacher': ['teacher'], 'job:mason': ['mason'], 'job:electrician': ['electrician'], 'job:plumber': ['plumber'], 'job:mechanic': ['mechanic'], 'job:tailor': ['tailor'], 'job:hairdresser': ['hairdresser'], 'job:farmer': ['farmer'], 'job:housekeeper': ['housekeeper'], 'job:nanny': ['nanny'], 'job:guard': ['guard'], 'job:welder': ['welder'], 'job:carpenter': ['carpenter'], 'job:pharmacist': ['pharmacist'], 'job:doctor': ['doctor'], 'job:baker': ['baker'], 'job:storekeeper': ['storekeeper'], 'job:dishwasher': ['dishwasher'], 'job:gardener': ['gardener'], 'job:secretary': ['secretary'], 'job:salesperson': ['salesperson'], 'job:barber': ['barber'],
     'field:cleaning': ['african cleaner'], 'field:agriculture-environment': ['african farmer field'], 'field:construction-trades': ['african construction worker'], 'field:education-childcare': ['african teacher classroom'],
     'field:energy-mining': ['african engineer solar'], 'field:health-care': ['african nurse'], 'field:it-technology': ['african programmer laptop'], 'field:manufacturing': ['african factory worker'],
     'field:ngo-public': ['african community work'], 'field:other': ['african people working'], 'field:property': ['african real estate'], 'field:security': ['african security guard'], 'field:sports-fitness': ['african fitness trainer'],
@@ -115,13 +151,11 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     filling = (async () => {
       const map = {}; let n = 0;
       for (const [k, qs] of E) {
-        const want = k.startsWith('job:') ? 3 : 3, got = [];
+        const got = [];
         for (const q of qs) {
-          if (got.length >= want) break;
-          let items = []; try { items = (await search(p, q)).items; } catch (e) { fillState.error = e.message; }
-          const H = Object.values(cache()).flatMap(x => x.hits), af = items.filter(it => isAfrican(H.find(x => x.id === it.id) || {}));
-          if (/afric/.test(q)) items = af.length ? af : items;
-          for (const it of items) { if (got.length >= want) break; try { const h = Object.values(cache()).flatMap(x => x.hits).find(x => x.id === it.id); got.push(await store(h)); n++; } catch (e) { /* next photo */ } }
+          if (got.length >= 8) break;
+          let r = { af: [], fo: [] }; try { r = await jobPhotos(p, q.replace(/\bafrican\b/g, ' '), 5, 3); } catch (e) { fillState.error = e.message; }
+          for (const h of [...r.af, ...r.fo]) { if (got.length >= 8) break; try { const u = await store(h); if (!got.includes(u)) { got.push(u); n++; } } catch (e) { /* next photo */ } }
         }
         if (got.length) map[k] = got;
         fillState.done++;
@@ -132,5 +166,5 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     })().catch(e => { fillState = Object.assign(fillState, { busy: false, error: e.message }); }).finally(() => { filling = null; });
     return { ok: true, started: true, total: E.length };
   }
-  return { status, setKey, search, use, fillDefaults };
+  return { status, setKey, search, jobSearch, use, fillDefaults };
 };

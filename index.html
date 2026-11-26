@@ -2001,14 +2001,14 @@ async function eoVaultSearch(){const f=eo().f,v=eov(),q=eoQ(f.title||'');if(q==v
  if(!q){v.items=[];return eoVaultPaint()}
  if(!ui.px)await pxStatus();if(!eoKey()){v.items=[];return eoVaultPaint()}
  const n=++eovN;v.busy=true;eoVaultPaint();
- try{const seen={},out=[];
-  // best first: African people at that job; then the job anywhere
-  for(const query of eoQueries(f.title||'',f.cat)){const r=await api('/api/photos/search?q='+encodeURIComponent(query));if(n!==eovN)return;(r.items||[]).forEach(p=>{if(out.length<12&&!seen[p.id]){seen[p.id]=1;out.push(p)}});if(out.length>=12)break}
-  v.items=out;if(!out.length)v.err='No photos for “'+q+'”. Try another word in the title.'}
+ try{let r=await api('/api/photos/job?q='+encodeURIComponent(q));if(n!==eovN)return;
+  // too few for this exact job: add the photos of its field (restaurant waiter, nurse hospital…)
+  if(r.items.length<4){const tpl=ejPick(q,f.cat),fq=EOV_FIELD[tpl]||'';if(fq&&fq!=q){const r2=await api('/api/photos/job?q='+encodeURIComponent(fq));if(n!==eovN)return;const ids=new Set(r.items.map(x=>x.id));r.items=r.items.concat(r2.items.filter(x=>!ids.has(x.id)))}}
+  v.items=r.items;if(!v.items.length)v.err='No photos of people at “'+q+'” yet. Try another word in the title (for example the English name of the job).'}
  catch(er){if(n!==eovN)return;v.items=[];v.err=er.message||'Photo search failed.'}
  v.busy=false;eoVaultPaint()}
 function eoVault(){const v=eov(),k=eoKey(),pk=v.pick;
- const grid=v.items.length?`<div class=eovg>${v.items.map(x=>{const i=pk.findIndex(p=>p.id==x.id);return`<button type=button class="eovp${i>=0?' on':''}" data-a="eopick|${esc(x.id)}" aria-pressed=${i>=0} title="${esc(x.alt||'')}${x.by?' — '+esc(x.by):''}"><img src="${esc(x.t)}" alt="" loading=lazy>${i>=0?`<b>${i+1}</b>`:''}</button>`}).join('')}</div>`:'';
+ const naf=v.items.filter(x=>x.af).length,grid=v.items.length?`${naf?`<small class=eovk>🌍 ${naf} African · ${v.items.length-naf} other</small>`:''}<div class=eovg>${v.items.map(x=>{const i=pk.findIndex(p=>p.id==x.id);return`<button type=button class="eovp${i>=0?' on':''}" data-a="eopick|${esc(x.id)}" aria-pressed=${i>=0} title="${esc(x.alt||'')}${x.by?' — '+esc(x.by):''}"><img src="${esc(x.t)}" alt="" loading=lazy>${i>=0?`<b>${i+1}</b>`:''}</button>`}).join('')}</div>`:'';
  const msg=v.saving?'Keeping the photo on the website…':v.busy?'Finding photos…':v.err?esc(v.err):!k?'Photos need the Pixabay key: IT or Admin adds it once in IT → System control → Job photos.':!v.q?'Type the job title and photos of that job appear here.':!v.items.length?'No photos yet.':pk.length==2?'✔ Two photos chosen. The first shows first.':'Tap '+(2-pk.length)+' more photo'+(pk.length==1?'':'s')+'. The first one shows first.';
  return`<div class=eovh><b>Photo vault</b><small>${msg}</small>${pk.length?`<button type=button class=eovc data-a=eopick|>Clear</button>`:''}</div>${grid}
  ${k&&v.items.length?`<small class=eovk>Photos from <a href="https://pixabay.com/" target=_blank rel=noopener>Pixabay</a>. The one you choose is kept on our website.</small>`:''}`}
@@ -2214,9 +2214,9 @@ Object.assign(A,{
  wjedit(id){const j=(ui.wj.d.jobs||[]).find(x=>x.id==id);if(!j)return;ui.wj.f={id:j.id,gender:j.gender||'',salmax:j.salmax===undefined?'':String(j.salmax),title:j.title,category:j.category,location:j.location,summary:j.summary,description:j.description,requirements:(j.requirements||[]).join('\n'),day:(j.day||[]).join('\n'),bring:(j.bring||[]).join('\n'),next:j.next||[],image:j.image||''};ui.wj.ph={};ui.wj.ferr='';refreshMain();setTimeout(()=>{const e=$('.wjed');e&&e.scrollIntoView({behavior:'smooth',block:'start'})},50)},
  wjask(id){ui.wj.sure=id;haptic('warn');refreshMain()},wjkeep(){ui.wj.sure=null;refreshMain()},
  wjclose(id){ui.wj.sure=null;api('/api/webjobs/close',{id}).then(()=>{haptic('success');toast('✔ Closed. It leaves the website in about a minute.');LOADERS.webjobs()}).catch(e=>{haptic('error');toast('✖ '+e.message)})},
- async wjphotos(){const f=wjRead(),pk=ui.wj.ph=ui.wj.ph||{};const qs=eoQueries(f.title||'',f.category);if(!qs.length){pk.err='Type the job title first.';return refreshMain()}
-  pk.busy=true;pk.err='';refreshMain();const seen={},out=[];
-  try{for(const q of qs){const r=await api('/api/photos/search?q='+encodeURIComponent(q));(r.items||[]).forEach(p=>{if(out.length<12&&!seen[p.id]){seen[p.id]=1;out.push(p)}});if(out.length>=12)break}
+ async wjphotos(){const f=wjRead(),pk=ui.wj.ph=ui.wj.ph||{};const q=eoQ(f.title||'');if(!q){pk.err='Type the job title first.';return refreshMain()}
+  pk.busy=true;pk.err='';refreshMain();let out=[];
+  try{out=(await api('/api/photos/job?q='+encodeURIComponent(q))).items||[];
    pk.items=out;if(!out.length)pk.err='No photos found. Try another word in the title.'}catch(e){pk.err=e.message}
   pk.busy=false;refreshMain()},
  async wjpick(id){const f=wjRead(),x=((ui.wj.ph||{}).items||[]).find(p=>p.id==id);if(!x)return;if(!x.u){try{x.u=(await api('/api/photos/use',{id})).url}catch(e){return toast('✖ '+e.message)}}const u=ejSite()+x.u;f.image=f.image==u?'':u;haptic('tick');refreshMain()},
