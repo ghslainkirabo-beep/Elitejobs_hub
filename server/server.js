@@ -574,6 +574,9 @@ const server = http.createServer((req, res) => {
     if (p === '/api/photos/job') return run(() => photos.jobSearch(me, q.get('q') || ''));
     if (p === '/api/photos/use' && post) return body(2e3, b => photos.use(me, b.id));
     if (p === '/api/photos/defaults' && post) return body(2e3, () => photos.fillDefaults(me));
+    if (p === '/api/photos/defaults/list') return run(() => photos.defaultsList(me));
+    if (p === '/api/photos/defaults/remove' && post) return body(2e3, b => photos.defaultsRemove(me, b));
+    if (p === '/api/photos/defaults/add' && post) return body(2e3, b => photos.defaultsAdd(me, b));
     return json(res, 404, { error: 'Not found' });
   }
   if (p.startsWith('/api/vf/')) {

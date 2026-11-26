@@ -11,9 +11,9 @@ global.fetch = async (u) => {
     calls.api++; const q = new URL(u).searchParams;
     if (q.get('key') === 'bad-123456-ffffffffffffffffffff') return { ok: false, status: 400, json: async () => ({}) };
     const term = q.get('q'), job = term.split(' ').filter(w => !['african', 'africa', 'black'].includes(w)).join(' '), cat = q.get('category') || '';
-    const T = [job + ', african, man', job + ', black, woman, smile', 'african grey parrot, bird', job + ', woman, portrait', 'restaurant, interior', 'african, woman, headwrap'];
+    const T = [job + ', african, man', job + ', black, woman, smile', 'african grey parrot, bird', job + ', woman, portrait', 'restaurant, interior', 'african, woman, headwrap', job + ', figurine, man', 'african, man, smile, ' + job];
     let h0 = 0; for (const ch of term + cat) h0 = (h0 * 31 + ch.charCodeAt(0)) % 1e6;
-    return { ok: true, status: 200, json: async () => ({ hits: Array.from({ length: 18 }, (_, i) => ({ id: h0 * 100 + i, webformatURL: `https://pixabay.com/get/w${i}.jpg`, largeImageURL: `https://pixabay.com/get/l${i}.jpg`, imageWidth: 1920, imageHeight: 1280, tags: T[i % T.length], user: 'maker' + i, pageURL: 'https://pixabay.com/photos/x-' + i })) }) };
+    return { ok: true, status: 200, json: async () => ({ hits: Array.from({ length: 24 }, (_, i) => ({ id: h0 * 100 + i, webformatURL: `https://pixabay.com/get/w${i}.jpg`, largeImageURL: `https://pixabay.com/get/l${i}.jpg`, imageWidth: 1920, imageHeight: 1280, tags: T[i % T.length], user: i === 9 ? 'sameshoot' : 'maker' + h0 + '-' + i, pageURL: 'https://pixabay.com/photos/x-' + i })) }) };
   }
   if (u.startsWith('https://pixabay.com/get/')) { calls.img++; return { ok: true, status: 200, headers: { get: () => 'image/jpeg' }, arrayBuffer: async () => JPG }; }
   throw new Error('unexpected ' + u);
@@ -42,6 +42,9 @@ const throws = async (f, re) => { try { await f(); assert.fail('should refuse');
   assert.ok(r.items.slice(6).every(x => !x.af && !/african|black/.test(x.tags)), 'then other people');
   assert.ok(!r.items.some(x => /parrot|interior/.test(x.tags)), 'never animals or empty rooms');
   assert.ok(!r.items.some(x => /headwrap/.test(x.tags)), 'never an African person doing something else');
+  assert.ok(!r.items.some(x => /figurine/.test(x.tags)), 'never toys or statues');
+  assert.ok(!r.items.some(x => /smile, waiter$/.test(x.tags)), 'the job must be one of the first three tags');
+  assert.ok(r.items.filter(x => x.by === 'sameshoot').length <= 1, 'one photo per photographer');
   assert.ok(r.items.every(x => /waiter/.test(x.tags)), 'every photo is about the job');
   assert.ok(r.items.filter(x => /waiter/.test(x.tags)).length >= 9, 'about the job first');
   const n = calls.api; await px.jobSearch(HR, 'waiter'); assert.equal(calls.api, n, 'kept 24 hours');
@@ -62,6 +65,18 @@ const throws = async (f, re) => { try { await f(); assert.fail('should refuse');
   assert.ok(!stored.some(x => /headwrap/.test(x.tags)), 'never an unrelated portrait');
   const all = Object.entries(fieldpics).filter(([k]) => k.startsWith('job:')).flatMap(([, v]) => v); assert.equal(new Set(all).size, all.length, 'no photo used for two jobs');
   assert.ok(acts.some(a => /filled the website's default job photos/.test(a)));
+  // IT checks the photos by eye: removes a wrong one (never chosen again), adds a better one (stays first after a refresh)
+  await throws(() => px.defaultsList(HR), /Only IT or Admin/);
+  const L = await px.defaultsList(IT), g = L.groups.find(x => x.k === 'job:waiter'); assert.equal(g.urls.length, 8);
+  const bad = g.urls[2], U = JSON.parse(fs.readFileSync(path.join(D, 'photo-media.json'))), badId = Object.keys(U).find(i => U[i] === bad);
+  await throws(() => px.defaultsRemove(HR, { k: 'job:waiter', url: bad }), /Only IT or Admin/);
+  const rm = await px.defaultsRemove(IT, { k: 'job:waiter', url: bad }); assert.equal(rm.urls.length, 7); assert.ok(!fieldpics['job:waiter'].includes(bad), 'gone from the website');
+  assert.ok(!(await px.jobSearch(HR, 'waiter')).items.some(x => x.id === badId), 'a removed photo is never offered again');
+  const pick = (await px.jobSearch(HR, 'nurse')).items[0];
+  const ad = await px.defaultsAdd(IT, { k: 'job:waiter', id: pick.id }); assert.equal(ad.urls.length, 8); assert.equal(fieldpics['job:waiter'][0], ad.urls[0], 'added first');
+  px.fillDefaults(IT); for (let i = 0; i < 200 && px.status(IT).fill.busy; i++) await new Promise(r => setTimeout(r, 20));
+  assert.equal(fieldpics['job:waiter'][0], ad.urls[0], 'the photo IT chose stays after a refresh'); assert.ok(!fieldpics['job:waiter'].includes(bad), 'the removed one stays out');
+  assert.ok(acts.some(a => /removed a default photo/.test(a)) && acts.some(a => /added a default photo/.test(a)), 'shown in the activity log');
   // older than 24 hours: searched again
   const c = JSON.parse(fs.readFileSync(path.join(D, 'photo-cache.json'))); Object.values(c).forEach(x => x.t -= 25 * 36e5); fs.writeFileSync(path.join(D, 'photo-cache.json'), JSON.stringify(c));
   const m = calls.api; await px.jobSearch(HR, 'waiter'); assert.ok(calls.api > m, 'searched again after 24 hours');

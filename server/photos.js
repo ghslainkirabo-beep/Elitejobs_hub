@@ -8,7 +8,10 @@
 const fs = require('fs'), path = require('path');
 
 module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
-  const KEY = path.join(DATA_DIR, 'pixabay.json'), CACHE = path.join(DATA_DIR, 'photo-cache.json'), USED = path.join(DATA_DIR, 'photo-media.json');
+  const KEY = path.join(DATA_DIR, 'pixabay.json'), CACHE = path.join(DATA_DIR, 'photo-cache.json'), USED = path.join(DATA_DIR, 'photo-media.json'), DEF = path.join(DATA_DIR, 'photo-defaults.json');
+  // DEF: { map: {group: [urls]}, pin: {group: [urls IT chose]}, ban: [pixabay ids IT removed — never chosen again] }
+  const defs = () => Object.assign({ map: {}, pin: {}, ban: [] }, rj(DEF, {}));
+  const banned = () => new Set(defs().ban);
   const DAY = 864e5;
   const rj = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return d; } };
   const wj = (f, o) => { const t = f + '.tmp'; fs.writeFileSync(t, JSON.stringify(o)); fs.renameSync(t, f); };
@@ -55,7 +58,7 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     // Pixabay's API ranks by popularity, not by match: when the search asks for African people, photos whose own
     // description says so come first, and the others only if there are too few.
     let hits = c[q].hits;
-    hits = hits.filter(h => !ANIMAL.test(h.tags || ''));
+    hits = hits.filter(h => !ANIMAL.test(h.tags || '') && !FAKE.test(h.tags || ''));
     if (ppl) { const af = hits.filter(isAfrican); hits = af.length >= 4 ? af : af.concat(hits.filter(h => !isAfrican(h) && isPeople(h))); }
     return { items: hits.map(h => ({ id: h.id, t: h.t, tags: h.tags, by: h.by, page: h.page, u: used[h.id] || '' })), from: 'Pixabay' };
   }
@@ -65,27 +68,33 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
   const ANIMAL = /\b(parrot|bird|elephant|lion|giraffe|zebra|animal|animals|wildlife|safari|monkey|gorilla|leopard|cheetah|rhino|buffalo|dog|cat|horse|cow|goat|chicken|fish|insect|butterfly|snake|tree|landscape|sunset|map)\b/i;
   const PERSON = /\b(woman|women|man|men|person|people|girl|boy|lady|guy|worker|workers|portrait|face|smile|smiling|student|teacher|nurse|doctor|waiter|waitress|chef|cook|driver|guard|farmer|businessman|businesswoman|employee|staff|team|female|male|adult|child|children|mother|father)\b/i;
   const AFRICA = /\b(africa|african|africans|black|rwanda|rwandan|kenya|kenyan|nigeria|nigerian|ghana|uganda|tanzania|ethiopia|senegal|cameroon|congo|afro)\b/i;
-  const isPeople = h => PERSON.test(h.tags || '') && !ANIMAL.test(h.tags || '');
+  const isPeople = h => PERSON.test(h.tags || '') && !ANIMAL.test(h.tags || '') && !/\b(figurine|figure|toy|statue|sculpture|doll|mannequin)\b/i.test(h.tags || '');
   const isAfrican = h => isPeople(h) && AFRICA.test(h.tags || '');
   // ---- a job's photos: up to 6 African people, then up to 4 people of other origins — all of them people, never animals,
   //      the ones whose description names the job first ----
   const STOP = new Set(['african', 'africa', 'people', 'person', 'the', 'and', 'for', 'with', 'at', 'in', 'of']);
   const jobWords = q => norm(q).split(' ').filter(w => w.length > 2 && !STOP.has(w));
   // what a photo's description must name for it to count as that job (the job itself, or where and how it is done)
-  const SYN = { waiter: ['waitress', 'server', 'restaurant', 'cafe', 'serving', 'hospitality', 'dining'], waitress: ['waiter', 'server', 'restaurant', 'cafe', 'serving'],
-    bartender: ['barman', 'barmaid', 'cocktail', 'bar'], cashier: ['checkout', 'cash register', 'supermarket', 'till'], accountant: ['accounting', 'finance', 'calculator', 'bookkeeping'],
-    receptionist: ['reception', 'front desk', 'hotel'], manager: ['office', 'meeting', 'business'], supervisor: ['team', 'office', 'warehouse'], driver: ['driving', 'car', 'taxi', 'truck', 'chauffeur', 'bus'],
-    sales: ['shop', 'store', 'market', 'seller', 'vendor', 'retail'], saleswoman: ['shop', 'store', 'market', 'seller', 'vendor'], salesperson: ['shop', 'store', 'market', 'seller', 'vendor'], counter: ['shop', 'store', 'counter'],
-    nurse: ['hospital', 'medical', 'healthcare', 'clinic', 'nursing'], doctor: ['hospital', 'medical', 'physician', 'clinic', 'stethoscope'], chef: ['kitchen', 'cooking', 'cook', 'culinary'], cook: ['kitchen', 'cooking', 'chef'],
-    cleaner: ['cleaning', 'housekeeping', 'mop', 'janitor'], housekeeper: ['cleaning', 'housekeeping', 'maid'], teacher: ['classroom', 'school', 'teaching', 'education', 'lesson'], mason: ['construction', 'bricks', 'builder', 'building site', 'bricklayer'],
-    electrician: ['electrical', 'wiring', 'electricity', 'cable'], plumber: ['plumbing', 'pipe', 'pipes'], mechanic: ['garage', 'repair', 'engine', 'workshop'], tailor: ['sewing', 'seamstress', 'fabric', 'dressmaker'],
-    hairdresser: ['hair salon', 'hairstyle', 'braids', 'salon', 'hair'], barber: ['barbershop', 'haircut', 'shaving'], farmer: ['farm', 'agriculture', 'field', 'harvest', 'crops'], nanny: ['babysitter', 'childcare', 'baby', 'children'],
-    guard: ['security', 'uniform', 'guarding'], security: ['guard', 'uniform', 'guarding'], welder: ['welding', 'metal'], carpenter: ['carpentry', 'wood', 'woodwork', 'workshop'], pharmacist: ['pharmacy', 'medicine', 'drugstore'],
-    baker: ['bakery', 'bread', 'pastry'], storekeeper: ['warehouse', 'storage', 'inventory'], dishwasher: ['dishes', 'washing', 'kitchen'], gardener: ['garden', 'gardening', 'plants'], secretary: ['office', 'typing', 'desk'],
-    worker: ['work', 'working', 'job'], construction: ['construction', 'building', 'builder'], software: ['computer', 'laptop', 'coding', 'programmer'], developer: ['computer', 'laptop', 'coding', 'programmer'],
-    programmer: ['computer', 'laptop', 'coding'], office: ['office', 'desk', 'business'], factory: ['factory', 'industry', 'production'], engineer: ['engineering', 'engineer', 'helmet'], salon: ['salon', 'hair', 'beauty'] };
+  const SYN = { waiter: ['waitress', 'serving', 'server', 'restaurant'], waitress: ['waiter', 'serving', 'server', 'restaurant'],
+    bartender: ['barman', 'barmaid', 'cocktail', 'bartending'], barman: ['bartender', 'barmaid', 'cocktail'], cashier: ['checkout', 'cash register', 'till'], accountant: ['accounting', 'bookkeeping', 'bookkeeper'],
+    receptionist: ['reception', 'front desk'], manager: ['meeting', 'office', 'management'], supervisor: ['supervising', 'warehouse'], driver: ['driving', 'taxi', 'chauffeur', 'truck driver', 'bus driver'],
+    sales: ['shop', 'seller', 'vendor', 'retail', 'saleswoman', 'salesman'], saleswoman: ['shop', 'seller', 'vendor'], salesperson: ['shop', 'seller', 'vendor', 'salesman', 'saleswoman'], counter: ['shop', 'shopkeeper'],
+    nurse: ['nursing', 'hospital', 'clinic'], doctor: ['physician', 'hospital', 'stethoscope', 'clinic'], chef: ['cooking', 'culinary', 'kitchen'], cook: ['cooking', 'chef', 'kitchen'],
+    cleaner: ['cleaning', 'janitor', 'mopping', 'housekeeping'], housekeeper: ['housekeeping', 'maid', 'cleaning'], teacher: ['teaching', 'classroom', 'lesson'], mason: ['bricklayer', 'bricks', 'masonry'],
+    electrician: ['electrical', 'wiring'], plumber: ['plumbing'], mechanic: ['car repair', 'auto repair', 'garage', 'engine'], tailor: ['sewing', 'seamstress', 'dressmaker'],
+    hairdresser: ['hair salon', 'hairstylist', 'braids', 'braiding', 'haircut'], barber: ['barbershop', 'haircut', 'shaving'], farmer: ['farming', 'agriculture', 'harvest', 'farm'], nanny: ['babysitter', 'childcare'],
+    guard: ['security', 'bodyguard', 'guarding'], security: ['guard', 'bodyguard'], welder: ['welding'], carpenter: ['carpentry', 'woodwork'], pharmacist: ['pharmacy', 'drugstore'],
+    baker: ['bakery', 'baking'], storekeeper: ['warehouse', 'inventory'], dishwasher: ['dishes', 'washing dishes'], gardener: ['gardening'], secretary: ['typing', 'office'],
+    worker: ['working', 'work'], construction: ['builder', 'building site'], software: ['coding', 'programmer', 'developer'], developer: ['coding', 'programmer'],
+    programmer: ['coding', 'developer'], office: ['office', 'business'], factory: ['factory', 'industry'], engineer: ['engineering', 'engineer'], salon: ['salon', 'hairdresser'] };
   const terms = W => [...new Set(W.flatMap(w => [w, ...(SYN[w] || [])]))];
-  const aboutJob = (h, W) => { const t = ' ' + String(h.tags || '').toLowerCase() + ' '; return terms(W).some(w => w.includes(' ') ? t.includes(w) : new RegExp('\\b' + w.slice(0, Math.min(w.length, 6)), 'i').test(t)); };
+  // Pixabay lists a photo's tags most important first: the job (or how it is done) must be one of the first three,
+  // so a photo where the job is only a side detail doesn't count
+  const head = h => ' ' + String(h.tags || '').toLowerCase().split(',').slice(0, 3).map(x => x.trim()).join(' , ') + ' ';
+  const aboutJob = (h, W) => { const t = head(h); return terms(W).some(w => w.includes(' ') ? t.includes(w) : new RegExp('\\b' + w.slice(0, Math.min(w.length, 6)), 'i').test(t)); };
+  // never toys, statues, posed fashion shots, drawings or weapons — only real people at work
+  const FAKE = /\b(figurine|figure|figures|toy|toys|statue|sculpture|doll|dolls|miniature|puppet|lego|playmobil|mannequin|fashion|glamour|sexy|erotic|lingerie|bikini|pinup|cosplay|costume|halloween|fantasy|zombie|horror|render|illustration|cartoon|drawing|soldier|soldiers|army|military|war|weapon|gun|rifle|pistol)\b/i;
+  const real = h => !FAKE.test(h.tags || '');
   let lastCall = 0; const GAP = Number(process.env.PX_PACE || 700); const pace = async () => { const w = lastCall + GAP - Date.now(); if (w > 0) await new Promise(r => setTimeout(r, w)); lastCall = Date.now(); }; // Pixabay allows 100 searches a minute
 
   async function raw(p, q, people) { // the cached Pixabay hits for one search
@@ -108,7 +117,8 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
   async function jobPhotos(p, job, nAf = 6, nFo = 4, avoid) {
     signed(p); const W = jobWords(job); if (!W.length) return { af: [], fo: [] };
     const base = W.join(' '), seen = new Set(avoid || []);
-    const take = (L, n, ok) => { const out = []; for (const h of L) { if (out.length >= n) break; if (!seen.has(h.id) && aboutJob(h, W) && ok(h)) { seen.add(h.id); out.push(h); } } return out; };
+    const by = new Set(), ban = banned(); // one photo per photographer, so the same shoot doesn't show twice
+    const take = (L, n, ok) => { const out = []; for (const h of L) { if (out.length >= n) break; if (!seen.has(h.id) && !ban.has(h.id) && !by.has(h.by) && real(h) && aboutJob(h, W) && ok(h)) { seen.add(h.id); by.add(h.by); out.push(h); } } return out; };
     let af = take([...await raw(p, 'african ' + base, true), ...await raw(p, base + ' africa', true)], nAf, isAfrican);
     if (af.length < nAf) af = af.concat(take([...await raw(p, 'black ' + base, true), ...await raw(p, 'african ' + base, false)], nAf - af.length, isAfrican));
     let fo = take(await raw(p, base, true), nFo, h => isPeople(h) && !isAfrican(h));
@@ -162,15 +172,16 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     'field:tourism-beauty-media': ['african hair salon'], 'field:driving-logistics': ['african driver'], 'field:sales-marketing': ['african sales shop'], 'field:finance': ['african accountant'],
     'field:hospitality': ['african waiter restaurant'], 'field:office-admin': ['african office receptionist']
   };
+  const push = d => urgent.remote('/api/hub/fieldpics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ map: d.map }) });
   function fillDefaults(p) {
     signed(p); if (!boss(p)) throw err('Only IT or Admin can refresh the default photos.', 403);
     if (!key()) throw err('Add the Pixabay key first.', 409);
     if (filling) throw err('Default photos are already being filled.', 409);
     const E = Object.entries(DEFAULTS); fillState = { busy: true, done: 0, total: E.length, last: fillState.last, error: '' };
     filling = (async () => {
-      const map = {}, usedIds = new Set(); let n = 0;
+      const d0 = defs(), map = {}, usedIds = new Set(); let n = 0;
       for (const [k, qs] of E) {
-        const got = [];
+        const got = [...(d0.pin[k] || [])].slice(0, 8); // the photos IT chose stay first
         for (const q of qs) {
           if (got.length >= 8) break;
           let r = { af: [], fo: [] }; try { r = await jobPhotos(p, q.replace(/\bafrican\b/g, ' '), 5, 3, usedIds); } catch (e) { fillState.error = e.message; }
@@ -179,7 +190,7 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
         if (got.length) map[k] = got;
         fillState.done++;
       }
-      await urgent.remote('/api/hub/fieldpics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ map }) });
+      const d = defs(); d.map = map; wj(DEF, d); await push(d);
       // tidy up: photos nothing uses any more are deleted from the website, and forgotten here
       try { const pr = await (await urgent.remote('/api/hub/mediaprune', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json(); const del = new Set(pr.deleted || []), U = rj(USED, {}); for (const k of Object.keys(U)) if (del.has(U[k])) delete U[k]; wj(USED, U); } catch (e) { /* next time */ }
       appendActivity({ t: Date.now(), who: p.name, what: `filled the website's default job photos from Pixabay (${Object.keys(map).length} groups, ${n} photos)` });
@@ -187,5 +198,29 @@ module.exports = function photos({ DATA_DIR, urgent, appendActivity }) {
     })().catch(e => { fillState = Object.assign(fillState, { busy: false, error: e.message }); }).finally(() => { filling = null; });
     return { ok: true, started: true, total: E.length };
   }
-  return { status, setKey, search, jobSearch, use, fillDefaults };
+
+  // ---- IT checks the default photos by eye: remove a wrong one (it never comes back), add a better one ----
+  const GROUPS = () => Object.keys(DEFAULTS);
+  async function seeded() { const d = defs(); if (Object.keys(d.map).length) return d; try { const m = await (await fetch(site() + '/api/fieldpics', { signal: AbortSignal.timeout(15000) })).json(); if (m && typeof m === 'object') { d.map = m; wj(DEF, d); } } catch (e) { /* empty until the next fill */ } return d; }
+  async function defaultsList(p) { signed(p); if (!boss(p)) throw err('Only IT or Admin can check the default photos.', 403); const d = await seeded(); return { groups: GROUPS().map(k => ({ k, urls: d.map[k] || [], pin: d.pin[k] || [] })), site: site(), banned: d.ban.length }; }
+  async function defaultsRemove(p, b) {
+    signed(p); if (!boss(p)) throw err('Only IT or Admin can change the default photos.', 403); if (filling) throw err('Wait: the default photos are being filled.', 409);
+    const k = String(b.k || ''), url = String(b.url || ''); if (!DEFAULTS[k] || !MEDIA.test(url)) throw err('Choose a photo first.');
+    const d = await seeded(); d.map[k] = (d.map[k] || []).filter(u => u !== url); if (d.pin[k]) d.pin[k] = d.pin[k].filter(u => u !== url);
+    const id = Object.keys(rj(USED, {})).find(i => rj(USED, {})[i] === url); if (id && !d.ban.includes(id)) d.ban.push(id);
+    wj(DEF, d); await push(d);
+    appendActivity({ t: Date.now(), who: p.name, what: `removed a default photo from ${k} (it won't be chosen again)` });
+    return { ok: true, urls: d.map[k] };
+  }
+  async function defaultsAdd(p, b) {
+    signed(p); if (!boss(p)) throw err('Only IT or Admin can change the default photos.', 403); if (filling) throw err('Wait: the default photos are being filled.', 409);
+    const k = String(b.k || ''); if (!DEFAULTS[k]) throw err('Choose a job first.');
+    const { url } = await use(p, b.id); const d = await seeded();
+    d.pin[k] = [url, ...(d.pin[k] || []).filter(u => u !== url)].slice(0, 8);
+    d.map[k] = [url, ...(d.map[k] || []).filter(u => u !== url)].slice(0, 8);
+    d.ban = d.ban.filter(i => i !== String(b.id)); wj(DEF, d); await push(d);
+    appendActivity({ t: Date.now(), who: p.name, what: `added a default photo to ${k}` });
+    return { ok: true, urls: d.map[k] };
+  }
+  return { status, setKey, search, jobSearch, use, fillDefaults, defaultsList, defaultsRemove, defaultsAdd };
 };
